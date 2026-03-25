@@ -1,0 +1,40 @@
+﻿@model IEnumerable<TravelSmart.API.Models.Place>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary"><i class="bi bi-geo-alt"></i> Quản lý địa điểm du lịch</h2>
+        <a asp-action="Create" class="btn btn-success rounded-pill shadow-sm">+ Thêm địa điểm</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ảnh</th>
+                        <th>Tên địa điểm</th>
+                        <th>Địa chỉ</th>
+                        <th>Tọa độ</th>
+                        <th>Rating</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><img src="@item.ImageUrl" style="width:60px; height:60px; object-fit:cover; border-radius:8px;" /></td>
+                            <td class="fw-bold">@item.Name</td>
+                            <td>@item.Address</td>
+                            <td><small class="text-muted">@item.Latitude, @item.Longitude</small></td>
+                            <td><span class="badge bg-warning text-dark">⭐ @item.Rating</span></td>
+                            <td>
+                                <a asp-action="Delete" asp-route-id="@item.Id}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa sao ông?')">Xóa</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

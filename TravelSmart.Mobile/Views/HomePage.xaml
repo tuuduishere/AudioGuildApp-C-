@@ -1,0 +1,3 @@
+<VerticalStackLayout VerticalOptions="Center">
+    <Label Text="APP ĐÃ CHẠY ĐƯỢC!" HorizontalOptions="Center" FontSize="24"/>
+</VerticalStackLayout>

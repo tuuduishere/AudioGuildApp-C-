@@ -1,0 +1,10 @@
+<api type="debug" assembly-name="TravelSmart.Mobile" mvid="46582561f8c94cbd929200fe545a86fe">
+  <java-to-managed>
+    <entry java-name="crc64ebf0fc695f74bed5/MainActivity" managed-name="TravelSmart.Mobile.MainActivity, TravelSmart.Mobile" managed-type-token-id="33554452" />
+    <entry java-name="crc64ebf0fc695f74bed5/MainApplication" managed-name="TravelSmart.Mobile.MainApplication, TravelSmart.Mobile" managed-type-token-id="33554453" />
+  </java-to-managed>
+  <managed-to-java>
+    <entry java-name="crc64ebf0fc695f74bed5/MainActivity" managed-name="TravelSmart.Mobile.MainActivity, TravelSmart.Mobile" managed-type-token-id="33554452" />
+    <entry java-name="crc64ebf0fc695f74bed5/MainApplication" managed-name="TravelSmart.Mobile.MainApplication, TravelSmart.Mobile" managed-type-token-id="33554453" />
+  </managed-to-java>
+</api>

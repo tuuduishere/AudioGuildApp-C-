@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="TravelSmart.Mobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:TravelSmart.Mobile.Views"
+    Shell.FlyoutBehavior="Disabled"
+    Title="Travel Smart">
+
+    <TabBar>
+        <!-- <Tab Title="Khám Phá" Icon="dotnet_bot.png">
+            <ShellContent
+                Title="Trang chủ"
+                ContentTemplate="{DataTemplate views:HomePage}"
+                Route="HomePage" />
+        </Tab>
+        <Tab Title="Bản Đồ" Icon="dotnet_bot.png">
+            <ShellContent
+                Title="Bản đồ"
+                ContentTemplate="{DataTemplate views:MapPage}"
+                Route="MapPage" />
+        </Tab>-->
+    </TabBar>
+
+</Shell>

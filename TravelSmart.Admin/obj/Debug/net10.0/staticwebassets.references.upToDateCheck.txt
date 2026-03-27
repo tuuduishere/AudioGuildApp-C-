@@ -1,9 +1,0 @@
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json
-F:\TravelSmart.API\obj\Debug\net10.0\staticwebassets.build.json

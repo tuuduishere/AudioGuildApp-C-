@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TravelSmart.Admin/TravelSmart.Admin.csproj" />
+  <Project Path="TravelSmart.API/TravelSmart.API.csproj" />
+  <Project Path="TravelSmart.Mobile/TravelSmart.Mobile.csproj" />
+</Solution>

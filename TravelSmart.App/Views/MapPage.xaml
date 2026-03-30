@@ -1,0 +1,16 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelSmart.App.MapPage">
+
+    <Grid>
+        <WebView x:Name="mapWeb"/>
+
+        <Button Text="📍"
+                WidthRequest="60"
+                HeightRequest="60"
+                VerticalOptions="End"
+                HorizontalOptions="End"
+                Clicked="OnLocate"/>
+    </Grid>
+
+</ContentPage>

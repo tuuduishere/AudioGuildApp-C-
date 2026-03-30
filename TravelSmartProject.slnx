@@ -1,5 +1,17 @@
 <Solution>
-  <Project Path="TravelSmart.Admin/TravelSmart.Admin.csproj" />
-  <Project Path="TravelSmart.API/TravelSmart.API.csproj" />
-  <Project Path="TravelSmart.Mobile/TravelSmart.Mobile.csproj" />
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="TravelSmart.Admin/TravelSmart.Admin.csproj">
+    <Platform Solution="Release|x64" Project="x64" />
+    <Build Solution="Debug|x64" Project="false" />
+  </Project>
+  <Project Path="TravelSmart.API/TravelSmart.API.csproj">
+    <Platform Solution="Release|x64" Project="x64" />
+    <Build Solution="Debug|x64" Project="false" />
+  </Project>
+  <Project Path="TravelSmart.App/TravelSmart.App.csproj" Id="a9d0914f-5213-40bc-bad4-bb99fc56fc33">
+    <Deploy Solution="Debug|Any CPU" />
+  </Project>
 </Solution>

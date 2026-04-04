@@ -3,20 +3,34 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelSmart.App.ExplorePage">
 
-    <VerticalStackLayout Padding="10">
-        <SearchBar x:Name="searchBar" Placeholder="Tìm ở TP.HCM..." TextChanged="OnSearch"/>
+    <VerticalStackLayout Padding="12" Spacing="10">
+        <Label Text="Khám phá" FontSize="28" FontAttributes="Bold" />
+        <SearchBar x:Name="searchBar" Placeholder="Tìm địa điểm, món ăn..." TextChanged="OnSearch"/>
 
-        <CollectionView x:Name="listView">
+        <CollectionView x:Name="listView" SelectionMode="Single" ItemsLayout="VerticalList" SelectionChanged="OnSelectionChanged">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Border Stroke="#1A73E8" StrokeThickness="1" Padding="10" Margin="5">
-                        <VerticalStackLayout>
-                            <Image Source="{Binding Image}" HeightRequest="140" />
-                            <Label Text="{Binding Name}" FontSize="18" />
-                            <Label Text="⭐ {Binding Rating}" />
-                            <Label Text="{Binding Price}" />
-                        </VerticalStackLayout>
-                    </Border>
+                    <Frame HasShadow="True" BorderColor="Transparent" Padding="8" Margin="6" CornerRadius="12" BackgroundColor="{StaticResource Secondary}">
+                        <Grid ColumnDefinitions="100,*,40" RowDefinitions="Auto,Auto">
+                            <Image Source="{Binding Image}" Aspect="AspectFill" HeightRequest="100" WidthRequest="100" Grid.RowSpan="2" />
+
+                            <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" Grid.Column="1" />
+                            <Label Text="⭐ {Binding Rating} • {Binding Price}" Grid.Column="1" Grid.Row="1" TextColor="{StaticResource Gray600}" />
+
+                            <Button x:Name="favBtn" Text="♥" WidthRequest="36" HeightRequest="36" Grid.Column="2" Clicked="OnFavoriteClicked">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsFavorite}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsFavorite}" Value="False">
+                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

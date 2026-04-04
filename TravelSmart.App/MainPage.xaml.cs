@@ -1,24 +1,39 @@
-﻿namespace TravelSmart.App
+﻿using System;
+using Microsoft.Maui.Controls;
+
+namespace TravelSmart.App
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
-
         public MainPage()
         {
             InitializeComponent();
         }
 
-        private void OnCounterClicked(object? sender, EventArgs e)
+        private void OnCounterClicked(object sender, EventArgs e)
         {
-            count++;
+            // legacy counter removed from UI — keep method as no-op
+        }
 
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
-            else
-                CounterBtn.Text = $"Clicked {count} times";
+        async void OpenExplore(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("//explore");
+        }
 
-            SemanticScreenReader.Announce(CounterBtn.Text);
+        async void OpenMap(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("//map");
+        }
+
+        async void OpenFood(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("//food");
+        }
+
+        async void OpenFavorites(object sender, EventArgs e)
+        {
+            // For now navigate to Explore where favorites are visible
+            await Shell.Current.GoToAsync("//explore");
         }
     }
 }

@@ -2,15 +2,44 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelSmart.App.MapPage">
 
-    <Grid>
-        <WebView x:Name="mapWeb"/>
+    <Grid RowDefinitions="Auto,*">
+        <!-- Top overlay: header (Search removed as requested) -->
+        <Grid Grid.Row="0" Padding="12">
+            <Frame BackgroundColor="{StaticResource Primary}" CornerRadius="12" HasShadow="True" Padding="10" HorizontalOptions="FillAndExpand" VerticalOptions="Start">
+                <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+                    <Label Text="Bản đồ" FontSize="18" FontAttributes="Bold" TextColor="White" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Frame>
+        </Grid>
 
-        <Button Text="📍"
-                WidthRequest="60"
-                HeightRequest="60"
-                VerticalOptions="End"
-                HorizontalOptions="End"
-                Clicked="OnLocate"/>
+        <!-- Map content as background (placed in second row so overlays do not block gestures) -->
+        <WebView x:Name="mapWeb" Grid.Row="1" Navigating="OnMapWebNavigating" />
+
+        <!-- Floating action buttons (on map row) -->
+        <VerticalStackLayout Grid.Row="1" VerticalOptions="End" HorizontalOptions="End" Margin="16" Spacing="10">
+            <Button Text="📍"
+                    WidthRequest="56"
+                    HeightRequest="56"
+                    CornerRadius="28"
+                    Style="{StaticResource IconButton}"
+                    Clicked="OnLocate" />
+
+            <Button Text="✖" 
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    CornerRadius="24"
+                    BackgroundColor="{StaticResource White}"
+                    TextColor="{StaticResource Gray900}"
+                    BorderColor="{StaticResource Gray200}"
+                    Clicked="OnCancelRoute" />
+        </VerticalStackLayout>
+
+        <!-- Bottom attribution / info bar (on map row) -->
+        <Frame Grid.Row="1" CornerRadius="12" Padding="8" HasShadow="True" BackgroundColor="#CCFFFFFF" HorizontalOptions="Center" VerticalOptions="End" Margin="16">
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="Dữ liệu bản đồ © OpenStreetMap" FontSize="12" TextColor="{StaticResource Gray600}" />
+            </HorizontalStackLayout>
+        </Frame>
     </Grid>
 
 </ContentPage>

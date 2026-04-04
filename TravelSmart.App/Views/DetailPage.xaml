@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelSmart.App.DetailPage">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="12">
+            <CarouselView x:Name="carousel" HeightRequest="220">
+                <CarouselView.ItemTemplate>
+                    <DataTemplate>
+                        <Image Source="{Binding .}" Aspect="AspectFill" />
+                    </DataTemplate>
+                </CarouselView.ItemTemplate>
+            </CarouselView>
+            <Label x:Name="title" FontSize="22" FontAttributes="Bold" />
+            <Label x:Name="subtitle" FontSize="14" TextColor="{StaticResource Gray600}" />
+            <Label x:Name="desc" FontSize="14" />
+
+            <HorizontalStackLayout Spacing="10">
+                <Button Text="Xem trên bản đồ" Clicked="OnShowMap" />
+                <Button Text="Chỉ đường" Clicked="OnDirections" />
+                <Button Text="Chia sẻ" Clicked="OnShare" />
+                <Button x:Name="favBtn" Text="♥" Clicked="OnToggleFav" />
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

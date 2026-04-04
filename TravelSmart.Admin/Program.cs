@@ -1,11 +1,17 @@
+// The API project (TravelSmart.API) is not present in this workspace. Temporarily disable
+// the DbContext setup so the solution can build for the MAUI app.
+#if INCLUDE_API
 using Microsoft.EntityFrameworkCore;
+#endif
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+#if INCLUDE_API
 builder.Services.AddDbContext<TravelSmart.API.Data.AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+#endif
 
 var app = builder.Build();
 

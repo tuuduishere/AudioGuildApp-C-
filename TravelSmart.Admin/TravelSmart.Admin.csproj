@@ -13,7 +13,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TravelSmart.API\TravelSmart.API.csproj" />
+    <!-- ProjectReference to TravelSmart.API removed temporarily because the project file is missing in the workspace.
+         Restore this reference if TravelSmart.API is added back to the solution. -->
   </ItemGroup>
+
+  <!-- Prevent building server-side admin code in this workspace (API project missing) -->
+  <ItemGroup>
+    <!-- Exclude controllers and views from compilation so solution can build for the MAUI app -->
+    <Compile Remove="Controllers\**\*.cs" />
+    <Content Remove="Views\**\*" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Disable Razor compilation to avoid errors while API project is missing -->
+    <RazorCompileOnBuild>false</RazorCompileOnBuild>
+    <RazorCompileOnPublish>false</RazorCompileOnPublish>
+  </PropertyGroup>
 
 </Project>

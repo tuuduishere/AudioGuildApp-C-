@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelSmart.App.FoodPage">
 
-    <VerticalStackLayout Padding="10">
+    <VerticalStackLayout Padding="12" Spacing="10">
 
         <Picker Title="Lọc món" SelectedIndexChanged="OnFilter">
             <Picker.Items>
@@ -14,15 +14,18 @@
             </Picker.Items>
         </Picker>
 
-        <CollectionView x:Name="foodList">
+        <CollectionView x:Name="foodList" ItemsLayout="VerticalList">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Border Stroke="Gray" StrokeThickness="1" Padding="10" Margin="5">
-                        <HorizontalStackLayout>
-                            <Image Source="{Binding Image}" WidthRequest="80" />
-                            <Label Text="{Binding Name}" VerticalOptions="Center" />
+                    <Frame HasShadow="True" BorderColor="Transparent" Padding="10" Margin="6" CornerRadius="10" BackgroundColor="{StaticResource Secondary}">
+                        <HorizontalStackLayout Spacing="12">
+                            <Image Source="{Binding Image}" WidthRequest="72" HeightRequest="72" Aspect="AspectFill" />
+                            <VerticalStackLayout VerticalOptions="Center">
+                                <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                <Label Text="{Binding Category}" FontSize="12" TextColor="{StaticResource Gray600}" />
+                            </VerticalStackLayout>
                         </HorizontalStackLayout>
-                    </Border>
+                    </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

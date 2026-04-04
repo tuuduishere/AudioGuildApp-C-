@@ -4,10 +4,16 @@
        xmlns:local="clr-namespace:TravelSmart.App"
        x:Class="TravelSmart.App.AppShell">
 
+    <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>
+
     <TabBar>
-        <ShellContent Title="Khám phá" ContentTemplate="{DataTemplate local:ExplorePage}" />
-        <ShellContent Title="Bản đồ" ContentTemplate="{DataTemplate local:MapPage}" />
-        <ShellContent Title="Ẩm thực" ContentTemplate="{DataTemplate local:FoodPage}" />
+        <ShellContent Title="Khám phá" ContentTemplate="{DataTemplate local:ExplorePage}" Route="explore" />
+        <ShellContent Title="Bản đồ" ContentTemplate="{DataTemplate local:MapPage}" Route="map" />
+        <ShellContent Title="Ẩm thực" ContentTemplate="{DataTemplate local:FoodPage}" Route="food" />
+        <ShellContent Title="Yêu thích" ContentTemplate="{DataTemplate local:FavoritesPage}" Route="favorites" />
     </TabBar>
+
+    <!-- Add dashboard as a ShellContent so MainPage can be the startup page -->
+    <ShellContent ContentTemplate="{DataTemplate local:MainPage}" Route="home" />
 
 </Shell>

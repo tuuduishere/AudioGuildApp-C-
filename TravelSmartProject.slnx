@@ -3,6 +3,11 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
+  <Folder Name="/PRD/">
+    <File Path="index.html" />
+    <File Path="script.js" />
+    <File Path="style.css" />
+  </Folder>
   <Project Path="TravelSmart.Admin/TravelSmart.Admin.csproj">
     <Platform Solution="Release|x64" Project="x64" />
     <Build Solution="Debug|x64" Project="false" />

@@ -3,13 +3,14 @@
     --card: #ffffff;
     --primary: #e64a19; /* orange theme */
     --primary-2: #f0622d;
-    --muted: #6b7280;
+    --muted: #4b5563; /* slightly darker muted for readability */
+    --text: #0b1220; /* primary text color */
     --accent: #06b6d4;
     --glass: rgba(255,255,255,0.85);
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#111}
+body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
 
 /* NAV */
 .navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(90deg,var(--primary),var(--primary-2));color:white}
@@ -51,13 +52,25 @@ h2{color:#0b1220;margin-bottom:12px}
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .card{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:10px;background:var(--card);box-shadow:0 6px 16px rgba(2,6,23,0.04)}
 .card i{color:var(--primary);font-size:28px}
-.card h3{margin:0 0 6px 0}
+.card h3{margin:0 0 6px 0;color:var(--text)}
+#content a { color: var(--primary-2); }
 
 /* Metrics boxes under hero */
 .metrics{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0}
 .metric-box{background:var(--card);padding:18px;border-radius:10px;min-width:120px;text-align:center;box-shadow:0 6px 14px rgba(2,6,23,0.04)}
 .metric-box h3{color:var(--primary);margin:0;font-size:22px}
 .metric-box p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+/* Make module card and card body text clearer */
+.card p, .module-card p, .collections-table td, table td, .detail-body, .hero-inner p { color: var(--text); }
+.module-card h4, .collections-table th, h3, h4, h2 { color: var(--text); }
+
+/* Links inside content */
+.detail-body a, .collections-table a { color: var(--primary-2); text-decoration:underline; }
+
+/* Code / pre styling for readability */
+code{background:#f3f4f6;color:#0b1220;padding:2px 6px;border-radius:4px;font-family:monospace}
+pre{background:#fafafa;padding:12px;border-radius:8px;overflow:auto;border:1px solid rgba(2,6,23,0.03)}
 
 /* Timeline */
 .timeline{position:relative;padding-left:40px;margin-top:24px}

@@ -11,7 +11,7 @@
     <Platform Solution="Release|x64" Project="x64" />
     <Build Solution="Debug|x64" Project="false" />
   </Project>
-  <Project Path="TravelSmart.App/TravelSmart.App.csproj" Id="a9d0914f-5213-40bc-bad4-bb99fc56fc33">
+  <Project Path="TravelSmart.App/TravelSmart.App.csproj" Id="d473c976-6f7f-4816-83cd-377131d8b96d">
     <Deploy Solution="Debug|Any CPU" />
   </Project>
 </Solution>

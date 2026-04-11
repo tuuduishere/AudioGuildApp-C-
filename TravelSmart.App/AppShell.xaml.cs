@@ -1,9 +1,10 @@
-﻿namespace TravelSmart.App;
-
-public partial class AppShell : Shell
+﻿namespace TravelSmart.App
 {
-    public AppShell()
+    public partial class AppShell : Shell
     {
-        InitializeComponent();
+        public AppShell()
+        {
+            InitializeComponent();
+        }
     }
 }

@@ -1,7 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version = "1.0" encoding = "UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:TravelSmart.App"
              x:Class="TravelSmart.App.App">
+<<<<<<< HEAD
 
     <Application.Resources>
         <ResourceDictionary>
@@ -13,3 +15,17 @@
     </Application.Resources>
 
 </Application>
+=======
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="PrimaryColor">#FFC107</Color>
+            <Color x:Key="PrimaryLight">#FFF8E1</Color>
+            <Color x:Key="BackgroundColor">#F5F5F5</Color>
+            <Color x:Key="TextColor">#333333</Color>
+            <Style TargetType="Page">
+                <Setter Property="BackgroundColor" Value="{StaticResource BackgroundColor}" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
+>>>>>>> master

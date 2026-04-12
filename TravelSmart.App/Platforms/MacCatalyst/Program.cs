@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace TravelSmart.App
+namespace TravelSmart.APP
 {
     public class Program
     {

@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace TravelSmart.App
+namespace TravelSmart.APP
 {
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate

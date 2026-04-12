@@ -1,8 +1,49 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model IEnumerable<TravelSmart.Admin.Models.PoiViewModel>
+@{
+    Layout = null;
 }
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quản lý Địa điểm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light pb-5">
+    <div class="container mt-5 p-4 bg-white shadow rounded">
+        <h2 class="text-primary mb-4">📍 Quản lý Quán Ốc Vĩnh Khánh</h2>
+        
+        <a href="/Home/Create" class="btn btn-success mb-3 fw-bold">➕ Thêm Quán Mới</a>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tên Quán</th>
+                    <th>Mã QR</th>
+                    <th>Tọa độ (Lat, Long)</th>
+                    <th>Thuyết minh AI</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold text-danger">@item.Name</td>
+                            <td><span class="badge bg-warning text-dark">@item.QrCodeKey</span></td>
+                            <td>@item.Latitude, @item.Longitude</td>
+                            <td class="text-truncate" style="max-width: 250px;">@item.TtsContent</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu quán ốc nào. Hãy thêm mới!</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TravelSmart.App.ViewModels"
+             x:Class="TravelSmart.App.Views.OfflineView"
+             BackgroundColor="Transparent">
+
+    <ContentView.BindingContext>
+        <vm:OfflineViewModel />
+    </ContentView.BindingContext>
+
+    <Grid RowDefinitions="Auto, *">
+        <Border Grid.Row="0" BackgroundColor="{StaticResource PrimaryColor}" StrokeThickness="0" Padding="20,15,20,25">
+            <Border.GestureRecognizers>
+                <PanGestureRecognizer PanUpdated="OnHeaderPanUpdated" />
+            </Border.GestureRecognizers>
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="0,0,25,25" />
+            </Border.StrokeShape>
+            <Grid ColumnDefinitions="*, Auto">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Ngoại tuyến" TextColor="White" FontSize="24" FontAttributes="Bold"/>
+                    <HorizontalStackLayout Spacing="15">
+                        <Label Text="{Binding ProgressText}" TextColor="White" FontSize="11"/>
+                        <Label Text="{Binding SizeText, StringFormat='💾 {0}'}" TextColor="White" FontSize="11"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                <Button Grid.Column="1" Text="↓ Tải hết" BackgroundColor="White" TextColor="{StaticResource PrimaryColor}" FontAttributes="Bold" CornerRadius="10" HeightRequest="35"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="Auto, *">
+            <HorizontalStackLayout Grid.Row="0" Padding="15,15,15,5" Spacing="8">
+                <Border BackgroundColor="{StaticResource PrimaryColor}" StrokeThickness="0" StrokeShape="RoundRectangle 8" Padding="12,6">
+                    <Label Text="Tất cả" TextColor="White" FontSize="12"/>
+                </Border>
+                <Border Stroke="Gray" StrokeShape="RoundRectangle 8" Padding="12,6">
+                    <Label Text="Đã tải" TextColor="Gray" FontSize="12"/>
+                </Border>
+            </HorizontalStackLayout>
+
+            <CollectionView Grid.Row="1" ItemsSource="{Binding Packs}">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border BackgroundColor="White" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="15,0,15,12" Padding="12">
+                            <Grid ColumnDefinitions="Auto, *, Auto">
+                                <Border BackgroundColor="#F5F5F5" WidthRequest="45" HeightRequest="60" Margin="0,0,12,0" StrokeShape="RoundRectangle 8">
+                                    <Label Text="🎧" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                    <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="15"/>
+                                    <Label Text="{Binding AudioInfo}" FontSize="11" TextColor="Gray"/>
+                                    <Label Text="{Binding DownloadDate}" FontSize="10" TextColor="{StaticResource PrimaryColor}" IsVisible="{Binding IsDownloaded}"/>
+                                </VerticalStackLayout>
+                                <Border Grid.Column="2" BackgroundColor="{StaticResource PrimaryLight}" WidthRequest="40" HeightRequest="40" StrokeShape="RoundRectangle 20">
+                                    <Label Text="{Binding ActionIcon}" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentView>

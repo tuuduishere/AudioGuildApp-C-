@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+<Shell x:Class="TravelSmart.App.AppShell"
+       xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-       xmlns:local="clr-namespace:TravelSmart.App"
-       x:Class="TravelSmart.App.AppShell">
+       xmlns:views="clr-namespace:TravelSmart.App.Views"
+       Shell.NavBarIsVisible="False"
+       Shell.FlyoutBehavior="Disabled">
 
+<<<<<<< HEAD
     <Shell.FlyoutBehavior>Disabled</Shell.FlyoutBehavior>
 
     <TabBar>
@@ -17,3 +20,7 @@
     <ShellContent ContentTemplate="{DataTemplate local:MainPage}" Route="home" />
 
 </Shell>
+=======
+    <ShellContent ContentTemplate="{DataTemplate views:MainPage}" />
+</Shell>
+>>>>>>> master

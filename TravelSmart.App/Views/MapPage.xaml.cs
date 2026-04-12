@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 using TravelSmart.App.Services;
 using TravelSmart.App.Models;
 using System.Web;
@@ -5,12 +6,16 @@ using Microsoft.Maui.Controls;
 using System.Linq;
 
 namespace TravelSmart.App;
+=======
+namespace TravelSmart.App.Views;
+>>>>>>> master
 
 public partial class MapPage : ContentPage
 {
     public MapPage()
     {
         InitializeComponent();
+<<<<<<< HEAD
         // Do not call LoadMap here so the map can be refreshed on every appearance
     }
 
@@ -151,6 +156,8 @@ public partial class MapPage : ContentPage
     void OnLocate(object sender, EventArgs e)
     {
         DisplayAlert("Info", "GPS demo trên Windows (mock)", "OK");
+=======
+>>>>>>> master
     }
 
     // Intercept navigation from the web content (e.g. custom app://detail?name=...)

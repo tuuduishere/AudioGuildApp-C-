@@ -1,218 +1,216 @@
 using Microsoft.Maui.Controls.Maps;
 using Microsoft.Maui.Maps;
-using TravelSmart.App.Models;
 using TravelSmart.App.Services;
+using TravelSmart.App.Models;
+using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.ApplicationModel;
+using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using Map = Microsoft.Maui.Controls.Maps.Map;
 
 namespace TravelSmart.App.Views;
 
 public partial class MainPage : ContentPage
 {
-    private enum SheetState { ThreeQuarters, Hidden }
-    private SheetState _currentState = SheetState.Hidden;
+    private readonly DataService _dataService;
+    private List<PoiModel> _pois = new();
+    private HashSet<string> _playedAudioPois = new();
+    private IDispatcherTimer _timer;
+    private Dictionary<Pin, PoiModel> _pinPoiMap = new();
 
-    double _threeQuartersY, _hiddenY, _startY;
-    bool _isInitialized = false;
-    private bool _hasSynced = false;
+    private const string ApiBaseUrl = "http://10.0.2.2:5088/api";
+    private Location _currentSelectedLocation;
 
-    private readonly LocationService _locationService;
-    private readonly DataService _databaseService;
-    private readonly GeofenceService _geofenceService;
-    private readonly TTSService _ttsService;
+    public MainPage() { InitializeComponent(); _dataService = new DataService(); }
 
-    public MainPage()
+    private async Task ReloadMapData()
     {
-        InitializeComponent();
-
-        _databaseService = new DataService();
-        _locationService = new LocationService();
-        _geofenceService = new GeofenceService(_locationService, _databaseService);
-        _ttsService = new TTSService();
+        await _dataService.SyncFromServerAsync();
+        _pois = await _dataService.GetPOIsAsync();
+        FilterMapPins("");
     }
 
-    protected override void OnSizeAllocated(double width, double height)
+    private void FilterMapPins(string keyword)
     {
-        base.OnSizeAllocated(width, height);
-        if (height > 0 && !_isInitialized)
+        MyMap.Pins.Clear(); _pinPoiMap.Clear();
+        var filtered = string.IsNullOrWhiteSpace(keyword) ? _pois : _pois.Where(p => p.Name.ToLower().Contains(keyword.ToLower())).ToList();
+        foreach (var poi in filtered)
         {
-            BottomSheet.HeightRequest = height * 0.75;
-            _threeQuartersY = height * 0.25;
-            _hiddenY = height;
-            BottomSheet.TranslationY = _hiddenY;
-            _isInitialized = true;
+            var pin = new Pin { Label = poi.Name, Address = poi.Description, Type = PinType.Place, Location = new Location(poi.Latitude, poi.Longitude) };
+            pin.MarkerClicked += OnPinClicked; _pinPoiMap[pin] = poi; MyMap.Pins.Add(pin);
         }
+    }
+
+    private void OnSearchButtonPressed(object sender, EventArgs e) { FilterMapPins(SearchPoi.Text); }
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e) { if (string.IsNullOrWhiteSpace(e.NewTextValue)) FilterMapPins(""); }
+
+    private async void OnNotificationClicked(object sender, EventArgs e)
+    {
+        BadgeNoti.IsVisible = false; // Ẩn badge khi bấm vào
+        await Navigation.PushAsync(new NotificationsPage());
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-
-        if (!_hasSynced)
-        {
-            await _databaseService.SyncFromServerAsync();
-            _hasSynced = true;
-        }
-
-        await RefreshMapAndList();
-        _geofenceService.OnPoiEntered += GeofenceService_OnPoiEntered;
-        await _locationService.StartTrackingAsync();
-
-        await CenterMapToUserAsync(false);
-
-#if ANDROID
-        if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.O)
-        {
-            try { Platform.CurrentActivity.StartForegroundService(new Android.Content.Intent(Platform.AppContext, typeof(Platforms.Android.AndroidLocationService))); }
-            catch { }
-        }
-#endif
+        MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(10.7605, 106.7025), Distance.FromKilometers(1)));
+        await SyncWithServer(); // Tự cập nhật ngay khi mở màn hình
+        await ReloadMapData(); await StartTrackingGPS();
     }
 
-    private async Task RefreshMapAndList()
-    {
-        var pois = await _databaseService.GetPOIsAsync();
-        MyMap.Pins.Clear();
-        foreach (var p in pois)
-        {
-            var pin = new Pin { Label = p.Name, Address = p.Description, Type = PinType.Place, Location = new Location(p.Latitude, p.Longitude) };
-            pin.InfoWindowClicked += async (s, args) =>
-            {
-                if (await DisplayAlert("Chỉ đường", $"Mở Google Maps dẫn đến {p.Name}?", "Đi ngay", "Hủy"))
-                    await Microsoft.Maui.ApplicationModel.Map.OpenAsync(p.Latitude, p.Longitude, new MapLaunchOptions { Name = p.Name });
-            };
-            MyMap.Pins.Add(pin);
-        }
-        if (TabPOIView is POIListView poiList) poiList.LoadData();
-    }
-
-    private void GeofenceService_OnPoiEntered(object sender, PoiModel poi)
-    {
-        if (!Preferences.Default.Get("AutoPlayTTS", true)) return;
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            await SnapToState(SheetState.ThreeQuarters);
-            await _ttsService.SpeakAsync(poi.TtsContent);
-        });
-    }
-
-    private async void OnPanUpdated(object sender, PanUpdatedEventArgs e)
-    {
-        switch (e.StatusType)
-        {
-            case GestureStatus.Started:
-                _startY = BottomSheet.TranslationY;
-                break;
-            case GestureStatus.Running:
-                double newY = _startY + e.TotalY;
-                if (newY >= _threeQuartersY) BottomSheet.TranslationY = newY;
-                break;
-            case GestureStatus.Completed:
-                if (e.TotalY > 50) await SnapToState(SheetState.Hidden);
-                else await SnapToState(SheetState.ThreeQuarters);
-                break;
-        }
-    }
-
-    private async Task SnapToState(SheetState targetState)
-    {
-        bool wasHidden = _currentState == SheetState.Hidden;
-        _currentState = targetState;
-
-        double targetY = targetState == SheetState.ThreeQuarters ? _threeQuartersY : _hiddenY;
-
-        Overlay.IsVisible = targetState != SheetState.Hidden;
-        Overlay.Opacity = targetState == SheetState.ThreeQuarters ? 0.3 : 0;
-
-        if (targetState == SheetState.Hidden) _ttsService?.CancelSpeech();
-
-        if (targetState == SheetState.ThreeQuarters && wasHidden)
-        {
-            await CenterMapToUserAsync(true);
-        }
-        else if (targetState == SheetState.Hidden && !wasHidden)
-        {
-            await CenterMapToUserAsync(false);
-        }
-
-        await BottomSheet.TranslateTo(0, targetY, 350, Easing.SpringOut);
-    }
-
-    private async Task CenterMapToUserAsync(bool isSheetOpen)
+    // ĐỒNG BỘ NGẦM (Sửa để hiện SỐ ĐẾM)
+    public async Task SyncWithServer()
     {
         try
         {
-            var location = await Geolocation.GetLastKnownLocationAsync() ?? await Geolocation.GetLocationAsync();
-            if (location != null)
+            var token = await SecureStorage.Default.GetAsync("authToken");
+            if (string.IsNullOrEmpty(token)) return;
+            using var client = new HttpClient(); client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.GetAsync($"{ApiBaseUrl}/Auth/sync");
+            if (response.IsSuccessStatusCode)
             {
-                double offsetLat = isSheetOpen ? -0.003 : 0;
-                var targetCenter = new Location(location.Latitude + offsetLat, location.Longitude);
-                MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(targetCenter, Distance.FromKilometers(1)));
+                var data = await response.Content.ReadFromJsonAsync<SyncDataDto>();
+                if (data != null)
+                {
+                    string realRole = data.roleId == 1 ? "Admin" : (data.roleId == 2 ? "Merchant" : "User");
+                    await SecureStorage.Default.SetAsync("role", realRole);
+
+                    // CẬP NHẬT BADGE SỐ
+                    if (data.unreadCount > 0)
+                    {
+                        BadgeNoti.IsVisible = true;
+                        LblUnreadCount.Text = data.unreadCount > 9 ? "9+" : data.unreadCount.ToString();
+                    }
+                    else
+                    {
+                        BadgeNoti.IsVisible = false;
+                    }
+                }
             }
         }
         catch { }
     }
+    public class SyncDataDto { public int roleId { get; set; } public int unreadCount { get; set; } }
 
-    private async void OnOverlayTapped(object sender, TappedEventArgs e) => await SnapToState(SheetState.Hidden);
-
-    private void ResetTabColors()
+    private async void OnPinClicked(object sender, PinClickedEventArgs e)
     {
-        // TUI ĐÃ BỎ TextQR VÀ IconQR Ở ĐÂY ĐỂ TRÁNH LỖI ĐỎ (Vì nút MoMo đã fix cứng màu vàng)
-        TextPOI.TextColor = TextHistory.TextColor = TextSettings.TextColor = Colors.Gray;
-        IconPOI.Opacity = IconHistory.Opacity = IconSettings.Opacity = 0.5;
-        TextPOI.FontAttributes = TextHistory.FontAttributes = FontAttributes.None;
-    }
-
-    private async void SwitchTab(string tabName)
-    {
-        TabPOIView.IsVisible = (tabName == "POI");
-        TabHistoryView.IsVisible = (tabName == "History");
-
-        ResetTabColors();
-
-        if (tabName == "POI")
+        e.HideInfoWindow = true;
+        if (sender is Pin pin && _pinPoiMap.TryGetValue(pin, out PoiModel poi))
         {
-            TextPOI.TextColor = IconPOI.TextColor = Color.FromArgb("#FFC107");
-            TextPOI.FontAttributes = FontAttributes.Bold;
-            IconPOI.Opacity = 1;
-            await RefreshMapAndList();
+            _currentSelectedLocation = pin.Location; LblPoiName.Text = poi.Name; LblPoiAddress.Text = "Đang tải thông tin...";
+            ContainerMenu.Children.Clear(); ContainerReviews.Children.Clear(); EntryReview.Text = "";
+            var role = await SecureStorage.Default.GetAsync("role"); FrameWriteReview.IsVisible = (role == "User");
+            SheetOverlay.IsVisible = true; SheetOverlay.InputTransparent = false;
+            await Task.WhenAll(SheetOverlay.FadeTo(0, 250), BottomSheet.TranslateTo(0, 0, 300, Easing.CubicOut));
+            await FetchPoiDetails(poi.Id, poi.Description);
         }
-        else if (tabName == "History")
-        {
-            TextHistory.TextColor = IconHistory.TextColor = Color.FromArgb("#FFC107");
-            TextHistory.FontAttributes = FontAttributes.Bold;
-            IconHistory.Opacity = 1;
-            TabHistoryView.RefreshHistory();
-        }
-
-        await SnapToState(SheetState.ThreeQuarters);
     }
 
-    private void OnTabPOIClicked(object sender, TappedEventArgs e) => SwitchTab("POI");
-    private void OnTabHistoryClicked(object sender, TappedEventArgs e) => SwitchTab("History");
-    private async void OnTabSettingsClicked(object sender, TappedEventArgs e) => await Navigation.PushModalAsync(new SettingsPage());
-
-    private async void OnTabQRClicked(object sender, TappedEventArgs e)
+    private async void CloseBottomSheet(object sender, EventArgs e)
     {
-        var scannerPage = new ScannerPage();
-        scannerPage.OnQRCodeScanned += async (s, qrContent) =>
-        {
-            await Navigation.PopModalAsync();
-            var pois = await _databaseService.GetPOIsAsync();
-            var match = pois.FirstOrDefault(p =>
-                (p.QrCodeKey != null && p.QrCodeKey.Equals(qrContent, StringComparison.OrdinalIgnoreCase)) ||
-                (p.Name != null && p.Name.ToLower().Contains(qrContent.ToLower())));
-
-            if (match != null)
-            {
-                SwitchTab("POI");
-                await SnapToState(SheetState.ThreeQuarters);
-                await _databaseService.AddHistoryAsync(match);
-                await _ttsService.SpeakAsync(match.TtsContent);
-            }
-            else
-            {
-                await DisplayAlert("Lỗi", "Mã QR không hợp lệ!", "Đóng");
-            }
-        };
-        await Navigation.PushModalAsync(scannerPage);
+        await Task.WhenAll(SheetOverlay.FadeTo(0, 250), BottomSheet.TranslateTo(0, 700, 300, Easing.CubicIn));
+        SheetOverlay.InputTransparent = true; SheetOverlay.IsVisible = false;
     }
+
+    private async Task FetchPoiDetails(string poiId, string description)
+    {
+        try
+        {
+            LblPoiAddress.Text = description; using var client = new HttpClient();
+            var details = await client.GetFromJsonAsync<PoiDetailDto>($"{ApiBaseUrl}/Pois/{poiId}");
+            if (details != null)
+            {
+                if (details.menu != null && details.menu.Count > 0)
+                {
+                    foreach (var item in details.menu)
+                    {
+                        ContainerMenu.Children.Add(new HorizontalStackLayout
+                        {
+                            Children = {
+                            new Label { Text = item.itemName, FontAttributes = FontAttributes.Bold, WidthRequest = 200, TextColor = Colors.Black },
+                            new Label { Text = $"{item.price:N0} đ", TextColor = Colors.Green, FontAttributes = FontAttributes.Bold }
+                        }
+                        });
+                    }
+                }
+                else ContainerMenu.Children.Add(new Label { Text = "Chưa có thực đơn.", FontAttributes = FontAttributes.Italic, TextColor = Colors.Gray });
+
+                if (details.reviews != null && details.reviews.Count > 0)
+                {
+                    foreach (var rev in details.reviews)
+                    {
+                        ContainerReviews.Children.Add(new VerticalStackLayout
+                        {
+                            Spacing = 2,
+                            Children = {
+                            new Label { Text = new string('⭐', rev.rating), TextColor = Colors.Orange },
+                            new Label { Text = $"\"{rev.comment}\"", FontAttributes = FontAttributes.Italic, TextColor = Colors.DarkGray }
+                        }
+                        });
+                    }
+                }
+                else ContainerReviews.Children.Add(new Label { Text = "Chưa có đánh giá.", FontAttributes = FontAttributes.Italic, TextColor = Colors.Gray });
+            }
+        }
+        catch { LblPoiAddress.Text = "Lỗi kết nối mạng!"; }
+    }
+
+    private async void OnSubmitReviewClicked(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(EntryReview.Text)) { await DisplayAlert("Lỗi", "Hãy nhập bình luận!", "OK"); return; }
+        var token = await SecureStorage.Default.GetAsync("authToken");
+        using var client = new HttpClient(); client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var selectedPoi = _pinPoiMap.Values.FirstOrDefault(p => p.Latitude == _currentSelectedLocation.Latitude && p.Longitude == _currentSelectedLocation.Longitude);
+        if (selectedPoi != null)
+        {
+            var response = await client.PostAsJsonAsync($"{ApiBaseUrl}/Pois/{selectedPoi.Id}/review", new { Rating = (int)StepperRating.Value, Comment = EntryReview.Text });
+            if (response.IsSuccessStatusCode)
+            {
+                await DisplayAlert("Thành công", "Đã gửi đánh giá!", "OK"); EntryReview.Text = "";
+                ContainerMenu.Children.Clear(); ContainerReviews.Children.Clear();
+                await FetchPoiDetails(selectedPoi.Id, selectedPoi.Description);
+            }
+            else await DisplayAlert("Lỗi", "Có lỗi xảy ra (Có thể do bạn là chủ quán).", "OK");
+        }
+    }
+
+    private async void OnGetDirectionsClicked(object sender, EventArgs e)
+    {
+        if (_currentSelectedLocation != null) await Microsoft.Maui.ApplicationModel.Map.OpenAsync(_currentSelectedLocation, new MapLaunchOptions { Name = LblPoiName.Text, NavigationMode = NavigationMode.Driving });
+    }
+
+    private async Task StartTrackingGPS()
+    {
+        var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+        if (status != PermissionStatus.Granted) status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+        if (status == PermissionStatus.Granted)
+        {
+            _timer = Application.Current.Dispatcher.CreateTimer();
+            _timer.Interval = TimeSpan.FromSeconds(5);
+            _timer.Tick += async (s, e) => {
+                await CheckGeofence();
+                await SyncWithServer();
+            };
+            _timer.Start();
+        }
+    }
+
+    private async Task CheckGeofence() { /* Logic hàng rào ảo */ }
+    protected override void OnDisappearing() { base.OnDisappearing(); if (_timer != null && _timer.IsRunning) _timer.Stop(); }
+
+    // CẬP NHẬT THỦ CÔNG KHI BẤM NÚT BẢN ĐỒ
+    private async void OnRefreshMapClicked(object sender, EventArgs e)
+    {
+        await SyncWithServer(); // Ép check thông báo ngay lập tức
+        await ReloadMapData();
+    }
+
+    private async void OnScanClicked(object sender, EventArgs e) { await Navigation.PushModalAsync(new ScannerPage()); }
+    private async void OnHistoryClicked(object sender, EventArgs e) { await Navigation.PushAsync(new HistoryPage()); }
+    private async void OnProfileClicked(object sender, EventArgs e) { await Navigation.PushAsync(new ProfilePage()); }
+
+    public class PoiDetailDto { public List<MenuItemDto> menu { get; set; } public List<ReviewDto> reviews { get; set; } }
+    public class MenuItemDto { public string itemName { get; set; } public decimal price { get; set; } }
+    public class ReviewDto { public int rating { get; set; } public string comment { get; set; } }
 }

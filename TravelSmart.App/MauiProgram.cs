@@ -1,30 +1,26 @@
-﻿using Microsoft.Extensions.Logging; // Fix lỗi CS1061 (AddDebug)
-using CommunityToolkit.Maui;        // Dùng cho Toolkit
-using ZXing.Net.Maui.Controls;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Controls.Hosting;
+using CommunityToolkit.Maui;
+using ZXing.Net.Maui.Controls; // <-- NHỚ THÊM DÒNG USING NÀY
 
-namespace TravelSmart.App; // Tui thấy trong ảnh project ông viết hoa chữ APP
+namespace TravelSmart.App;
 
 public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit() // Fix lỗi MCT001: Bắt buộc nằm ngay sát dòng trên
-            .UseMauiMaps()             // Khởi tạo Map
-            .UseBarcodeReader()
+            .UseMauiCommunityToolkit()
+            .UseMauiMaps()
+            .UseBarcodeReader() // <--- THÊM ĐÚNG DÒNG NÀY LÀ HẾT CRASH CAMERA
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
 
-        builder.Services.AddSingleton<TravelSmart.App.Services.LocationService>();
-        builder.Services.AddSingleton<TravelSmart.App.Services.DataService>();
-        builder.Services.AddSingleton<TravelSmart.App.Services.GeofenceService>();
-        builder.Services.AddTransient<TravelSmart.App.ViewModels.MapViewModel>();
         return builder.Build();
     }
 }

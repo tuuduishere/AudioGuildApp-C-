@@ -1,31 +1,28 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.Maui.Controls"
+             xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
              x:Class="TravelSmart.App.Views.ScannerPage"
-             Title="Quét mã tại Quán ăn">
+             Title="Quét mã QR/NFC"
+             BackgroundColor="Black"
+             NavigationPage.HasNavigationBar="False">
 
     <Grid>
-        <zxing:CameraBarcodeReaderView 
-            x:Name="CameraReader"
-            IsDetecting="True"
-            BarcodesDetected="CameraReader_BarcodesDetected" />
+        <zxing:CameraBarcodeReaderView x:Name="BarcodeReader"
+                                       BarcodesDetected="BarcodesDetected"
+                                       IsDetecting="True" />
 
-        <Border Stroke="Yellow" StrokeThickness="4" BackgroundColor="Transparent"
+        <Border Stroke="White" StrokeThickness="4" 
                 WidthRequest="250" HeightRequest="250"
                 HorizontalOptions="Center" VerticalOptions="Center"
-                StrokeDashArray="10,5">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="20" />
-            </Border.StrokeShape>
-        </Border>
-        <Label Text="Đưa mã QR vào giữa khung hình" TextColor="White" 
-               HorizontalOptions="Center" Margin="0, 300, 0, 0" FontSize="16" FontAttributes="Bold"/>
+                BackgroundColor="Transparent" />
 
-        <Button Text="❌ Đóng" TextColor="White" BackgroundColor="#AA000000"
-                HorizontalOptions="Start" VerticalOptions="Start"
-                Margin="20,50,0,0" CornerRadius="20" WidthRequest="100"
-                Clicked="OnCloseClicked" />
+        <Label Text="Đưa mã QR Quán ăn vào khung hình" 
+               TextColor="White" FontAttributes="Bold" FontSize="16"
+               HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,50" />
+
+        <Button Text="✖ Đóng" BackgroundColor="Red" TextColor="White" 
+                HorizontalOptions="Start" VerticalOptions="Start" 
+                Margin="20,40,0,0" Clicked="OnCloseClicked"/>
     </Grid>
-
 </ContentPage>

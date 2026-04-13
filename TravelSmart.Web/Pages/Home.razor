@@ -1,0 +1,105 @@
+﻿@page "/"
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>Bảng Điều Khiển</PageTitle>
+
+<div class="container mt-4">
+    @if (summary == null)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Đang kéo dữ liệu từ máy chủ...</p>
+        </div>
+    }
+    else
+    {
+        <h2 class="mb-4">Chào mừng @(summary.Role == "Admin" ? "Quản trị viên" : "Chủ quán")!</h2>
+        <hr class="mb-4" />
+
+        <div class="row g-4">
+            @if (summary.Role == "Admin")
+            {
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white p-4 shadow-sm border-0 rounded-4 h-100">
+                        <h6 class="opacity-75 fw-bold">TỔNG THÀNH VIÊN</h6>
+                        <h2 class="display-5 fw-bold mb-0">@summary.TotalUsers</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white p-4 shadow-sm border-0 rounded-4 h-100">
+                        <h6 class="opacity-75 fw-bold">DOANH THU TOÀN HỆ THỐNG</h6>
+                        <h2 class="display-5 fw-bold mb-0">@summary.TotalRevenue.ToString("N0") đ</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white p-4 shadow-sm border-0 rounded-4 h-100">
+                        <h6 class="opacity-75 fw-bold">QUÁN ĐANG HOẠT ĐỘNG</h6>
+                        <h2 class="display-5 fw-bold mb-0">@summary.TotalPois</h2>
+                    </div>
+                </div>
+            }
+            else if (summary.Role == "Merchant")
+            {
+                <div class="col-md-4">
+                    <div class="card bg-success text-white p-4 shadow-sm border-0 rounded-4 h-100">
+                        <h6 class="opacity-75 fw-bold">DOANH THU CỦA TÔI</h6>
+                        <h2 class="display-5 fw-bold mb-0">@summary.TotalRevenue.ToString("N0") đ</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-warning text-dark p-4 shadow-sm border-0 rounded-4 h-100">
+                        <h6 class="opacity-75 fw-bold">TỔNG ĐƠN HÀNG</h6>
+                        <h2 class="display-5 fw-bold mb-0">@summary.TotalOrders Đơn</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-danger text-white p-4 shadow-sm border-0 rounded-4 h-100">
+                        <h6 class="opacity-75 fw-bold">ĐÁNH GIÁ TRUNG BÌNH</h6>
+                        <h2 class="display-5 fw-bold mb-0">@summary.AverageRating ⭐</h2>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardSummary summary;
+    private string apiBase = "https://localhost:7008/api/Dashboard/summary"; // Đổi cổng nếu cần
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        // Kẹp thẻ Token vào để đi qua cửa bảo vệ của API
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        
+        try
+        {
+            summary = await Http.GetFromJsonAsync<DashboardSummary>(apiBase);
+        }
+        catch
+        {
+            Console.WriteLine("Không thể tải dữ liệu Dashboard.");
+        }
+    }
+
+    public class DashboardSummary
+    {
+        public string Role { get; set; }
+        public int TotalUsers { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public int TotalPois { get; set; }
+        public int TotalOrders { get; set; }
+        public double AverageRating { get; set; }
+    }
+}

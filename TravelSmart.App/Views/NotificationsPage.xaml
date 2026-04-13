@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelSmart.App.Views.NotificationsPage"
+             Title="Thông báo"
+             BackgroundColor="#F4F6F8">
+
+    <ScrollView Padding="15">
+        <VerticalStackLayout Spacing="15">
+
+            <Frame BackgroundColor="White" CornerRadius="12" Padding="15" HasShadow="True" BorderColor="Transparent">
+                <HorizontalStackLayout Spacing="15">
+                    <Label Text="👑" FontSize="24" VerticalOptions="Center"/>
+                    <VerticalStackLayout VerticalOptions="Center">
+                        <Label Text="Hệ thống" FontAttributes="Bold" TextColor="Black"/>
+                        <Label Text="Chào mừng bạn đến với TravelSmart Vĩnh Khánh!" TextColor="Gray" FontSize="13"/>
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#E3F2FD" CornerRadius="12" Padding="15" HasShadow="True" BorderColor="#2196F3">
+                <HorizontalStackLayout Spacing="15">
+                    <Label Text="✔" FontSize="24" TextColor="Green" VerticalOptions="Center"/>
+                    <VerticalStackLayout VerticalOptions="Center">
+                        <Label Text="Xét duyệt thành công" FontAttributes="Bold" TextColor="#1565C0"/>
+                        <Label Text="Yêu cầu làm Chủ quán của bạn đã được Admin phê duyệt." TextColor="#1976D2" FontSize="13"/>
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

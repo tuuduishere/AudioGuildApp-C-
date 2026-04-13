@@ -7,104 +7,83 @@ namespace TravelSmart.App.Services;
 public class DataService
 {
     private SQLiteAsyncConnection _db;
-    private HttpClient _http;
+    private readonly HttpClient _httpClient;
 
-    private readonly string ApiUrl = DeviceInfo.Platform == DevicePlatform.Android
-        ? "https://10.0.2.2:7008/api/poi"
-        : "https://localhost:7008/api/poi";
+    // API Cổng 5088 dành cho máy ảo Android
+    private const string ApiUrl = "http://10.0.2.2:5088/api/Pois";
+
     public DataService()
     {
-        InitDB();
-        var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (m, c, ch, e) => true };
-        _http = new HttpClient(handler);
+        _httpClient = new HttpClient();
+        _httpClient.Timeout = TimeSpan.FromSeconds(10);
     }
 
-    private void InitDB()
+    private async Task InitDbTask()
     {
-        if (_db != null) return;
-        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "TravelSmart.db");
-        _db = new SQLiteAsyncConnection(dbPath);
-
-        // TẠO 2 BẢNG: 1 Bảng Quán Ốc, 1 Bảng Lịch Sử
-        _db.CreateTableAsync<PoiModel>().Wait();
-        _db.CreateTableAsync<HistoryModel>().Wait();
+        if (_db == null)
+        {
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "TravelSmartLocal.db3");
+            _db = new SQLiteAsyncConnection(dbPath);
+            await _db.CreateTableAsync<PoiModel>();
+            await _db.CreateTableAsync<VisitLogModel>();
+        }
     }
 
-    // --- CÁC HÀM CỦA POI (QUÁN ỐC) CŨ ---
-    public async Task<List<PoiModel>> GetPOIsAsync() => await _db.Table<PoiModel>().ToListAsync();
+    public async Task<List<PoiModel>> GetPOIsAsync()
+    {
+        await InitDbTask();
+        return await _db.Table<PoiModel>().ToListAsync();
+    }
 
     public async Task<bool> SyncFromServerAsync()
     {
         try
         {
-            var serverData = await _http.GetFromJsonAsync<List<PoiModel>>(ApiUrl);
-
-            // Kết nối thành công rồi! Dọn dẹp sạch sẽ kho cũ trong điện thoại trước.
-            await _db.DeleteAllAsync<PoiModel>();
-
-            // Nếu Server có quán ốc thì nạp vào, không có thì bỏ qua (bản đồ trống)
-            if (serverData != null && serverData.Count > 0)
+            var response = await _httpClient.GetAsync(ApiUrl);
+            if (response.IsSuccessStatusCode)
             {
-                await _db.InsertAllAsync(serverData);
+                var serverPois = await response.Content.ReadFromJsonAsync<List<PoiModel>>();
+                if (serverPois != null && serverPois.Count > 0)
+                {
+                    await InitDbTask();
+                    await _db.DeleteAllAsync<PoiModel>();
+                    await _db.InsertAllAsync(serverPois);
+                    return true;
+                }
             }
-
-            return true; // Kết nối lấy data (dù rỗng hay không) đều tính là Thành Công!
+            return false;
         }
-        catch (Exception ex)
+        catch
         {
-            // Nếu đứt mạng thật, in lỗi ra để anh em mình soi bệnh
-            System.Diagnostics.Debug.WriteLine($"LỖI ĐỨT CÁP THẬT: {ex.Message}");
             return false;
         }
     }
 
-    // ==========================================
-    // CÁC HÀM MỚI CHO LỊCH SỬ (HISTORY)
-    // ==========================================
-
-    // 1. Ghi sổ khi khách ghé quán
+    // ĐẤU NỐI: Lưu lịch sử vào điện thoại và báo lên Server
     public async Task AddHistoryAsync(PoiModel poi)
     {
-        var record = new HistoryModel
+        await InitDbTask();
+        var history = new VisitLogModel
         {
             PoiId = poi.Id,
-            PoiName = poi.Name,
-            VisitedAt = DateTime.Now
+            Name = poi.Name,
+            VisitTime = DateTime.Now
         };
-        await _db.InsertAsync(record);
-    }
 
-    // 2. Lấy danh sách lịch sử (Xếp mới nhất lên đầu)
-    public async Task<List<HistoryModel>> GetHistoryAsync()
-    {
-        return await _db.Table<HistoryModel>().OrderByDescending(h => h.VisitedAt).ToListAsync();
-    }
+        // 1. Lưu vào SQLite của điện thoại
+        await _db.InsertAsync(history);
 
-    // 3. Xóa trắng lịch sử (Dùng cho nút Cài đặt)
-    public async Task ClearHistoryAsync()
-    {
-        await _db.DeleteAllAsync<HistoryModel>();
-    }
-    // ==========================================
-    // TÍNH NĂNG ANALYTICS (GỬI LOG LÊN SERVER)
-    // ==========================================
-    public async Task SendAnalyticsAsync(int poiId, string actionType)
-    {
+        // 2. Gọi điện báo cho Server
         try
         {
-            // Sửa đường dẫn từ /api/poi thành /api/analytics
-            string analyticsUrl = ApiUrl.Replace("/api/poi", "/api/analytics");
-
-            var log = new { PoiId = poiId, ActionType = actionType };
-
-            // Âm thầm ném lên server, không cần đợi phản hồi
-            await _http.PostAsJsonAsync(analyticsUrl, log);
-            System.Diagnostics.Debug.WriteLine($"Đã gửi Log cho quán ID {poiId}");
+            await _httpClient.PostAsJsonAsync($"{ApiUrl}/history", history);
         }
-        catch
-        {
-            // Rớt mạng thì thôi, giấu nhẹm lỗi để không làm phiền trải nghiệm của khách
-            System.Diagnostics.Debug.WriteLine("Gửi Log thất bại do lỗi mạng.");
-        }
+        catch { } // Mất mạng thì bỏ qua
+    }
+
+    public async Task<List<VisitLogModel>> GetHistoryAsync()
+    {
+        await InitDbTask();
+        return await _db.Table<VisitLogModel>().OrderByDescending(x => x.VisitTime).ToListAsync();
     }
 }

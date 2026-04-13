@@ -1,0 +1,32 @@
+﻿<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>
+
+@code {
+    [Inject] NavigationManager Nav { get; set; }
+    [Inject] IJSRuntime JS { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var isLoginPage = Nav.Uri.Contains("/login");
+
+            // Nếu chưa có thẻ mà đang không ở trang Đăng nhập -> Sút về trang Đăng nhập
+            if (string.IsNullOrEmpty(token) && !isLoginPage)
+            {
+                Nav.NavigateTo("/login");
+            }
+        }
+    }
+}

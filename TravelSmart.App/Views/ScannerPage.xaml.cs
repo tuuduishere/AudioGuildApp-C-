@@ -1,54 +1,75 @@
+using TravelSmart.App.Services;
+using TravelSmart.App.Models;
 using ZXing.Net.Maui;
 
 namespace TravelSmart.App.Views;
 
 public partial class ScannerPage : ContentPage
 {
-    // Tạo một sự kiện để "hét" lên cho MainPage biết là tao quét được chữ gì rồi
-    public event EventHandler<string> OnQRCodeScanned;
+    private readonly DataService _dataService;
+    private bool _isScanning = true; // Biến chống quét 2 lần liên tục
 
     public ScannerPage()
     {
         InitializeComponent();
+        _dataService = new DataService();
 
-        // Cấu hình chỉ quét mã QR thôi, bỏ qua mấy cái mã vạch siêu thị cho nó nhẹ máy
-        CameraReader.Options = new BarcodeReaderOptions
+        // Cấu hình chỉ quét mã QR
+        BarcodeReader.Options = new BarcodeReaderOptions
         {
-            Formats = BarcodeFormats.TwoDimensional, // Chỉ 2D (QR Code)
+            Formats = BarcodeFormats.TwoDimensional,
             AutoRotate = true,
             Multiple = false
         };
     }
 
-    // HÀM NÀY CHẠY KHI MÁY ẢNH CHỚP ĐƯỢC MÃ
-    private void CameraReader_BarcodesDetected(object sender, BarcodeDetectionEventArgs e)
+    private async void BarcodesDetected(object sender, BarcodeDetectionEventArgs e)
     {
-        // Lấy cái kết quả đầu tiên quét được
-        var result = e.Results?.FirstOrDefault();
-        if (result != null)
+        if (!_isScanning || e.Results == null || !e.Results.Any()) return;
+
+        // Tắt ngay camera để không bị quét dính lại
+        _isScanning = false;
+        BarcodeReader.IsDetecting = false;
+
+        string qrCodeKey = e.Results.First().Value; // Đây chính là chữ OCOANH_01
+
+        Dispatcher.Dispatch(async () =>
         {
-            // Phải đẩy lên luồng chính (MainThread) vì mình chuẩn bị tắt giao diện
-            MainThread.BeginInvokeOnMainThread(async () =>
+            // 1. Kéo toàn bộ data từ Server về (hoặc quét trong SQLite)
+            await _dataService.SyncFromServerAsync();
+            var pois = await _dataService.GetPOIsAsync();
+
+            // 2. Tìm quán ăn có QrCodeKey khớp với mã vừa quét
+            var matchedPoi = pois.FirstOrDefault(p => p.QrCodeKey == qrCodeKey);
+
+            if (matchedPoi != null)
             {
-                // 1. Tắt máy quét ngay lập tức để không bị spam quét liên tục
-                CameraReader.IsDetecting = false;
+                // Báo tìm thấy và chuẩn bị đọc tiếng
+                await DisplayAlert("Thành công", $"Bạn đã đến: {matchedPoi.Name}", "Nghe Thuyết Minh");
 
-                // 2. Rung điện thoại 1 cái báo hiệu quét thành công (Tùy chọn)
-                try { HapticFeedback.Perform(HapticFeedbackType.LongPress); } catch { }
+                // Đọc luôn và ngay!
+                await TextToSpeech.Default.SpeakAsync(matchedPoi.TtsContent);
 
-                // 3. Hét lên cho thằng MainPage biết (Truyền chữ quét được về)
-                OnQRCodeScanned?.Invoke(this, result.Value);
+                // Ghi vào lịch sử tham quan
+                // await _dataService.AddHistoryAsync(matchedPoi);
+            }
+            else
+            {
+                await DisplayAlert("Lỗi", "Không tìm thấy dữ liệu quán ăn này trên hệ thống!", "Thử lại");
+                _isScanning = true;
+                BarcodeReader.IsDetecting = true;
+                return;
+            }
 
-                // 4. Tắt trang Camera, quay về màn hình Bản đồ
-                await Navigation.PopModalAsync();
-            });
-        }
+            // Quét xong, nghe xong thì đóng màn hình Camera lại
+            await Navigation.PopModalAsync();
+        });
     }
 
-    // Bấm nút X thì tắt trang
     private async void OnCloseClicked(object sender, EventArgs e)
     {
-        CameraReader.IsDetecting = false;
-        await Navigation.PopModalAsync();
+        _isScanning = false;
+        BarcodeReader.IsDetecting = false;
+        await Navigation.PopModalAsync(); // Trở về trang trước (Bản đồ)
     }
 }

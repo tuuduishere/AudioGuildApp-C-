@@ -1,0 +1,285 @@
+﻿@page "/pois"
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="container mt-4">
+    @if (string.IsNullOrEmpty(selectedPoiId))
+    {
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>🏪 Quản lý Quán ăn</h2>
+            @if (userRole == "Merchant")
+            {
+                <button class="btn btn-primary fw-bold" @onclick="ToggleForm">+ Thêm Quán Mới</button>
+            }
+        </div>
+
+        @if (showForm && userRole == "Merchant")
+        {
+            <div class="card shadow-sm mb-4 border-primary">
+                <div class="card-header bg-primary text-white fw-bold">NHẬP THÔNG TIN QUÁN</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-6"><input class="form-control" @bind="newPoi.Name" placeholder="Tên quán" /></div>
+                    <div class="col-md-6"><input class="form-control" @bind="newPoi.Address" placeholder="Địa chỉ" /></div>
+                    
+                    <div class="col-md-5"><input class="form-control" @bind="newPoi.Latitude" placeholder="Vĩ độ (Latitude)" type="number" id="latInput" /></div>
+                    <div class="col-md-5"><input class="form-control" @bind="newPoi.Longitude" placeholder="Kinh độ (Longitude)" type="number" id="lngInput" /></div>
+                    <div class="col-md-2">
+                        <button class="btn btn-info w-100 fw-bold text-white" type="button" @onclick="GetMyLocation">📍 Lấy vị trí</button>
+                    </div>
+
+                    <div class="col-md-12"><textarea class="form-control" @bind="newPoi.Description" placeholder="Mô tả quán..."></textarea></div>
+                    <div class="col-md-12 text-end">
+                        <button class="btn btn-secondary me-2" @onclick="ToggleForm">Hủy</button>
+                        <button class="btn btn-success fw-bold" @onclick="SavePoi">Lưu Quán</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (listPois == null)
+        {
+            <div class="spinner-border text-primary"></div>
+        }
+        else
+        {
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-dark">
+                            <tr><th>Tên Quán</th><th>Địa chỉ</th><th>Mã QR</th><th>Thao tác</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in listPois)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-primary">@p.Name</td>
+                                    <td>@p.Address</td>
+                                    <td><span class="badge bg-info text-dark">@p.QrCodeKey</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-success me-1" @onclick="() => ViewPoiDetails(p.Id, p.Name)">📝 Quản lý</button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeletePoi(p.Id)">🗑 Xóa</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>🍽 Quản lý: <span class="text-primary">@selectedPoiName</span></h2>
+            <button class="btn btn-secondary fw-bold" @onclick="CloseDetails">⬅ Quay lại</button>
+        </div>
+
+        <div class="row">
+            <div class="col-md-7">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-warning fw-bold text-dark">THỰC ĐƠN (MENU)</div>
+                    <div class="card-body">
+                        @if (userRole == "Merchant")
+                        {
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" placeholder="Tên món..." @bind="newItem.ItemName">
+                                    <input type="number" class="form-control" placeholder="Giá tiền..." @bind="newItem.Price">
+                                        <button class="btn btn-primary" type="button" @onclick="AddMenuItem">+ Thêm món</button>
+                                    </div>
+                                }
+
+                                <table class="table table-sm">
+                                    <thead><tr><th>Tên món</th><th>Giá bán</th><th></th></tr></thead>
+                                    <tbody>
+                                        @if (poiDetails?.Menu != null)
+                                        {
+                                            foreach (var m in poiDetails.Menu)
+                                            {
+                                                <tr>
+                                                    <td class="fw-bold">@m.ItemName</td>
+                                                    <td class="text-success">@m.Price.ToString("N0") đ</td>
+                                                    <td class="text-end">
+                                                        @if (userRole == "Merchant")
+                                                        {
+                                                            <button class="btn btn-sm btn-danger py-0" @onclick="() => DeleteMenuItem(m.ItemId)">X</button>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-success fw-bold text-white">ĐÁNH GIÁ TỪ KHÁCH HÀNG</div>
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                @if (poiDetails?.Reviews != null && poiDetails.Reviews.Count > 0)
+                                {
+                                    foreach (var r in poiDetails.Reviews)
+                                    {
+                                        <div class="mb-3 border-bottom pb-2">
+                                            <div class="text-warning fw-bold">
+                                                @for (int i = 0; i < r.Rating; i++)
+                                                {
+                                                    <span>⭐</span>
+                                                }
+                                            </div>
+                                            <div class="fst-italic">"@r.Comment"</div>
+                                            <small class="text-muted">Gửi lúc: @r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <p class="text-muted">Chưa có đánh giá nào.</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+@code {
+    private List<PoiDto> listPois;
+    private PoiCreateDto newPoi = new();
+    private bool showForm = false;
+    private string userRole = "";
+    private string apiBase = "https://localhost:7008/api/Pois";
+    
+    // Biến cho màn hình Chi tiết
+    private string selectedPoiId = "";
+    private string selectedPoiName = "";
+    private PoiDetailDto poiDetails = new();
+    private MenuItemCreateDto newItem = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        userRole = await JS.InvokeAsync<string>("localStorage.getItem", "userRole");
+        await LoadData();
+    }
+
+    private void ToggleForm() => showForm = !showForm;
+    private void CloseDetails() { selectedPoiId = ""; selectedPoiName = ""; }
+
+    private async Task LoadData()
+    {
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var rawData = await Http.GetFromJsonAsync<List<Dictionary<string, object>>>(apiBase);
+        listPois = rawData.Select(d => new PoiDto
+        {
+            Id = d["id"].ToString(),
+            Name = d["name"].ToString(),
+            Address = d.ContainsKey("address") && d["address"] != null ? d["address"].ToString() : "Đang cập nhật",
+            QrCodeKey = d["qrCodeKey"]?.ToString() ?? "Trống"
+        }).ToList();
+    }
+
+    // ĐÃ THÊM: HÀM MƯỢN GPS CỦA TRÌNH DUYỆT ĐỂ LẤY TỌA ĐỘ
+    private async Task GetMyLocation()
+    {
+        try
+        {
+            var jsCode = @"
+                return new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => resolve(pos.coords.latitude + ',' + pos.coords.longitude),
+                        err => resolve('error')
+                    );
+                });
+            ";
+            var result = await JS.InvokeAsync<string>("eval", jsCode);
+            if (result != "error")
+            {
+                var coords = result.Split(',');
+                newPoi.Latitude = double.Parse(coords[0], System.Globalization.CultureInfo.InvariantCulture);
+                newPoi.Longitude = double.Parse(coords[1], System.Globalization.CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Hãy cho phép trình duyệt truy cập Vị trí (Location) nhé!");
+            }
+        }
+        catch { }
+    }
+
+    private async Task SavePoi()
+    {
+        if (string.IsNullOrEmpty(newPoi.Name)) return;
+        newPoi.QrCodeKey = "QR_" + DateTime.Now.Ticks.ToString().Substring(10);
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await Http.PostAsJsonAsync(apiBase, newPoi);
+        if (response.IsSuccessStatusCode)
+        {
+            newPoi = new PoiCreateDto();
+            showForm = false;
+            await LoadData();
+        }
+    }
+
+    private async Task DeletePoi(string id)
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "Xóa quán này sẽ bay luôn cả Menu và Đánh giá. Chắc chưa?");
+        if (confirm)
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var response = await Http.DeleteAsync($"{apiBase}/{id}");
+            if (response.IsSuccessStatusCode) await LoadData();
+        }
+    }
+
+    // --- CÁC HÀM XỬ LÝ CHI TIẾT QUÁN ---
+    private async Task ViewPoiDetails(string id, string name)
+    {
+        selectedPoiId = id;
+        selectedPoiName = name;
+        await LoadPoiDetails();
+    }
+
+    private async Task LoadPoiDetails()
+    {
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        poiDetails = await Http.GetFromJsonAsync<PoiDetailDto>($"{apiBase}/{selectedPoiId}");
+    }
+
+    private async Task AddMenuItem()
+    {
+        if (string.IsNullOrEmpty(newItem.ItemName) || newItem.Price <= 0) return;
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        
+        var response = await Http.PostAsJsonAsync($"{apiBase}/{selectedPoiId}/menu", newItem);
+        if (response.IsSuccessStatusCode)
+        {
+            newItem = new MenuItemCreateDto();
+            await LoadPoiDetails();
+        }
+    }
+
+    private async Task DeleteMenuItem(string itemId)
+    {
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await Http.DeleteAsync($"{apiBase}/menu/{itemId}");
+        await LoadPoiDetails();
+    }
+
+    // --- CÁC CLASS DỮ LIỆU ---
+    public class PoiDto { public string Id { get; set; } public string Name { get; set; } public string Address { get; set; } public string QrCodeKey { get; set; } }
+    public class PoiCreateDto { public string Name { get; set; } public string Address { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public string Description { get; set; } public string QrCodeKey { get; set; } }
+    public class MenuItemCreateDto { public string ItemName { get; set; } public decimal Price { get; set; } }
+    public class PoiDetailDto { public List<MenuItemDto> Menu { get; set; } public List<ReviewDto> Reviews { get; set; } }
+    public class MenuItemDto { public string ItemId { get; set; } public string ItemName { get; set; } public decimal Price { get; set; } }
+    public class ReviewDto { public int Rating { get; set; } public string Comment { get; set; } public DateTime CreatedAt { get; set; } }
+}

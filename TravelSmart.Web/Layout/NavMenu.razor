@@ -1,0 +1,57 @@
+﻿@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid"><a class="navbar-brand" href="">TravelSmart Admin</a></div>
+</div>
+
+<div class="nav-scrollable">
+    <nav class="flex-column">
+        @if (!string.IsNullOrEmpty(role))
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">📊 Tổng quan</NavLink>
+            </div>
+            
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="pois">🏪 Quản lý Quán ăn</NavLink>
+            </div>
+
+            @if (role == "Admin")
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="users">👥 Quản lý Thành viên</NavLink>
+                </div>
+            }
+
+            <div class="nav-item px-3 mt-5">
+                <button class="nav-link btn btn-link text-danger w-100 text-start" @onclick="HandleLogout" style="border: none; outline: none; box-shadow: none;">
+                    🚪 Đăng xuất
+                </button>
+            </div>
+        }
+    </nav>
+</div>
+
+@code {
+    private string role = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            role = await JS.InvokeAsync<string>("localStorage.getItem", "userRole");
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        // 1. Xóa sạch Token và Role trong bộ nhớ máy
+        await JS.InvokeVoidAsync("localStorage.removeItem", "authToken");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "userRole");
+        
+        // 2. Sút thẳng về cổng Đăng nhập (Tham số 'true' để làm mới toàn bộ trang)
+        Nav.NavigateTo("/login", true);
+    }
+}

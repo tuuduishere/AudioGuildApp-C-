@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TravelSmart.App.Views.LoginPage"
+             BackgroundColor="#F4F6F8"
+             NavigationPage.HasNavigationBar="False">
+
+    <Grid>
+        <BoxView Color="#1E88E5" HeightRequest="250" VerticalOptions="Start" />
+
+        <ScrollView>
+            <VerticalStackLayout Spacing="0" Padding="20" VerticalOptions="Center">
+
+                <Label Text="TRAVEL SMART" FontSize="34" FontAttributes="Bold" HorizontalOptions="Center" TextColor="White" Margin="0,50,0,40"/>
+
+                <Frame BackgroundColor="White" CornerRadius="20" HasShadow="True" Padding="25" Margin="10,0">
+                    <VerticalStackLayout Spacing="20">
+                        <Label Text="Đăng Nhập" FontSize="22" FontAttributes="Bold" HorizontalOptions="Center" TextColor="#333333" Margin="0,0,0,10"/>
+
+                        <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0" BackgroundColor="#FAFAFA" HasShadow="False">
+                            <Entry x:Name="EntryUsername" Placeholder="👤 Tên đăng nhập" BackgroundColor="Transparent" TextColor="Black" Margin="10,0" />
+                        </Frame>
+
+                        <Frame Padding="0" CornerRadius="10" BorderColor="#E0E0E0" BackgroundColor="#FAFAFA" HasShadow="False">
+                            <Entry x:Name="EntryPassword" Placeholder="🔒 Mật khẩu" IsPassword="True" BackgroundColor="Transparent" TextColor="Black" Margin="10,0" />
+                        </Frame>
+
+                        <Button x:Name="BtnLogin" Text="ĐĂNG NHẬP" BackgroundColor="#1E88E5" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="55" Clicked="OnLoginClicked" Margin="0,15,0,0" />
+                    </VerticalStackLayout>
+                </Frame>
+
+                <HorizontalStackLayout HorizontalOptions="Center" Margin="0,30,0,0" Spacing="5">
+                    <Label Text="Chưa có tài khoản?" TextColor="Gray" VerticalOptions="Center"/>
+                    <Label Text="Đăng ký ngay" TextColor="#1E88E5" FontAttributes="Bold" VerticalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnGoToRegisterClicked" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

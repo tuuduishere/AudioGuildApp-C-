@@ -1,0 +1,45 @@
+﻿@page "/login"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-lg border-0 rounded-lg mt-5">
+                <div class="card-header bg-dark text-white text-center"><h3 class="my-2">HỆ THỐNG TRAVEL SMART</h3></div>
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(msg))
+                    {
+                        <div class="alert alert-danger">@msg</div>
+                    }
+                    <input class="form-control mb-3" @bind="req.Username" placeholder="Username" />
+                    <input class="form-control mb-3" type="password" @bind="req.Password" placeholder="Password" />
+                    <button class="btn btn-primary w-100" @onclick="HandleLogin">ĐĂNG NHẬP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginReq req = new();
+    private string msg = "";
+
+    private async Task HandleLogin()
+    {
+        var res = await Http.PostAsJsonAsync("https://localhost:7008/api/Auth/login", req);
+        if (res.IsSuccessStatusCode)
+        {
+            var data = await res.Content.ReadFromJsonAsync<LoginRes>();
+            if (data.Role == "User") { msg = "User không được vào Web!"; return; }
+            await JS.InvokeVoidAsync("localStorage.setItem", "authToken", data.Token);
+            await JS.InvokeVoidAsync("localStorage.setItem", "userRole", data.Role);
+            Nav.NavigateTo("/", true); // Force reload để cập nhật Menu
+        }
+        else { msg = "Sai tài khoản hoặc mật khẩu!"; }
+    }
+    public class LoginReq { public string Username { get; set; } public string Password { get; set; } }
+    public class LoginRes { public string Token { get; set; } public string Role { get; set; } }
+}

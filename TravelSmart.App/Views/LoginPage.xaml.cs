@@ -5,13 +5,14 @@ namespace TravelSmart.App.Views;
 
 public partial class LoginPage : ContentPage
 {
-    private const string ApiLoginUrl = "http://10.0.2.2:5088/api/Auth/login";
+    private const string ApiLoginUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Auth/login";
     private readonly HttpClient _httpClient;
 
     public LoginPage()
     {
         InitializeComponent();
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        _httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
     }
 
     public class AuthResponse { public string token { get; set; } public string role { get; set; } }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Hosting;
 using CommunityToolkit.Maui;
-using ZXing.Net.Maui.Controls; // <-- NHỚ THÊM DÒNG USING NÀY
+using ZXing.Net.Maui.Controls;
 
 namespace TravelSmart.App;
 
@@ -14,7 +14,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
             .UseMauiMaps()
-            .UseBarcodeReader() // <--- THÊM ĐÚNG DÒNG NÀY LÀ HẾT CRASH CAMERA
+            .UseBarcodeReader() // KHỞI ĐỘNG MẮT THẦN Ở ĐÂY
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

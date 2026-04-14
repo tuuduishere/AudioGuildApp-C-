@@ -19,10 +19,17 @@
 
         <Label Text="Đưa mã QR Quán ăn vào khung hình" 
                TextColor="White" FontAttributes="Bold" FontSize="16"
-               HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,50" />
+               HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,100" />
 
-        <Button Text="✖ Đóng" BackgroundColor="Red" TextColor="White" 
-                HorizontalOptions="Start" VerticalOptions="Start" 
-                Margin="20,40,0,0" Clicked="OnCloseClicked"/>
+        <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,30" Spacing="20">
+            <Button Text="🖼 Tải ảnh lên" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="15,10" Clicked="OnUploadClicked"/>
+            <Button Text="✖ Đóng" BackgroundColor="#D32F2F" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="15,10" Clicked="OnCloseClicked"/>
+        </HorizontalStackLayout>
+
+        <BoxView x:Name="LoadingOverlay" BackgroundColor="Black" Opacity="0.7" IsVisible="False"/>
+        <VerticalStackLayout x:Name="LoadingIndicator" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False" Spacing="10">
+            <ActivityIndicator IsRunning="True" Color="White" />
+            <Label Text="Đang giải mã ảnh..." TextColor="White" FontAttributes="Bold" />
+        </VerticalStackLayout>
     </Grid>
 </ContentPage>

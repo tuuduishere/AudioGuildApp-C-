@@ -5,7 +5,7 @@ namespace TravelSmart.App.Views;
 
 public partial class ProfilePage : ContentPage
 {
-    private const string ApiBaseUrl = "http://10.0.2.2:5088/api";
+    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api";
 
     public ProfilePage()
     {

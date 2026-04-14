@@ -10,7 +10,7 @@ public class DataService
     private readonly HttpClient _httpClient;
 
     // API Cổng 5088 dành cho máy ảo Android
-    private const string ApiUrl = "http://10.0.2.2:5088/api/Pois";
+    private const string ApiUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Pois";
 
     public DataService()
     {

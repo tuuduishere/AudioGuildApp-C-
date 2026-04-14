@@ -4,13 +4,14 @@ namespace TravelSmart.App.Views;
 
 public partial class RegisterPage : ContentPage
 {
-    private const string ApiRegisterUrl = "http://10.0.2.2:5088/api/Auth/register";
+    private const string ApiRegisterUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Auth/register";
     private readonly HttpClient _httpClient;
 
     public RegisterPage()
     {
         InitializeComponent();
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        _httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
     }
 
     private async void OnRegisterClicked(object sender, EventArgs e)

@@ -5,25 +5,23 @@ public partial class SettingsPage : ContentPage
     public SettingsPage()
     {
         InitializeComponent();
-
-        // Tải lại cấu hình cũ đã lưu trong máy
-        SliderTtsSpeed.Value = Preferences.Default.Get("tts_speed", 1.0f);
-        PickerLanguage.SelectedIndex = Preferences.Default.Get("app_lang_index", 0); // Mặc định 0 là Tiếng Việt
-
-        // Cập nhật chữ khi kéo thanh trượt
-        SliderTtsSpeed.ValueChanged += (s, e) =>
-        {
-            LblSpeedValue.Text = $"Tốc độ: {e.NewValue:F1}x";
-        };
     }
 
-    private async void OnSaveClicked(object sender, EventArgs e)
+    protected override void OnAppearing()
     {
-        // Lưu vĩnh viễn vào bộ nhớ điện thoại
-        Preferences.Default.Set("tts_speed", (float)SliderTtsSpeed.Value);
-        Preferences.Default.Set("app_lang_index", PickerLanguage.SelectedIndex);
+        base.OnAppearing();
+        // Lấy ngôn ngữ đã lưu, mặc định là Tiếng Việt
+        var lang = Preferences.Default.Get("DefaultLang", "vi");
+        PickerLanguage.SelectedIndex = lang == "en" ? 1 : (lang == "ja" ? 2 : 0);
+    }
 
-        await DisplayAlert("Thành công", "Đã lưu cài đặt!", "OK");
-        await Navigation.PopAsync(); // Đóng trang Cài đặt, quay về Bản đồ
+    private void OnLanguageChanged(object sender, EventArgs e)
+    {
+        // Khi người dùng chọn ngôn ngữ khác thì lưu lại
+        string code = "vi";
+        if (PickerLanguage.SelectedIndex == 1) code = "en";
+        else if (PickerLanguage.SelectedIndex == 2) code = "ja";
+
+        Preferences.Default.Set("DefaultLang", code);
     }
 }

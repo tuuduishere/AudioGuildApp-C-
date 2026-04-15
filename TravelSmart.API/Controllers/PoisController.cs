@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TravelSmart.API.Models;
 using Microsoft.AspNetCore.Hosting;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace TravelSmart.API.Controllers
 {
@@ -40,7 +42,7 @@ namespace TravelSmart.API.Controllers
                 qrCodeKey = p.QrCodeKey,
                 address = p.Address,
                 audioUrl = p.AudioUrl != null ? $"{Request.Scheme}://{Request.Host}{p.AudioUrl}" : null,
-                imageUrl = p.ImageUrl != null ? $"{Request.Scheme}://{Request.Host}{p.ImageUrl}" : null, // Truyền thêm link ảnh
+                imageUrl = p.ImageUrl != null ? $"{Request.Scheme}://{Request.Host}{p.ImageUrl}" : null,
                 name = _context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Name).FirstOrDefault() ?? "Chưa có tên",
                 description = _context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Description).FirstOrDefault() ?? "",
                 ttsContent = "Chào mừng bạn đến với " + (_context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Name).FirstOrDefault() ?? "")
@@ -89,9 +91,72 @@ namespace TravelSmart.API.Controllers
         {
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var newPoi = new Poi { PoiId = Guid.NewGuid(), Latitude = request.Latitude, Longitude = request.Longitude, QrCodeKey = request.QrCodeKey, RadiusMeter = 50, IsActive = true, CreatedAt = DateTime.Now, OwnerId = userId, Address = request.Address };
+
+            // 🔥 TÍNH NĂNG MỚI: TỰ ĐỘNG DỊCH VÀ TẠO MP3 KHI TẠO QUÁN
+            string baseText = $"Chào mừng bạn đến với {request.Name}. {request.Description}";
+
+            // Tạo MP3 Tiếng Việt
+            string viAudio = await GenerateEdgeTts(newPoi.PoiId, baseText, "vi-VN-HoaiMyNeural", "vi");
+            newPoi.AudioUrl = viAudio; // Lưu mặc định là tiếng Việt
+
+            // Dịch và Tạo MP3 Tiếng Anh
+            string enText = await TranslateText(baseText, "en");
+            await GenerateEdgeTts(newPoi.PoiId, enText, "en-US-AriaNeural", "en");
+
+            // Dịch và Tạo MP3 Tiếng Nhật
+            string jaText = await TranslateText(baseText, "ja");
+            await GenerateEdgeTts(newPoi.PoiId, jaText, "ja-JP-NanamiNeural", "ja");
+
             _context.Pois.Add(newPoi);
             _context.PoiTranslations.Add(new PoiTranslation { TranslationId = Guid.NewGuid(), PoiId = newPoi.PoiId, LanguageCode = "vi", Name = request.Name, Description = request.Description });
             await _context.SaveChangesAsync(); return Ok();
+        }
+
+        // 🔥 HÀM GỌI GOOGLE DỊCH (SERVER-SIDE)
+        private async Task<string> TranslateText(string text, string targetLang)
+        {
+            try
+            {
+                using var client = new HttpClient();
+                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(text)}";
+                var response = await client.GetStringAsync(url);
+                using var doc = JsonDocument.Parse(response);
+                string translatedText = "";
+                foreach (var chunk in doc.RootElement[0].EnumerateArray()) translatedText += chunk[0].GetString();
+                return string.IsNullOrWhiteSpace(translatedText) ? text : translatedText;
+            }
+            catch { return text; }
+        }
+
+        // 🔥 HÀM GỌI EDGE-TTS TẠO FILE MP3 CHUẨN
+        private async Task<string> GenerateEdgeTts(Guid poiId, string text, string voice, string langCode)
+        {
+            try
+            {
+                string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
+                var uploadsFolder = Path.Combine(webRootPath, "audio");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                string fileName = $"{poiId}_{langCode}.mp3";
+                string filePath = Path.Combine(uploadsFolder, fileName);
+
+                // Tránh lỗi ngoặc kép trong cmd
+                string safeText = text.Replace("\"", "\\\"");
+
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "edge-tts",
+                    Arguments = $"--voice {voice} --text \"{safeText}\" --write-media \"{filePath}\"",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var process = Process.Start(psi);
+                await process.WaitForExitAsync();
+
+                return $"/audio/{fileName}";
+            }
+            catch { return null; }
         }
 
         [HttpDelete("{id}")]
@@ -108,7 +173,6 @@ namespace TravelSmart.API.Controllers
             _context.Pois.Remove(poi); await _context.SaveChangesAsync(); return Ok();
         }
 
-        // TÍNH NĂNG UPLOAD MP3 THUYẾT MINH
         [HttpPost("{id}/upload-audio")]
         [Authorize(Roles = "Admin,Merchant")]
         public async Task<IActionResult> UploadAudio(Guid id, IFormFile file)
@@ -124,14 +188,12 @@ namespace TravelSmart.API.Controllers
             if (!file.FileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
                 return BadRequest("Chỉ hỗ trợ file .mp3");
 
-            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath)
-                ? Path.Combine(_env.ContentRootPath, "wwwroot")
-                : _env.WebRootPath;
-
+            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
             var uploadsFolder = Path.Combine(webRootPath, "audio");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{id}_{DateTime.Now.Ticks}.mp3";
+            // Cố định tên file tiếng Việt nếu khách tự up
+            var fileName = $"{id}_vi.mp3";
             var filePath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(filePath, FileMode.Create))
@@ -145,7 +207,6 @@ namespace TravelSmart.API.Controllers
             return Ok(new { message = "Tải file âm thanh thành công!", audioUrl = poi.AudioUrl });
         }
 
-        // TÍNH NĂNG UPLOAD ẢNH QUÁN ĂN
         [HttpPost("{id}/upload-image")]
         [Authorize(Roles = "Admin,Merchant")]
         public async Task<IActionResult> UploadImage(Guid id, IFormFile file)

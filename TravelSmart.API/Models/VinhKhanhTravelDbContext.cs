@@ -33,6 +33,10 @@ public partial class VinhKhanhTravelDbContext : DbContext
 
     public virtual DbSet<Order> Orders { get; set; }
 
+    public DbSet<Tour> Tours { get; set; }
+
+    public DbSet<TourDetail> TourDetails { get; set; }
+
     public virtual DbSet<Notification> Notifications { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

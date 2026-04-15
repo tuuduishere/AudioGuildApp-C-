@@ -37,7 +37,6 @@ public partial class MainPage : ContentPage
         base.OnAppearing();
         MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(10.7605, 106.7025), Distance.FromKilometers(1)));
 
-        // 🔥 TÍNH NĂNG MỚI: HỎI NGÔN NGỮ LẦN ĐẦU MỞ APP
         if (!Preferences.Default.ContainsKey("DefaultLang"))
         {
             string action = await DisplayActionSheet("Chọn ngôn ngữ ưu tiên / Choose your default language", null, null, "🇻🇳 Tiếng Việt", "🇬🇧 English", "🇯🇵 日本語");
@@ -172,7 +171,7 @@ public partial class MainPage : ContentPage
                     var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);
                     if (pin != null)
                     {
-                        _ = PlayPoiAudio(poi); // Phát âm thanh ngay lập tức
+                        _ = PlayPoiAudio(poi);
                         await OpenBottomSheetForPoi(pin, poi);
                     }
                 }
@@ -184,7 +183,6 @@ public partial class MainPage : ContentPage
         }
     }
 
-    // 🔥 NÚT CỜ BÂY GIỜ CHỈ ĐỔI TẠM THỜI, KHÔNG ĐỔI CÀI ĐẶT GỐC CỦA MÁY NỮA
     private void OnLangClicked(object sender, EventArgs e)
     {
         if (sender is Button btn && _currentActivePoi != null)
@@ -215,45 +213,53 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
-    // 🔥 BỘ NÃO MỚI: HỦY BỎ HÀNG ĐỢI (QUEUE) ÓC CHÓ, BẤM LÀ PHÁT NGAY
+    // 🔥 BỘ NÃO 3 LỚP BẤT TỬ: OFFLINE -> ONLINE -> AI
     private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
     {
-        StopSpeech(); // Tắt hết âm thanh cũ đang rên rỉ
+        StopSpeech();
 
-        // Lấy ngôn ngữ: Ưu tiên ngôn ngữ khách vừa bấm cờ tạm thời -> Không có thì lấy ngôn ngữ Gốc đã chọn lúc mở app
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
 
-        if (targetLang == "vi" && !string.IsNullOrEmpty(poi.AudioUrl))
+        string localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_{targetLang}.mp3");
+
+        // LỚP 1: TÌM FILE TRONG MÁY (HOẠT ĐỘNG OFFLINE 100%)
+        if (File.Exists(localFilePath))
+        {
+            try
+            {
+                var stream = File.OpenRead(localFilePath);
+                _audioPlayer = AudioManager.Current.CreatePlayer(stream);
+                _audioPlayer.Play();
+                return; // Đã hát thì kết thúc hàm
+            }
+            catch { Console.WriteLine("Lỗi đọc mp3 offline"); }
+        }
+
+        // LỚP 2: LỠ CHƯA TẢI KỊP THÌ KÉO TỪ SERVER XUỐNG
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet && targetLang == "vi" && !string.IsNullOrEmpty(poi.AudioUrl))
         {
             try
             {
                 string safeAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
-                var localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}.mp3");
+                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+                using var httpClient = new HttpClient(handler);
 
-                if (!File.Exists(localFilePath) && Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
-                {
-                    var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
-                    using var httpClient = new HttpClient(handler);
-                    var audioBytes = await httpClient.GetByteArrayAsync(safeAudioUrl);
-                    await File.WriteAllBytesAsync(localFilePath, audioBytes);
-                }
+                var audioBytes = await httpClient.GetByteArrayAsync(safeAudioUrl);
+                await File.WriteAllBytesAsync(localFilePath, audioBytes); // Tiện tay lưu luôn cho lần sau Offline
 
-                if (File.Exists(localFilePath))
-                {
-                    var stream = File.OpenRead(localFilePath);
-                    _audioPlayer = AudioManager.Current.CreatePlayer(stream);
-                    _audioPlayer.Play();
-                    return; // Đã hát MP3 xong thì thoát, không gọi AI nữa
-                }
+                var stream = File.OpenRead(localFilePath);
+                _audioPlayer = AudioManager.Current.CreatePlayer(stream);
+                _audioPlayer.Play();
+                return;
             }
-            catch { Console.WriteLine("Lỗi tải MP3"); }
+            catch { Console.WriteLine("Tải file dự phòng thất bại."); }
         }
 
-        // Chạy thẳng xuống AI AI nếu lỗi MP3 hoặc khách đang chọn Ngoại Ngữ
+        // LỚP 3: NẾU TẤT CẢ THẤT BẠI (Hoặc là Tiếng Anh/Nhật không có MP3) -> GỌI AI ĐỌC CHỮA CHÁY
         await SmartSpeak(poi.TtsContent, targetLang);
     }
 
-    // 🔥 FIX LỖI TRANSLATOR ERROR: Cắt ngắn text để Google không chặn
+    // 🔥 HÀM AI DỊCH THUẬT SIÊU NHANH
     private async Task SmartSpeak(string text, string targetLang)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -273,7 +279,7 @@ public partial class MainPage : ContentPage
                 var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, err) => true };
                 using var client = new HttpClient(handler);
 
-                // Cắt văn bản xuống 800 ký tự để không bị lỗi URL Quá dài (URI Too Long 414) của Google
+                // Cắt văn bản xuống 800 ký tự để không bị lỗi 414 của Google
                 string safeText = text.Length > 800 ? text.Substring(0, 800) + "..." : text;
 
                 var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(safeText)}";
@@ -310,7 +316,7 @@ public partial class MainPage : ContentPage
         e.HideInfoWindow = true;
         if (sender is Pin pin && _pinPoiMap.TryGetValue(pin, out PoiModel poi))
         {
-            _ = PlayPoiAudio(poi); // Phát ngay tắp lự không cần chờ đợi gì
+            _ = PlayPoiAudio(poi);
             await OpenBottomSheetForPoi(pin, poi);
         }
     }

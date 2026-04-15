@@ -9,14 +9,14 @@ public class DataService
     private SQLiteAsyncConnection _db;
     private readonly HttpClient _httpClient;
 
-    // Dùng ngrok để test trên máy thật luôn sếp nhé
+    // API Ngrok để test trên máy ảo/máy thật
     private const string ApiUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Pois";
+    private const string BaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev";
 
     public DataService()
     {
         _httpClient = new HttpClient();
         _httpClient.Timeout = TimeSpan.FromSeconds(10);
-        // 🔥 Thêm cái thẻ VIP vượt rào Ngrok cho DataService luôn
         _httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
     }
 
@@ -31,16 +31,15 @@ public class DataService
         }
     }
 
-    // 🔥 HÀM NÀY GIỜ CHẠY OFFLINE TẸT GA VÌ LẤY TỪ SQLITE
     public async Task<List<PoiModel>> GetPOIsAsync()
     {
         await InitDbTask();
         return await _db.Table<PoiModel>().ToListAsync();
     }
 
+    // 🔥 BƯỚC 1: ĐỒNG BỘ TĂNG DẦN (INCREMENTAL SYNC)
     public async Task<bool> SyncFromServerAsync()
     {
-        // 🔥 NẾU KHÔNG CÓ MẠNG -> KHÔNG LÀM GÌ CẢ (GIỮ NGUYÊN DATA CŨ TRONG MÁY)
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
 
         try
@@ -49,39 +48,98 @@ public class DataService
             if (response.IsSuccessStatusCode)
             {
                 var serverPois = await response.Content.ReadFromJsonAsync<List<PoiModel>>();
-                if (serverPois != null && serverPois.Count > 0)
+                if (serverPois != null)
                 {
                     await InitDbTask();
-                    await _db.DeleteAllAsync<PoiModel>(); // Xóa cái cũ
-                    await _db.InsertAllAsync(serverPois); // Bơm cái mới về đi cất
+                    var localPois = await _db.Table<PoiModel>().ToListAsync();
+
+                    var serverIds = serverPois.Select(p => p.Id).ToList();
+                    var localIds = localPois.Select(p => p.Id).ToList();
+
+                    // 1. XÓA (Delete): Quán nào Server đã xóa thì App cũng phải xóa + Dọn rác MP3
+                    var toDeleteIds = localIds.Except(serverIds).ToList();
+                    foreach (var id in toDeleteIds)
+                    {
+                        var poiToDelete = localPois.First(p => p.Id == id);
+                        await _db.DeleteAsync(poiToDelete);
+
+                        // Dọn rác MP3 để không nặng máy khách
+                        string[] langs = { "vi", "en", "ja" };
+                        foreach (var lang in langs)
+                        {
+                            string filePath = Path.Combine(FileSystem.CacheDirectory, $"{id}_{lang}.mp3");
+                            if (File.Exists(filePath)) File.Delete(filePath);
+                        }
+                    }
+
+                    // 2. THÊM MỚI (Insert) & CẬP NHẬT (Update)
+                    var toInsert = new List<PoiModel>();
+                    var toUpdate = new List<PoiModel>();
+                    var newPoisForAudio = new List<PoiModel>();
+
+                    foreach (var serverPoi in serverPois)
+                    {
+                        if (localIds.Contains(serverPoi.Id))
+                        {
+                            toUpdate.Add(serverPoi); // Quán cũ -> Chỉ update data text
+                        }
+                        else
+                        {
+                            toInsert.Add(serverPoi); // Quán mới -> Thêm vào List chờ Insert
+                            newPoisForAudio.Add(serverPoi); // Đưa vào List chờ tải MP3
+                        }
+                    }
+
+                    if (toInsert.Any()) await _db.InsertAllAsync(toInsert);
+                    if (toUpdate.Any()) await _db.UpdateAllAsync(toUpdate);
+
+                    // 3. Chỉ tải MP3 cho những Quán MỚI được thêm vào (Tiết kiệm 4G cực mạnh)
+                    if (newPoisForAudio.Any())
+                    {
+                        _ = DownloadAudioOffline(newPoisForAudio);
+                    }
+
+                    // Lưu vết thời gian đồng bộ cuối cùng
+                    Preferences.Default.Set("LastSyncTime", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
+
                     return true;
                 }
             }
             return false;
         }
-        catch
+        catch { return false; }
+    }
+
+    private async Task DownloadAudioOffline(List<PoiModel> pois)
+    {
+        string[] langs = { "vi", "en", "ja" };
+        foreach (var poi in pois)
         {
-            return false;
+            foreach (var lang in langs)
+            {
+                string fileName = $"{poi.Id}_{lang}.mp3";
+                string localPath = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+                if (!File.Exists(localPath))
+                {
+                    try
+                    {
+                        var audioBytes = await _httpClient.GetByteArrayAsync($"{BaseUrl}/audio/{fileName}");
+                        await File.WriteAllBytesAsync(localPath, audioBytes);
+                    }
+                    catch { /* Bỏ qua nếu server chưa kịp tạo file MP3 */ }
+                }
+            }
         }
     }
 
     public async Task AddHistoryAsync(PoiModel poi)
     {
         await InitDbTask();
-        var history = new VisitLogModel
-        {
-            PoiId = poi.Id,
-            Name = poi.Name,
-            VisitTime = DateTime.Now
-        };
-
-        // 1. Lưu vào SQLite của điện thoại ngay lập tức (Offline vẫn lưu)
+        var history = new VisitLogModel { PoiId = poi.Id, Name = poi.Name, VisitTime = DateTime.Now };
         await _db.InsertAsync(history);
 
-        // NẾU MẤT MẠNG THÌ DỪNG LẠI (Không gọi Server nữa để khỏi lỗi)
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return;
-
-        // 2. Có mạng thì gọi điện báo cho Server
         try { await _httpClient.PostAsJsonAsync($"{ApiUrl}/history", history); } catch { }
     }
 

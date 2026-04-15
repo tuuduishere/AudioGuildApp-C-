@@ -6,7 +6,43 @@
 @inject NavigationManager Nav
 
 <div class="container mt-4">
-    <h2 class="mb-4">👥 Quản lý Thành viên & Xét duyệt</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>👥 Quản lý Thành viên & Xét duyệt</h2>
+        <button class="btn btn-primary fw-bold" @onclick="ToggleForm">+ Thêm Thành Viên</button>
+    </div>
+
+    @if (showForm)
+    {
+        <div class="card shadow-sm mb-4 border-primary">
+            <div class="card-header bg-primary text-white fw-bold">TẠO TÀI KHOẢN MỚI</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="fw-bold">Tên tài khoản</label>
+                    <input class="form-control bg-light" @bind="newUser.Username" placeholder="Nhập username..." />
+                </div>
+                <div class="col-md-6">
+                    <label class="fw-bold">Mật khẩu</label>
+                    <input type="password" class="form-control bg-light" @bind="newUser.Password" placeholder="Nhập mật khẩu..." />
+                </div>
+                <div class="col-md-8">
+                    <label class="fw-bold">Email</label>
+                    <input type="email" class="form-control bg-light" @bind="newUser.Email" placeholder="Nhập email..." />
+                </div>
+                <div class="col-md-4">
+                    <label class="fw-bold">Cấp quyền</label>
+                    <select class="form-select bg-light" @bind="newUser.RoleId">
+                        <option value="3">🚶 Khách du lịch</option>
+                        <option value="2">👑 Chủ quán</option>
+                        <option value="1">🛑 Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-12 text-end mt-4">
+                    <button class="btn btn-secondary me-2" @onclick="ToggleForm">Hủy bỏ</button>
+                    <button class="btn btn-success fw-bold" @onclick="CreateUser">Lưu Tài Khoản</button>
+                </div>
+            </div>
+        </div>
+    }
     
     @if (users == null)
     {
@@ -36,7 +72,6 @@
                                     }
                                     else
                                     {
-
                                         <span class="badge bg-danger">Admin</span>
                                     }
                                 </td>
@@ -52,12 +87,10 @@
                                     }
                                     else if (u.MerchantRequestStatus == "Rejected")
                                     {
-
                                         <span class="text-danger">✖ Từ chối</span>
                                     }
                                     else
                                     {
-
                                         <span class="text-muted">Không có yêu cầu</span>
                                     }
                                 </td>
@@ -83,16 +116,47 @@
 
 @code {
     private List<UserDto> users;
+    private bool showForm = false;
+    private UserCreateDto newUser = new UserCreateDto { RoleId = 3 }; // Mặc định là Khách du lịch
     private string apiBase = "https://localhost:7008/api/Users";
 
     protected override async Task OnInitializedAsync() { await LoadData(); }
     
+    private void ToggleForm() => showForm = !showForm;
+
     private async Task LoadData()
     {
         var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
         if (string.IsNullOrEmpty(token)) { Nav.NavigateTo("/login"); return; }
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         users = await Http.GetFromJsonAsync<List<UserDto>>(apiBase);
+    }
+
+    // 🔥 HÀM GỌI API TẠO THÀNH VIÊN
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(newUser.Username) || string.IsNullOrWhiteSpace(newUser.Password))
+        {
+            await JS.InvokeVoidAsync("alert", "Vui lòng nhập đầy đủ Tên tài khoản và Mật khẩu!");
+            return;
+        }
+
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+        Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        
+        var response = await Http.PostAsJsonAsync(apiBase, newUser);
+        if (response.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "Tạo tài khoản thành công!");
+            newUser = new UserCreateDto { RoleId = 3 }; // Reset form
+            showForm = false;
+            await LoadData();
+        }
+        else
+        {
+            var errorMsg = await response.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("alert", $"Lỗi: {errorMsg}");
+        }
     }
 
     private async Task ChangeUserRole(Guid id, string newRoleId)
@@ -108,4 +172,7 @@
     private async Task DeleteUser(Guid id) { if (await JS.InvokeAsync<bool>("confirm", "Chắc chắn xóa người dùng này?")) { await Http.DeleteAsync($"{apiBase}/{id}"); await LoadData(); } }
     
     public class UserDto { public Guid UserId { get; set; } public string Username { get; set; } public string Email { get; set; } public int RoleId { get; set; } public string MerchantRequestStatus { get; set; } public DateTime CreatedAt { get; set; } }
+    
+    // DTO cho Form tạo user
+    public class UserCreateDto { public string Username { get; set; } public string Email { get; set; } public string Password { get; set; } public int RoleId { get; set; } }
 }

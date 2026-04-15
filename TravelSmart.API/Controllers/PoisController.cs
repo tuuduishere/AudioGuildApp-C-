@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TravelSmart.API.Models;
+using Microsoft.AspNetCore.Hosting;
 
 namespace TravelSmart.API.Controllers
 {
@@ -11,7 +12,13 @@ namespace TravelSmart.API.Controllers
     public class PoisController : ControllerBase
     {
         private readonly VinhKhanhTravelDbContext _context;
-        public PoisController(VinhKhanhTravelDbContext context) => _context = context;
+        private readonly IWebHostEnvironment _env;
+
+        public PoisController(VinhKhanhTravelDbContext context, IWebHostEnvironment env)
+        {
+            _context = context;
+            _env = env;
+        }
 
         public class PoiCreateDto { public string Name { get; set; } public string Description { get; set; } public string Address { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public string QrCodeKey { get; set; } }
         public class MenuItemCreateDto { public string ItemName { get; set; } public decimal Price { get; set; } }
@@ -32,6 +39,8 @@ namespace TravelSmart.API.Controllers
                 longitude = p.Longitude,
                 qrCodeKey = p.QrCodeKey,
                 address = p.Address,
+                audioUrl = p.AudioUrl != null ? $"{Request.Scheme}://{Request.Host}{p.AudioUrl}" : null,
+                imageUrl = p.ImageUrl != null ? $"{Request.Scheme}://{Request.Host}{p.ImageUrl}" : null, // Truyền thêm link ảnh
                 name = _context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Name).FirstOrDefault() ?? "Chưa có tên",
                 description = _context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Description).FirstOrDefault() ?? "",
                 ttsContent = "Chào mừng bạn đến với " + (_context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Name).FirstOrDefault() ?? "")
@@ -97,6 +106,82 @@ namespace TravelSmart.API.Controllers
             if (_context.Reviews != null) _context.Reviews.RemoveRange(_context.Reviews.Where(r => r.PoiId == id));
             if (_context.Orders != null) _context.Orders.RemoveRange(_context.Orders.Where(o => o.PoiId == id));
             _context.Pois.Remove(poi); await _context.SaveChangesAsync(); return Ok();
+        }
+
+        // TÍNH NĂNG UPLOAD MP3 THUYẾT MINH
+        [HttpPost("{id}/upload-audio")]
+        [Authorize(Roles = "Admin,Merchant")]
+        public async Task<IActionResult> UploadAudio(Guid id, IFormFile file)
+        {
+            var poi = await _context.Pois.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
+
+            if (file == null || file.Length == 0) return BadRequest("File rỗng.");
+            if (!file.FileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Chỉ hỗ trợ file .mp3");
+
+            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+
+            var uploadsFolder = Path.Combine(webRootPath, "audio");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{id}_{DateTime.Now.Ticks}.mp3";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            poi.AudioUrl = $"/audio/{fileName}";
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tải file âm thanh thành công!", audioUrl = poi.AudioUrl });
+        }
+
+        // TÍNH NĂNG UPLOAD ẢNH QUÁN ĂN
+        [HttpPost("{id}/upload-image")]
+        [Authorize(Roles = "Admin,Merchant")]
+        public async Task<IActionResult> UploadImage(Guid id, IFormFile file)
+        {
+            var poi = await _context.Pois.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
+
+            if (file == null || file.Length == 0) return BadRequest("File rỗng.");
+
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png")
+                return BadRequest("Chỉ hỗ trợ file ảnh .jpg, .png");
+
+            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+
+            var uploadsFolder = Path.Combine(webRootPath, "images");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = $"{id}_{DateTime.Now.Ticks}{ext}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            poi.ImageUrl = $"/images/{fileName}";
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tải ảnh thành công!", imageUrl = poi.ImageUrl });
         }
 
         [HttpPost("history")]

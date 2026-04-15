@@ -21,7 +21,7 @@ public partial class ProfilePage : ContentPage
         var role = await SecureStorage.Default.GetAsync("role") ?? "User";
         UpdateUI(username, role);
 
-        // 2. Tự động đâm API ngầm để lấy Quyền mới nhất (Sợ lúc nãy Timer chưa kịp chạy)
+        // 2. Tự động đâm API ngầm để lấy Quyền mới nhất
         await ForceSyncProfileRole();
     }
 
@@ -47,18 +47,19 @@ public partial class ProfilePage : ContentPage
             if (string.IsNullOrEmpty(token)) return;
 
             using var client = new HttpClient();
+            // Thêm thẻ vượt rào ngrok cho đồng bộ với các file kia
+            client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await client.GetAsync($"{ApiBaseUrl}/Auth/sync");
             if (response.IsSuccessStatusCode)
             {
-                // Tận dụng lại class SyncDataDto của MainPage cho tiện
                 var data = await response.Content.ReadFromJsonAsync<MainPage.SyncDataDto>();
                 if (data != null)
                 {
                     string realRole = data.roleId == 1 ? "Admin" : (data.roleId == 2 ? "Merchant" : "User");
                     await SecureStorage.Default.SetAsync("role", realRole);
-                    UpdateUI(LblUsername.Text, realRole); // Cập nhật lại UI lặp tức nếu có thay đổi!
+                    UpdateUI(LblUsername.Text, realRole);
                 }
             }
         }
@@ -70,11 +71,18 @@ public partial class ProfilePage : ContentPage
         await Navigation.PushAsync(new SettingsPage());
     }
 
+    // 🔥 FIX LỖI TẠI ĐÂY: Đăng xuất chuẩn chỉ
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
+        // 1. Xóa sạch sành sanh thẻ VIP cũ
         SecureStorage.Default.RemoveAll();
         Preferences.Default.Clear();
-        Application.Current.MainPage = new NavigationPage(new LoginPage());
+
+        // 2. Gắn ngay mác Khách Vãng Lai vào cho hệ thống nó nhận diện
+        await SecureStorage.Default.SetAsync("role", "Guest");
+
+        // 3. Đá thẳng ra Bản Đồ (Trải nghiệm liền mạch)
+        Application.Current.MainPage = new NavigationPage(new MainPage());
     }
 
     private async void OnRequestMerchantClicked(object sender, EventArgs e)
@@ -83,6 +91,7 @@ public partial class ProfilePage : ContentPage
         if (string.IsNullOrEmpty(token)) return;
 
         var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         try

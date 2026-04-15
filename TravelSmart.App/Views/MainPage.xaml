@@ -87,8 +87,14 @@
                     <Button Grid.Column="1" Text="🗺 Đi ngay" BackgroundColor="#43A047" TextColor="White" CornerRadius="8" FontAttributes="Bold" HeightRequest="40" Padding="10,0" Margin="10,0" Clicked="OnGetDirectionsClicked" />
                 </Grid>
                 <BoxView Grid.Row="1" HeightRequest="1" Color="#EEEEEE" />
+
                 <ScrollView Grid.Row="2" Padding="20">
                     <VerticalStackLayout Spacing="25">
+
+                        <Frame HeightRequest="180" CornerRadius="15" Padding="0" HasShadow="False" BorderColor="Transparent" IsClippedToBounds="True" BackgroundColor="#F5F5F5">
+                            <Image x:Name="ImgPoi" Source="https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&amp;w=800&amp;auto=format&amp;fit=crop" Aspect="AspectFill" />
+                        </Frame>
+
                         <VerticalStackLayout>
                             <HorizontalStackLayout Spacing="5" Margin="0,0,0,10">
                                 <Label Text="🍽" FontSize="18"/>

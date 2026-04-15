@@ -9,13 +9,15 @@ public class DataService
     private SQLiteAsyncConnection _db;
     private readonly HttpClient _httpClient;
 
-    // API Cổng 5088 dành cho máy ảo Android
+    // Dùng ngrok để test trên máy thật luôn sếp nhé
     private const string ApiUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Pois";
 
     public DataService()
     {
         _httpClient = new HttpClient();
         _httpClient.Timeout = TimeSpan.FromSeconds(10);
+        // 🔥 Thêm cái thẻ VIP vượt rào Ngrok cho DataService luôn
+        _httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
     }
 
     private async Task InitDbTask()
@@ -29,6 +31,7 @@ public class DataService
         }
     }
 
+    // 🔥 HÀM NÀY GIỜ CHẠY OFFLINE TẸT GA VÌ LẤY TỪ SQLITE
     public async Task<List<PoiModel>> GetPOIsAsync()
     {
         await InitDbTask();
@@ -37,6 +40,9 @@ public class DataService
 
     public async Task<bool> SyncFromServerAsync()
     {
+        // 🔥 NẾU KHÔNG CÓ MẠNG -> KHÔNG LÀM GÌ CẢ (GIỮ NGUYÊN DATA CŨ TRONG MÁY)
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
+
         try
         {
             var response = await _httpClient.GetAsync(ApiUrl);
@@ -46,8 +52,8 @@ public class DataService
                 if (serverPois != null && serverPois.Count > 0)
                 {
                     await InitDbTask();
-                    await _db.DeleteAllAsync<PoiModel>();
-                    await _db.InsertAllAsync(serverPois);
+                    await _db.DeleteAllAsync<PoiModel>(); // Xóa cái cũ
+                    await _db.InsertAllAsync(serverPois); // Bơm cái mới về đi cất
                     return true;
                 }
             }
@@ -59,7 +65,6 @@ public class DataService
         }
     }
 
-    // ĐẤU NỐI: Lưu lịch sử vào điện thoại và báo lên Server
     public async Task AddHistoryAsync(PoiModel poi)
     {
         await InitDbTask();
@@ -70,15 +75,14 @@ public class DataService
             VisitTime = DateTime.Now
         };
 
-        // 1. Lưu vào SQLite của điện thoại
+        // 1. Lưu vào SQLite của điện thoại ngay lập tức (Offline vẫn lưu)
         await _db.InsertAsync(history);
 
-        // 2. Gọi điện báo cho Server
-        try
-        {
-            await _httpClient.PostAsJsonAsync($"{ApiUrl}/history", history);
-        }
-        catch { } // Mất mạng thì bỏ qua
+        // NẾU MẤT MẠNG THÌ DỪNG LẠI (Không gọi Server nữa để khỏi lỗi)
+        if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return;
+
+        // 2. Có mạng thì gọi điện báo cho Server
+        try { await _httpClient.PostAsJsonAsync($"{ApiUrl}/history", history); } catch { }
     }
 
     public async Task<List<VisitLogModel>> GetHistoryAsync()

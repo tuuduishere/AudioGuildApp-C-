@@ -47,7 +47,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// 4. BẬT BẢO VỆ (Phải theo đúng thứ tự: Đọc thẻ trước -> Phân quyền sau)
+// 4. BẬT BẢO VỆ VÀ MỞ CỔNG FILE TĨNH
+app.UseStaticFiles(); // ĐÂY LÀ DÒNG QUAN TRỌNG ĐỂ MOBILE TẢI ĐƯỢC NHẠC VÀ ẢNH!
 app.UseAuthentication();
 app.UseAuthorization();
 

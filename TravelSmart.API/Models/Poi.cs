@@ -23,6 +23,10 @@ public partial class Poi
 
     public DateTime? CreatedAt { get; set; }
 
+    public string? AudioUrl { get; set; }
+
+    public string? ImageUrl { get; set; }
+
     public virtual User? Owner { get; set; }
 
     public virtual ICollection<PoiTranslation> PoiTranslations { get; set; } = new List<PoiTranslation>();

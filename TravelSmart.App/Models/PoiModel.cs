@@ -9,4 +9,9 @@ public class PoiModel
     public double Longitude { get; set; }
     public string TtsContent { get; set; }
     public string QrCodeKey { get; set; }
+
+    // 🔥 THÊM CỘT NÀY ĐỂ ĐÁP ỨNG SPEC: LƯU FILE MP3 THU ÂM SẴN
+    public string AudioUrl { get; set; }
+
+    public string ImageUrl { get; set; }
 }

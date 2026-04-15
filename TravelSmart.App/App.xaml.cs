@@ -6,7 +6,7 @@ public partial class App : Application
     {
         InitializeComponent();
 
-        // Ép App khi vừa bật lên là phải vào trang LoginPage (Nằm trong NavigationPage để chuyển trang cho mượt)
-        MainPage = new NavigationPage(new Views.LoginPage());
+        // 🔥 CHỐT HẠ MỌI VẤN ĐỀ: Xóa LoginPage, ép vào thẳng MainPage (Bản đồ)
+        MainPage = new NavigationPage(new Views.MainPage());
     }
 }

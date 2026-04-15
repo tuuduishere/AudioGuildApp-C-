@@ -18,7 +18,6 @@ public partial class MainPage : ContentPage
     private List<PoiModel> _pois = new();
 
     private HashSet<string> _playedAudioPois = new();
-
     private IDispatcherTimer _timer;
     private Dictionary<Pin, PoiModel> _pinPoiMap = new();
 
@@ -26,14 +25,33 @@ public partial class MainPage : ContentPage
 
     private Location _currentSelectedLocation;
     private string _currentPoiTts = "";
+    private PoiModel _currentActivePoi;
 
     private CancellationTokenSource _ttsCancellationTokenSource;
     private IAudioPlayer _audioPlayer;
 
-    private Queue<PoiModel> _audioQueue = new();
-    private bool _isAudioPlaying = false;
-
     public MainPage() { InitializeComponent(); _dataService = new DataService(); }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(10.7605, 106.7025), Distance.FromKilometers(1)));
+
+        // 🔥 TÍNH NĂNG MỚI: HỎI NGÔN NGỮ LẦN ĐẦU MỞ APP
+        if (!Preferences.Default.ContainsKey("DefaultLang"))
+        {
+            string action = await DisplayActionSheet("Chọn ngôn ngữ ưu tiên / Choose your default language", null, null, "🇻🇳 Tiếng Việt", "🇬🇧 English", "🇯🇵 日本語");
+            string langCode = "vi";
+            if (action == "🇬🇧 English") langCode = "en";
+            else if (action == "🇯🇵 日本語") langCode = "ja";
+
+            Preferences.Default.Set("DefaultLang", langCode);
+        }
+
+        await SyncWithServer();
+        await ReloadMapData();
+        await StartTrackingGPS();
+    }
 
     private async Task ReloadMapData()
     {
@@ -57,25 +75,12 @@ public partial class MainPage : ContentPage
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e) { if (string.IsNullOrWhiteSpace(e.NewTextValue)) FilterMapPins(""); }
     private async void OnNotificationClicked(object sender, EventArgs e) { BadgeNoti.IsVisible = false; await Navigation.PushAsync(new NotificationsPage()); }
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(10.7605, 106.7025), Distance.FromKilometers(1)));
-        await SyncWithServer();
-        await ReloadMapData();
-        await StartTrackingGPS();
-    }
-
     public async Task SyncWithServer()
     {
         try
         {
             var token = await SecureStorage.Default.GetAsync("authToken");
-            if (string.IsNullOrEmpty(token))
-            {
-                await SecureStorage.Default.SetAsync("role", "Guest");
-                return;
-            }
+            if (string.IsNullOrEmpty(token)) { await SecureStorage.Default.SetAsync("role", "Guest"); return; }
 
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
@@ -100,21 +105,16 @@ public partial class MainPage : ContentPage
     private async Task OpenBottomSheetForPoi(Pin pin, PoiModel poi)
     {
         _currentSelectedLocation = pin.Location;
+        _currentActivePoi = poi;
+
         LblPoiName.Text = poi.Name;
         LblPoiAddress.Text = "Đang tải thông tin chi tiết...";
         _currentPoiTts = poi.TtsContent;
 
-        // 🔥 MÓC LINK ẢNH TỪ SERVER ĐẬP VÀO ĐÂY
         if (!string.IsNullOrEmpty(poi.ImageUrl))
-        {
-            // Fix lỗi máy ảo Android không chịu hiểu chữ localhost
-            ImgPoi.Source = poi.ImageUrl.Replace("localhost", "10.0.2.2");
-        }
+            ImgPoi.Source = poi.ImageUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
         else
-        {
-            // Trả về ảnh mặc định nếu quán chưa có ảnh
             ImgPoi.Source = "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=800&auto=format&fit=crop";
-        }
 
         ContainerMenu.Children.Clear(); ContainerReviews.Children.Clear(); EntryReview.Text = "";
         FrameWriteReview.IsVisible = await SecureStorage.Default.GetAsync("role") == "User";
@@ -172,8 +172,8 @@ public partial class MainPage : ContentPage
                     var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);
                     if (pin != null)
                     {
+                        _ = PlayPoiAudio(poi); // Phát âm thanh ngay lập tức
                         await OpenBottomSheetForPoi(pin, poi);
-                        QueueAudioAndPlay(poi);
                     }
                 }
             }
@@ -184,54 +184,57 @@ public partial class MainPage : ContentPage
         }
     }
 
+    // 🔥 NÚT CỜ BÂY GIỜ CHỈ ĐỔI TẠM THỜI, KHÔNG ĐỔI CÀI ĐẶT GỐC CỦA MÁY NỮA
+    private void OnLangClicked(object sender, EventArgs e)
+    {
+        if (sender is Button btn && _currentActivePoi != null)
+        {
+            string param = btn.CommandParameter?.ToString()?.ToUpper() ?? "VN";
+            string tempLangCode = "vi";
+            if (param == "EN" || param == "ENGLISH") tempLangCode = "en";
+            else if (param == "JP" || param == "JA" || param == "JAPANESE") tempLangCode = "ja";
+
+            _ = PlayPoiAudio(_currentActivePoi, tempLangCode);
+        }
+    }
+
     private void StopSpeech()
     {
         try
         {
             if (_ttsCancellationTokenSource != null && !_ttsCancellationTokenSource.IsCancellationRequested)
-            {
                 _ttsCancellationTokenSource.Cancel();
-            }
+
             if (_audioPlayer != null && _audioPlayer.IsPlaying)
             {
                 _audioPlayer.Stop();
                 _audioPlayer.Dispose();
-                _audioPlayer = null;
             }
-            _audioQueue.Clear();
-            _isAudioPlaying = false;
+            _audioPlayer = null;
         }
         catch { }
     }
 
-    private void QueueAudioAndPlay(PoiModel poi)
+    // 🔥 BỘ NÃO MỚI: HỦY BỎ HÀNG ĐỢI (QUEUE) ÓC CHÓ, BẤM LÀ PHÁT NGAY
+    private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
     {
-        _audioQueue.Enqueue(poi);
-        if (!_isAudioPlaying) { _ = PlayNextAudioInQueue(); }
-    }
+        StopSpeech(); // Tắt hết âm thanh cũ đang rên rỉ
 
-    private async Task PlayNextAudioInQueue()
-    {
-        if (_audioQueue.Count == 0)
-        {
-            _isAudioPlaying = false;
-            return;
-        }
+        // Lấy ngôn ngữ: Ưu tiên ngôn ngữ khách vừa bấm cờ tạm thời -> Không có thì lấy ngôn ngữ Gốc đã chọn lúc mở app
+        string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
 
-        _isAudioPlaying = true;
-        var poi = _audioQueue.Dequeue();
-
-        if (!string.IsNullOrEmpty(poi.AudioUrl))
+        if (targetLang == "vi" && !string.IsNullOrEmpty(poi.AudioUrl))
         {
             try
             {
+                string safeAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
                 var localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}.mp3");
 
                 if (!File.Exists(localFilePath) && Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
                 {
-                    using var httpClient = new HttpClient();
-                    var audioBytes = await httpClient.GetByteArrayAsync(poi.AudioUrl.Replace("localhost", "10.0.2.2"));
-
+                    var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+                    using var httpClient = new HttpClient(handler);
+                    var audioBytes = await httpClient.GetByteArrayAsync(safeAudioUrl);
                     await File.WriteAllBytesAsync(localFilePath, audioBytes);
                 }
 
@@ -239,46 +242,57 @@ public partial class MainPage : ContentPage
                 {
                     var stream = File.OpenRead(localFilePath);
                     _audioPlayer = AudioManager.Current.CreatePlayer(stream);
-                    _audioPlayer.PlaybackEnded += (s, e) =>
-                    {
-                        stream.Dispose();
-                        _ = PlayNextAudioInQueue();
-                    };
                     _audioPlayer.Play();
-                    return;
+                    return; // Đã hát MP3 xong thì thoát, không gọi AI nữa
                 }
             }
-            catch { }
+            catch { Console.WriteLine("Lỗi tải MP3"); }
         }
 
-        await SmartSpeak(poi.TtsContent);
-        _ = PlayNextAudioInQueue();
+        // Chạy thẳng xuống AI AI nếu lỗi MP3 hoặc khách đang chọn Ngoại Ngữ
+        await SmartSpeak(poi.TtsContent, targetLang);
     }
 
-    private async Task SmartSpeak(string text, string forceLangCode = null)
+    // 🔥 FIX LỖI TRANSLATOR ERROR: Cắt ngắn text để Google không chặn
+    private async Task SmartSpeak(string text, string targetLang)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
 
         _ttsCancellationTokenSource = new CancellationTokenSource();
-        string targetLang = forceLangCode ?? Preferences.Default.Get("DefaultLang", "vi");
         string textToSpeak = text;
 
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet && targetLang != "vi")
         {
-            textToSpeak = "Ứng dụng ngoại tuyến. " + text;
+            textToSpeak = targetLang == "en" ? "App is offline." : "オフラインです";
             targetLang = "vi";
         }
         else if (targetLang != "vi")
         {
             try
             {
-                using var client = new HttpClient();
-                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(text)}";
+                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, err) => true };
+                using var client = new HttpClient(handler);
+
+                // Cắt văn bản xuống 800 ký tự để không bị lỗi URL Quá dài (URI Too Long 414) của Google
+                string safeText = text.Length > 800 ? text.Substring(0, 800) + "..." : text;
+
+                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(safeText)}";
                 var response = await client.GetStringAsync(url);
                 using var doc = JsonDocument.Parse(response);
-                textToSpeak = doc.RootElement[0][0][0].GetString() ?? text;
+
+                string translatedText = "";
+                foreach (var chunk in doc.RootElement[0].EnumerateArray())
+                {
+                    translatedText += chunk[0].GetString();
+                }
+
+                if (!string.IsNullOrWhiteSpace(translatedText)) textToSpeak = translatedText;
+                else throw new Exception("Rỗng");
             }
-            catch { }
+            catch
+            {
+                textToSpeak = targetLang == "en" ? "Translation system error. Please check your network." : "翻訳システムエラー。";
+            }
         }
 
         var locales = await TextToSpeech.Default.GetLocalesAsync();
@@ -291,23 +305,13 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
-    private void OnLangClicked(object sender, EventArgs e)
-    {
-        if (sender is Button btn && !string.IsNullOrEmpty(_currentPoiTts))
-        {
-            StopSpeech();
-            _ = SmartSpeak(_currentPoiTts, btn.CommandParameter.ToString());
-        }
-    }
-
     private async void OnPinClicked(object sender, PinClickedEventArgs e)
     {
         e.HideInfoWindow = true;
         if (sender is Pin pin && _pinPoiMap.TryGetValue(pin, out PoiModel poi))
         {
-            StopSpeech();
+            _ = PlayPoiAudio(poi); // Phát ngay tắp lự không cần chờ đợi gì
             await OpenBottomSheetForPoi(pin, poi);
-            QueueAudioAndPlay(poi);
         }
     }
 
@@ -315,7 +319,6 @@ public partial class MainPage : ContentPage
     {
         await BottomSheet.TranslateTo(0, 700, 300, Easing.CubicIn);
         SheetOverlay.InputTransparent = true; SheetOverlay.IsVisible = false;
-
         StopSpeech();
     }
 
@@ -413,9 +416,8 @@ public partial class MainPage : ContentPage
                 if (pin != null)
                 {
                     await Task.Delay(500);
-                    StopSpeech();
+                    _ = PlayPoiAudio(poi);
                     await OpenBottomSheetForPoi(pin, poi);
-                    QueueAudioAndPlay(poi);
                 }
             }
             else await DisplayAlert("Rất tiếc", "Mã QR này không thuộc hệ thống!", "OK");

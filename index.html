@@ -4,698 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PRD — Hệ Thống Du Lịch Ẩm Thực Vĩnh Khánh</title>
-    <style>
-        :root {
-            --primary: #c62828;
-            --primary-light: #ef5350;
-            --primary-dark: #7f0000;
-            --accent: #f57f17;
-            --accent-light: #ffb300;
-            --bg: #fafafa;
-            --surface: #ffffff;
-            --text: #212121;
-            --text-secondary: #616161;
-            --border: #e0e0e0;
-            --code-bg: #263238;
-            --code-text: #eeffff;
-            --success: #2e7d32;
-            --warning: #f57f17;
-            --info: #1565c0;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-            scroll-behavior: smooth;
-        }
-
-        /* NAV */
-        nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: var(--primary);
-            color: white;
-            padding: 0 2rem;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 8px rgba(0,0,0,.2);
-        }
-
-            nav .logo {
-                font-weight: 800;
-                font-size: 1.05rem;
-                letter-spacing: -.5px;
-            }
-
-            nav .nav-links {
-                display: flex;
-                gap: .4rem;
-                list-style: none;
-                flex-wrap: wrap;
-            }
-
-                nav .nav-links a {
-                    color: rgba(255,255,255,.85);
-                    text-decoration: none;
-                    font-size: .8rem;
-                    padding: .3rem .65rem;
-                    border-radius: 4px;
-                    transition: background .2s;
-                }
-
-                    nav .nav-links a:hover, nav .nav-links a.active {
-                        background: rgba(255,255,255,.18);
-                        color: #fff;
-                    }
-
-        /* HERO */
-        .hero {
-            margin-top: 56px;
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary), #e53935);
-            color: white;
-            padding: 4rem 2rem 3rem;
-            text-align: center;
-        }
-
-            .hero h1 {
-                font-size: 2.4rem;
-                font-weight: 800;
-                margin-bottom: .5rem;
-                letter-spacing: -1px;
-            }
-
-            .hero .subtitle {
-                font-size: 1.1rem;
-                opacity: .9;
-                max-width: 720px;
-                margin: 0 auto 1.5rem;
-            }
-
-            .hero .badges {
-                display: flex;
-                justify-content: center;
-                gap: .5rem;
-                flex-wrap: wrap;
-            }
-
-            .hero .badge {
-                background: rgba(255,255,255,.18);
-                padding: .3rem .8rem;
-                border-radius: 20px;
-                font-size: .78rem;
-                backdrop-filter: blur(4px);
-            }
-
-        /* SECTIONS */
-        .section-wrap {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
-        }
-
-        .section-bg {
-            background: var(--surface);
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            margin-bottom: 1.5rem;
-        }
-
-            .section-header .icon {
-                width: 44px;
-                height: 44px;
-                border-radius: 12px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.4rem;
-                flex-shrink: 0;
-            }
-
-            .section-header h2 {
-                font-size: 1.55rem;
-                font-weight: 700;
-            }
-
-        .section-num {
-            font-size: .72rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        /* STATS */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
-            gap: 1rem;
-            margin: 1.5rem 0;
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 1.2rem .8rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-        }
-
-            .stat-card .value {
-                font-size: 1.8rem;
-                font-weight: 800;
-                color: var(--primary);
-            }
-
-            .stat-card .label {
-                font-size: .75rem;
-                color: var(--text-secondary);
-                margin-top: .2rem;
-            }
-
-        /* CARDS */
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
-            gap: 1.2rem;
-            margin: 1.5rem 0;
-        }
-
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.4rem;
-            transition: box-shadow .2s, transform .2s;
-        }
-
-            .card:hover {
-                box-shadow: 0 4px 20px rgba(0,0,0,.08);
-                transform: translateY(-2px);
-            }
-
-            .card h3 {
-                font-size: 1rem;
-                margin-bottom: .4rem;
-                color: var(--primary-dark);
-                display: flex;
-                align-items: center;
-                gap: .4rem;
-            }
-
-            .card p, .card li {
-                font-size: .88rem;
-                color: var(--text-secondary);
-            }
-
-            .card ul {
-                padding-left: 1.2rem;
-                margin-top: .4rem;
-            }
-
-            .card li {
-                margin-bottom: .25rem;
-            }
-
-        /* HIGHLIGHT */
-        .highlight {
-            border-left: 4px solid var(--primary);
-            background: #fff3e0;
-            padding: 1rem 1.2rem;
-            border-radius: 0 8px 8px 0;
-            margin: 1rem 0;
-        }
-
-            .highlight.info {
-                border-color: var(--info);
-                background: #e3f2fd;
-            }
-
-            .highlight.success {
-                border-color: var(--success);
-                background: #e8f5e9;
-            }
-
-            .highlight.warning {
-                border-color: var(--warning);
-                background: #fff8e1;
-            }
-
-            .highlight p {
-                font-size: .9rem;
-                color: var(--text-secondary);
-                margin-top: .3rem;
-            }
-
-        /* FLOW */
-        .flow {
-            display: flex;
-            align-items: center;
-            gap: .45rem;
-            flex-wrap: wrap;
-            margin: 1rem 0;
-        }
-
-        .flow-step {
-            background: var(--primary);
-            color: white;
-            padding: .4rem .85rem;
-            border-radius: 8px;
-            font-size: .8rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-            .flow-step.alt {
-                background: var(--accent);
-                color: #212121;
-            }
-
-            .flow-step.green {
-                background: var(--success);
-            }
-
-            .flow-step.blue {
-                background: var(--info);
-            }
-
-        .flow-arrow {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-        }
-
-        /* TIER LIST */
-        .tier-list {
-            margin: 1rem 0;
-        }
-
-        .tier-item {
-            display: flex;
-            align-items: stretch;
-            margin-bottom: .6rem;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid var(--border);
-        }
-
-        .tier-label {
-            width: 90px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: .82rem;
-            color: white;
-            flex-shrink: 0;
-            text-align: center;
-            padding: .4rem;
-        }
-
-        .tier-content {
-            flex: 1;
-            padding: .7rem 1rem;
-            background: var(--surface);
-        }
-
-            .tier-content strong {
-                display: block;
-                font-size: .88rem;
-                margin-bottom: .2rem;
-            }
-
-            .tier-content span {
-                font-size: .82rem;
-                color: var(--text-secondary);
-            }
-
-        /* ARCH GRID */
-        .arch-grid {
-            display: grid;
-            grid-template-columns: repeat(3,1fr);
-            gap: .8rem;
-            margin: 1.5rem 0;
-        }
-
-        .arch-module {
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            padding: 1rem;
-            text-align: center;
-            transition: all .2s;
-        }
-
-            .arch-module:hover {
-                border-color: var(--primary);
-                box-shadow: 0 2px 12px rgba(198,40,40,.15);
-            }
-
-            .arch-module .mod-icon {
-                font-size: 1.8rem;
-                margin-bottom: .3rem;
-            }
-
-            .arch-module .mod-name {
-                font-weight: 700;
-                font-size: .88rem;
-                color: var(--primary-dark);
-            }
-
-            .arch-module .mod-desc {
-                font-size: .74rem;
-                color: var(--text-secondary);
-                margin-top: .2rem;
-            }
-
-            .arch-module.poc {
-                border-color: var(--primary-light);
-                background: #fff5f5;
-            }
-
-            .arch-module.mvp {
-                border-color: var(--accent);
-                background: #fffde7;
-            }
-
-            .arch-module.reserved {
-                opacity: .5;
-                border-style: dashed;
-            }
-
-        /* TABLE */
-        .table-wrap {
-            overflow-x: auto;
-            margin: 1rem 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: .86rem;
-        }
-
-        th {
-            background: var(--primary);
-            color: white;
-            padding: .6rem .85rem;
-            text-align: left;
-            font-weight: 600;
-        }
-
-        td {
-            padding: .5rem .85rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        tr:hover td {
-            background: #fff3e0;
-        }
-
-        /* TIMELINE */
-        .timeline {
-            position: relative;
-            padding-left: 2rem;
-            margin: 1.5rem 0;
-        }
-
-            .timeline::before {
-                content: '';
-                position: absolute;
-                left: 8px;
-                top: 0;
-                bottom: 0;
-                width: 2px;
-                background: var(--primary);
-            }
-
-        .timeline-item {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-
-            .timeline-item::before {
-                content: '';
-                position: absolute;
-                left: -2rem;
-                top: 6px;
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-                background: var(--primary);
-                border: 2px solid white;
-                box-shadow: 0 0 0 2px var(--primary);
-            }
-
-            .timeline-item h4 {
-                font-size: .95rem;
-                color: var(--primary-dark);
-                margin-bottom: .25rem;
-            }
-
-            .timeline-item p {
-                font-size: .84rem;
-                color: var(--text-secondary);
-            }
-
-            .timeline-item .phase-tag {
-                display: inline-block;
-                background: var(--primary);
-                color: white;
-                font-size: .68rem;
-                font-weight: 700;
-                padding: .1rem .5rem;
-                border-radius: 10px;
-                margin-bottom: .3rem;
-            }
-
-                .timeline-item .phase-tag.mvp {
-                    background: var(--accent);
-                    color: #212121;
-                }
-
-        /* BADGE INLINE */
-        .tag {
-            display: inline-block;
-            padding: .1rem .5rem;
-            border-radius: 10px;
-            font-size: .72rem;
-            font-weight: 600;
-            margin: .1rem;
-        }
-
-            .tag.poc {
-                background: #ffebee;
-                color: var(--primary-dark);
-            }
-
-            .tag.mvp {
-                background: #fff8e1;
-                color: #e65100;
-            }
-
-            .tag.core {
-                background: #e8f5e9;
-                color: var(--success);
-            }
-
-        code {
-            background: #eceff1;
-            padding: .15rem .4rem;
-            border-radius: 3px;
-            font-family: 'Cascadia Code','Fira Code',monospace;
-            font-size: .84em;
-        }
-
-        /* FOOTER */
-        footer {
-            text-align: center;
-            padding: 2rem;
-            background: var(--code-bg);
-            color: rgba(255,255,255,.55);
-            font-size: .8rem;
-        }
-
-            footer strong {
-                color: rgba(255,255,255,.9);
-            }
-
-        /* DIAGRAM BUTTON & MODAL */
-        .diagram-btns {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .5rem;
-            margin-bottom: 1.2rem;
-        }
-
-        .diagram-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-            background: linear-gradient(135deg, #00838f, #4fb3bf);
-            color: white;
-            border: none;
-            padding: .5rem 1.1rem;
-            border-radius: 22px;
-            font-size: .82rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all .25s;
-            box-shadow: 0 2px 6px rgba(0,131,143,.2);
-        }
-
-            .diagram-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 14px rgba(0,131,143,.35);
-            }
-
-        .diagram-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 200;
-            background: rgba(0,0,0,.65);
-            backdrop-filter: blur(6px);
-            align-items: center;
-            justify-content: center;
-        }
-
-            .diagram-overlay.active {
-                display: flex;
-            }
-
-        .diagram-modal {
-            background: white;
-            border-radius: 16px;
-            width: 96vw;
-            height: 92vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 24px 80px rgba(0,0,0,.4);
-        }
-
-        .dm-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: .8rem 1.2rem;
-            background: var(--primary);
-            color: white;
-            flex-shrink: 0;
-        }
-
-            .dm-header h3 {
-                font-size: 1rem;
-                font-weight: 700;
-            }
-
-        .dm-ctrl {
-            display: flex;
-            align-items: center;
-            gap: .4rem;
-        }
-
-            .dm-ctrl button {
-                background: rgba(255,255,255,.18);
-                color: white;
-                border: none;
-                width: 34px;
-                height: 34px;
-                border-radius: 8px;
-                font-size: 1.1rem;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: background .2s;
-            }
-
-                .dm-ctrl button:hover {
-                    background: rgba(255,255,255,.32);
-                }
-
-            .dm-ctrl .zpct {
-                font-size: .78rem;
-                min-width: 3.5rem;
-                text-align: center;
-                font-weight: 600;
-            }
-
-        .dm-body {
-            flex: 1;
-            overflow: hidden;
-            position: relative;
-            cursor: grab;
-            background: #fafafa;
-        }
-
-            .dm-body:active {
-                cursor: grabbing;
-            }
-
-            .dm-body .vp {
-                position: absolute;
-                transform-origin: 0 0;
-                padding: 2rem;
-                display: inline-block;
-            }
-
-                .dm-body .vp svg {
-                    max-width: none !important;
-                    height: auto !important;
-                }
-
-            .dm-body .loading-msg {
-                color: var(--text-secondary);
-                font-size: .9rem;
-                padding: 3rem;
-            }
-
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 1.6rem;
-            }
-
-            .section-wrap {
-                padding: 2rem 1rem;
-            }
-
-            .card-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .arch-grid {
-                grid-template-columns: repeat(2,1fr);
-            }
-
-            nav .nav-links {
-                display: none;
-            }
-
-            .stats-row {
-                grid-template-columns: repeat(2,1fr);
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <!-- NAV -->
+    <!-- ===== NAV ===== -->
     <nav>
         <div class="logo">🍜 TravelSmart · Vĩnh Khánh PRD</div>
         <ul class="nav-links">
@@ -714,7 +27,7 @@
         </ul>
     </nav>
 
-    <!-- HERO -->
+    <!-- ===== HERO ===== -->
     <div class="hero">
         <h1>🍜 Hệ Thống Du Lịch Ẩm Thực Vĩnh Khánh</h1>
         <p class="subtitle">Ứng dụng hướng dẫn ẩm thực thông minh — GPS Tracking thời gian thực, Geofence kích hoạt thuyết minh tự động, hỗ trợ offline hoàn toàn tại phố ẩm thực Vĩnh Khánh, Quận 4, TP.HCM</p>
@@ -730,7 +43,7 @@
         </div>
     </div>
 
-    <!-- STATS -->
+    <!-- ===== STATS ===== -->
     <div style="background:var(--surface);">
         <div class="section-wrap" style="padding-top:2rem;padding-bottom:2rem;">
             <div class="stats-row">
@@ -744,7 +57,7 @@
         </div>
     </div>
 
-    <!-- OVERVIEW -->
+    <!-- ===== CHƯƠNG 00: TỔNG QUAN ===== -->
     <div id="overview">
         <div class="section-wrap">
             <div class="section-header">
@@ -796,7 +109,7 @@
         </div>
     </div>
 
-    <!-- POC -->
+    <!-- ===== CHƯƠNG 01: PoC ===== -->
     <div id="poc" class="section-bg">
         <div class="section-wrap">
             <div class="section-header">
@@ -834,17 +147,18 @@
         </div>
     </div>
 
-    <!-- GPS -->
+    <!-- ===== CHƯƠNG 02: GPS & GEOFENCE ===== -->
     <div id="gps">
         <div class="section-wrap">
             <div class="section-header">
                 <div class="icon" style="background:#e3f2fd;color:var(--info);">📡</div>
                 <div>
                     <div class="section-num">Chương 02</div>
-                    <h2>GPS Tracking & Geofence Engine</h2>
+                    <h2>GPS Tracking &amp; Geofence Engine</h2>
                 </div>
             </div>
 
+            <!-- Diagram buttons injected here by script.js -->
             <div id="gps-diagrams"></div>
 
             <div class="card-grid">
@@ -870,7 +184,7 @@
                     <h3>⚙️ Cấu hình Geofence</h3>
                     <ul>
                         <li><code>radius</code>: bán kính kích hoạt (mét)</li>
-                        <li><code>priority</code>: mức ưu tiên phát audio khi nhiều POI chồng nhau</li>
+                        <li><code>priority</code>: mức ưu tiên khi nhiều POI chồng nhau</li>
                         <li><code>cooldown_sec</code>: thời gian chờ giữa 2 lần kích hoạt cùng POI</li>
                         <li><code>trigger_on</code>: enter / dwell / nearest</li>
                     </ul>
@@ -903,7 +217,7 @@
         </div>
     </div>
 
-    <!-- TTS -->
+    <!-- ===== CHƯƠNG 03: TTS ===== -->
     <div id="tts" class="section-bg">
         <div class="section-wrap">
             <div class="section-header">
@@ -934,7 +248,7 @@
                     <ul>
                         <li>Linh hoạt, đa ngôn ngữ — fallback khi thiếu audio sẵn</li>
                         <li>Dùng dữ liệu script/nội dung từ POI record</li>
-                        <li>Nhẹ nhàng (pung lướng) — không quá dramatic</li>
+                        <li>Nhẹ nhàng — không quá dramatic</li>
                         <li>Hỗ trợ tối thiểu: Tiếng Việt + Tiếng Anh</li>
                     </ul>
                 </div>
@@ -958,7 +272,7 @@
                 </div>
             </div>
 
-            <h3 style="margin:1.5rem 0 .8rem;">Pipeline xử lý Audio</h3>
+            <h3 style="margin:1.5rem 0 .8rem;">Pipeline xử lý Audio — 4 Tầng Fallback</h3>
             <div class="tier-list">
                 <div class="tier-item">
                     <div class="tier-label" style="background:var(--success);">Tier 1</div>
@@ -992,7 +306,7 @@
         </div>
     </div>
 
-    <!-- POI -->
+    <!-- ===== CHƯƠNG 04: POI ===== -->
     <div id="poi">
         <div class="section-wrap">
             <div class="section-header">
@@ -1047,7 +361,7 @@
         </div>
     </div>
 
-    <!-- MVP -->
+    <!-- ===== CHƯƠNG 05: MVP ===== -->
     <div id="mvp" class="section-bg">
         <div class="section-wrap">
             <div class="section-header">
@@ -1085,7 +399,7 @@
         </div>
     </div>
 
-    <!-- MAP VIEW -->
+    <!-- ===== CHƯƠNG 06: MAP VIEW ===== -->
     <div id="map">
         <div class="section-wrap">
             <div class="section-header">
@@ -1098,7 +412,7 @@
 
             <div class="card-grid">
                 <div class="card">
-                    <h3>📍 Hiển thị vị trí & POI</h3>
+                    <h3>📍 Hiển thị vị trí &amp; POI</h3>
                     <ul>
                         <li>Marker vị trí người dùng theo thời gian thực</li>
                         <li>Marker tất cả POI với icon phân loại</li>
@@ -1128,7 +442,7 @@
         </div>
     </div>
 
-    <!-- CMS -->
+    <!-- ===== CHƯƠNG 07: CMS ===== -->
     <div id="cms" class="section-bg">
         <div class="section-wrap">
             <div class="section-header">
@@ -1144,11 +458,7 @@
             <div class="table-wrap">
                 <table>
                     <thead>
-                        <tr>
-                            <th>Module</th>
-                            <th>Chức năng</th>
-                            <th>Ghi chú</th>
-                        </tr>
+                        <tr><th>Module</th><th>Chức năng</th><th>Ghi chú</th></tr>
                     </thead>
                     <tbody>
                         <tr><td>📍 POI</td><td>CRUD điểm ẩm thực, cấu hình geofence, upload ảnh</td><td>Dữ liệu cốt lõi</td></tr>
@@ -1167,7 +477,7 @@
         </div>
     </div>
 
-    <!-- ANALYTICS -->
+    <!-- ===== CHƯƠNG 08: ANALYTICS ===== -->
     <div id="analytics">
         <div class="section-wrap">
             <div class="section-header">
@@ -1218,7 +528,7 @@
         </div>
     </div>
 
-    <!-- QR CODE -->
+    <!-- ===== CHƯƠNG 09: QR CODE ===== -->
     <div id="qr" class="section-bg">
         <div class="section-wrap">
             <div class="section-header">
@@ -1281,7 +591,7 @@
         </div>
     </div>
 
-    <!-- ARCHITECTURE -->
+    <!-- ===== CHƯƠNG 10: KIẾN TRÚC ===== -->
     <div id="arch">
         <div class="section-wrap">
             <div class="section-header">
@@ -1292,13 +602,14 @@
                 </div>
             </div>
 
+            <!-- Diagram buttons injected here by script.js -->
             <div id="arch-diagrams"></div>
 
-            <div class="arch-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="arch-grid">
                 <div class="arch-module">
                     <div class="mod-icon">📱</div>
                     <div class="mod-name">TravelSmart.App</div>
-                    <div class="mod-desc">.NET MAUI — iOS & Android. GPS, Geofence, TTS, SQLite, Map, QR</div>
+                    <div class="mod-desc">.NET MAUI — iOS &amp; Android. GPS, Geofence, TTS, SQLite, Map, QR</div>
                 </div>
                 <div class="arch-module">
                     <div class="mod-icon">⚡</div>
@@ -1319,7 +630,7 @@
                         <tr><th>Thành phần</th><th>Công nghệ</th><th>Lý do chọn</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>Mobile App</td><td>.NET MAUI</td><td>Cross-platform iOS/Android, tích hợp tốt GPS & SQLite</td></tr>
+                        <tr><td>Mobile App</td><td>.NET MAUI</td><td>Cross-platform iOS/Android, tích hợp tốt GPS &amp; SQLite</td></tr>
                         <tr><td>Backend API</td><td>ASP.NET Core</td><td>Đồng nhất stack C#, hiệu năng cao</td></tr>
                         <tr><td>Admin Web</td><td>Blazor Server</td><td>Chia sẻ model với API, UI admin phức tạp</td></tr>
                         <tr><td>Local DB</td><td>SQLite (EF Core)</td><td>Offline-first, nhẹ, hỗ trợ MAUI tốt</td></tr>
@@ -1347,7 +658,7 @@
         </div>
     </div>
 
-    <!-- ROADMAP -->
+    <!-- ===== CHƯƠNG 11: ROADMAP ===== -->
     <div id="roadmap" class="section-bg">
         <div class="section-wrap">
             <div class="section-header">
@@ -1361,45 +672,45 @@
             <div class="timeline">
                 <div class="timeline-item">
                     <div class="phase-tag">PoC</div>
-                    <h4>Sprint 1–2 — Hạ tầng & GPS Core</h4>
+                    <h4>Sprint 1–2 — Hạ tầng &amp; GPS Core</h4>
                     <p>Cài đặt solution, setup MAUI + API + Admin. Implement GPS Tracking foreground/background. Màn hình bản đồ cơ bản hiển thị vị trí người dùng.</p>
                 </div>
                 <div class="timeline-item">
                     <div class="phase-tag">PoC</div>
-                    <h4>Sprint 3–4 — Geofence & TTS</h4>
+                    <h4>Sprint 3–4 — Geofence &amp; TTS</h4>
                     <p>Implement Geofence Engine với debounce/cooldown. Xây dựng TTS hàng chờ audio. Thêm POI mẫu Vĩnh Khánh. Test kích hoạt thuyết minh trên thiết bị thật.</p>
                 </div>
                 <div class="timeline-item">
                     <div class="phase-tag">PoC</div>
-                    <h4>Sprint 5 — POI Data & Offline SQLite</h4>
+                    <h4>Sprint 5 — POI Data &amp; Offline SQLite</h4>
                     <p>CRUD POI qua API. Sync SQLite offline. Import dữ liệu thật các điểm ẩm thực Vĩnh Khánh. Thu âm thuyết minh mẫu.</p>
                 </div>
                 <div class="timeline-item">
                     <div class="phase-tag mvp">MVP</div>
-                    <h4>Sprint 6–7 — Map View & QR Code</h4>
+                    <h4>Sprint 6–7 — Map View &amp; QR Code</h4>
                     <p>Map View đầy đủ: tất cả POI markers, highlight, chi tiết. QR Code tại 3 điểm dừng xe buýt. Test thực tế tại Vĩnh Khánh.</p>
                 </div>
                 <div class="timeline-item">
                     <div class="phase-tag mvp">MVP</div>
-                    <h4>Sprint 8–9 — CMS Admin & Analytics</h4>
+                    <h4>Sprint 8–9 — CMS Admin &amp; Analytics</h4>
                     <p>Blazor Admin: CRUD POI, upload audio, quản lý bản dịch. Analytics dashboard: top POI, tuyến di chuyển, heatmap.</p>
                 </div>
                 <div class="timeline-item">
                     <div class="phase-tag mvp">MVP</div>
-                    <h4>Sprint 10 — Polish & Deploy</h4>
+                    <h4>Sprint 10 — Polish &amp; Deploy</h4>
                     <p>UI/UX hoàn thiện, test hiệu năng pin, test offline edge cases. Deploy API lên server. Chuẩn bị demo thực tế.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- FOOTER -->
+    <!-- ===== FOOTER ===== -->
     <footer>
         <strong>TravelSmart — Hệ Thống Du Lịch Ẩm Thực Vĩnh Khánh</strong><br>
         PRD · Đồ án tốt nghiệp · .NET MAUI + ASP.NET Core + Blazor · TP.HCM
     </footer>
 
-    <!-- DIAGRAM OVERLAY -->
+    <!-- ===== DIAGRAM MODAL ===== -->
     <div class="diagram-overlay" id="dgOverlay">
         <div class="diagram-modal">
             <div class="dm-header">
@@ -1413,301 +724,15 @@
                 </div>
             </div>
             <div class="dm-body" id="dgBody">
-                <div class="vp" id="dgVp"><p class="loading-msg">Đang render sơ đồ...</p></div>
+                <div class="vp" id="dgVp">
+                    <p class="loading-msg">Đang render sơ đồ...</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        window.DIAGRAM_DATA = {
-            sections: {
-                "gps": [
-                    { key: "geofence_flow", label: "Luồng Geofence" },
-                    { key: "gps_arch", label: "Kiến trúc GPS" }
-                ],
-                "arch": [
-                    { key: "system_arch", label: "Kiến trúc hệ thống" },
-                    { key: "data_flow", label: "Luồng dữ liệu" },
-                    { key: "offline_sync", label: "Offline Sync" }
-                ]
-            },
-            diagrams: {
-                geofence_flow: {
-                    title: "Luồng Geofence — Kích hoạt thuyết minh",
-                    mermaid: `flowchart TD
-        A([📡 GPS cập nhật vị trí]) --> B[Tính khoảng cách đến tất cả POI]
-        B --> C{POI nào < bán kính?}
-        C -- Không --> A
-        C -- Có --> D{Đã trong cooldown?}
-        D -- Có --> A
-        D -- Không --> E[Cập nhật trạng thái geofence]
-        E --> F{Loại trigger?}
-        F -- Enter Zone --> G[Phát ngay khi vào vùng]
-        F -- Nearest --> H[Phát POI gần nhất]
-        G --> I[Debounce 500ms]
-        H --> I
-        I --> J[Đẩy vào Audio Queue]
-        J --> K{Có file audio sẵn?}
-        K -- Tier 1: Có --> L[🔊 Phát file MP3 local]
-        K -- Không --> M{Có mạng?}
-        M -- Có --> N[Tier 2/3: Download / TTS API]
-        M -- Không --> O[Tier 4: Device TTS offline]
-        N --> L
-        O --> L
-        L --> P[Set cooldown timer]
-        P --> A`
-                },
-                gps_arch: {
-                    title: "Kiến trúc GPS & Location Service",
-                    mermaid: `graph TB
-        subgraph App["📱 MAUI App"]
-          subgraph FG["Foreground"]
-            UI[Map Screen]
-            UIM[User Marker]
-          end
-          subgraph BG["Background Service"]
-            GPS[GPS Listener<br/>High Accuracy]
-            OPT[Optimizer<br/>Giảm tần suất khi đứng yên]
-            GEO[Geofence Engine]
-          end
-          subgraph Data["Local Data"]
-            SQL[(SQLite<br/>POI Cache)]
-            AC[Audio Cache<br/>MP3 files]
-          end
-          subgraph Audio["Audio Engine"]
-            Q[Audio Queue FIFO]
-            TTS[TTS Engine]
-            PL[Player]
-          end
-        end
-        GPS --> OPT --> GEO
-        GEO --> Q
-        GEO --> UIM
-        GPS --> UIM
-        SQL --> GEO
-        Q --> TTS --> PL
-        AC --> PL`
-                },
-                system_arch: {
-                    title: "Kiến trúc tổng quan hệ thống TravelSmart",
-                    mermaid: `graph TB
-        subgraph Client["Client Layer"]
-          APP["📱 TravelSmart.App<br/>.NET MAUI<br/>iOS & Android"]
-          ADMIN["🖥️ TravelSmart.Admin<br/>Blazor Web<br/>CMS & Analytics"]
-        end
-        subgraph Server["Server Layer"]
-          API["⚡ TravelSmart.API<br/>ASP.NET Core<br/>REST API"]
-          BG["🔄 Background Service<br/>Audio Processing<br/>TTS Generation"]
-          DB[("🗄️ Database<br/>SQL Server")]
-          FS["📁 File Storage<br/>Audio MP3<br/>Images")]
-        end
-        subgraph Mobile["Mobile Local"]
-          SQL2[("💾 SQLite<br/>Offline Cache")]
-          AC2["🎵 Audio Cache<br/>Local Files"]
-        end
-        APP <-->|"REST API<br/>Sync khi có mạng"| API
-        ADMIN <-->|"REST API"| API
-        API <--> DB
-        API <--> FS
-        API --> BG
-        BG --> DB
-        BG --> FS
-        APP --- SQL2
-        APP --- AC2
-        SQL2 <-->|"Sync delta"| API`
-                },
-                data_flow: {
-                    title: "Luồng dữ liệu: Admin → API → App",
-                    mermaid: `sequenceDiagram
-        participant A as 👤 Admin
-        participant CMS as 🖥️ Blazor Admin
-        participant API as ⚡ ASP.NET API
-        participant BG as 🔄 Background
-        participant APP as 📱 MAUI App
-        participant SQL as 💾 SQLite
+    <!-- ===== SCRIPTS ===== -->
+    <script src="script.js"></script>
 
-        A->>CMS: Tạo POI mới + upload audio
-        CMS->>API: POST /api/poi
-        API->>API: Lưu POI vào DB
-        API->>BG: Queue xử lý audio
-        API-->>CMS: 201 Created
-        BG->>BG: Encode audio, tạo TTS scripts
-        BG->>API: Cập nhật trạng thái audio
-
-        Note over APP,SQL: App mở hoặc có mạng
-        APP->>API: GET /api/poi/sync?since={last_sync}
-        API-->>APP: Delta POI thay đổi
-        APP->>SQL: Upsert vào SQLite
-        APP->>APP: Download audio files mới
-
-        Note over APP: GPS trigger Geofence
-        APP->>SQL: Query POI trong bán kính
-        SQL-->>APP: Danh sách POI
-        APP->>APP: 🔊 Phát thuyết minh`
-                },
-                offline_sync: {
-                    title: "Chiến lược Offline-First & Sync",
-                    mermaid: `flowchart TD
-        A([App khởi động]) --> B{Có mạng?}
-        B -- Có --> C[Sync API: GET /poi/sync]
-        B -- Không --> D[Dùng SQLite sẵn có]
-        C --> E{Có delta?}
-        E -- Có --> F[Upsert POI vào SQLite]
-        E -- Không --> G[SQLite up to date]
-        F --> H{Có audio mới?}
-        H -- Có --> I[Download MP3 background]
-        H -- Không --> G
-        I --> G
-        G --> J[App hoạt động bình thường]
-        D --> J
-        J --> K{GPS trigger POI}
-        K --> L{Audio có local?}
-        L -- Có --> M[🔊 Phát offline]
-        L -- Không --> N{Có mạng?}
-        N -- Có --> O[Stream từ server]
-        N -- Không --> P[Device TTS fallback]
-        M --> Q[Log analytics local]
-        O --> Q
-        P --> Q
-        Q --> R{Có mạng sau?}
-        R -- Có --> S[Sync analytics lên server]`
-                }
-            }
-        };
-    </script>
-
-    <script type="module">
-        const CDN = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js";
-        const s = document.createElement("script");
-        s.src = CDN;
-        s.onload = () => {
-            mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
-            initDiagrams();
-        };
-        document.head.appendChild(s);
-
-        function initDiagrams() {
-            const DATA = window.DIAGRAM_DATA;
-            if (!DATA) return;
-            Object.keys(DATA.sections).forEach(sectionId => {
-                const section = document.getElementById(sectionId);
-                if (!section) return;
-                const container = document.getElementById(sectionId + "-diagrams") || section.querySelector(".section-header");
-                const btnsDiv = document.createElement("div");
-                btnsDiv.className = "diagram-btns";
-                DATA.sections[sectionId].forEach(d => {
-                    const btn = document.createElement("button");
-                    btn.className = "diagram-btn";
-                    btn.setAttribute("data-diagram", d.key);
-                    btn.innerHTML = "📊 " + d.label;
-                    btnsDiv.appendChild(btn);
-                });
-                if (container) container.after(btnsDiv);
-            });
-        }
-
-        // Zoom/Pan
-        let scale = 1, tx = 0, ty = 0, renderN = 0;
-        let dragging = false, lastX = 0, lastY = 0;
-        const overlay = document.getElementById("dgOverlay");
-        const titleEl = document.getElementById("dgTitle");
-        const vp = document.getElementById("dgVp");
-        const dgBody = document.getElementById("dgBody");
-        const zpctEl = document.getElementById("zpct");
-
-        function applyTransform() {
-            vp.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-            zpctEl.textContent = Math.round(scale * 100) + "%";
-        }
-        function doZoom(delta, cx, cy) {
-            const old = scale;
-            scale = Math.max(0.1, Math.min(5, scale + delta));
-            const r = scale / old;
-            tx = cx - r * (cx - tx); ty = cy - r * (cy - ty);
-            applyTransform();
-        }
-        function fitToView() {
-            const svg = vp.querySelector("svg");
-            if (!svg) { scale = 1; tx = 0; ty = 0; applyTransform(); return; }
-            const bw = dgBody.clientWidth - 40, bh = dgBody.clientHeight - 40;
-            const vb = svg.viewBox?.baseVal;
-            const sw = (vb?.width) || svg.getBoundingClientRect().width || bw;
-            const sh = (vb?.height) || svg.getBoundingClientRect().height || bh;
-            scale = Math.min(bw / sw, bh / sh, 2);
-            tx = Math.max(0, (bw - sw * scale) / 2) + 20;
-            ty = Math.max(0, (bh - sh * scale) / 2) + 20;
-            applyTransform();
-        }
-
-        async function openDiagram(key) {
-            const DATA = window.DIAGRAM_DATA;
-            if (!DATA) return;
-            const d = DATA.diagrams[key];
-            if (!d) return;
-            titleEl.textContent = d.title;
-            scale = 1; tx = 0; ty = 0;
-            vp.innerHTML = '<p class="loading-msg">Đang render sơ đồ...</p>';
-            overlay.classList.add("active");
-            document.body.style.overflow = "hidden";
-            try {
-                renderN++;
-                const result = await mermaid.render("dgr" + renderN, d.mermaid);
-                vp.innerHTML = result.svg;
-                requestAnimationFrame(fitToView);
-            } catch (err) {
-                vp.innerHTML = `<p style="color:#c62828;padding:2rem">Render error: ${err.message}</p>`;
-            }
-        }
-
-        document.addEventListener("click", e => {
-            const btn = e.target.closest("[data-diagram]");
-            if (btn) { openDiagram(btn.getAttribute("data-diagram")); return; }
-            if (e.target.closest("#zoomIn")) { doZoom(0.2, dgBody.clientWidth / 2, dgBody.clientHeight / 2); return; }
-            if (e.target.closest("#zoomOut")) { doZoom(-0.2, dgBody.clientWidth / 2, dgBody.clientHeight / 2); return; }
-            if (e.target.closest("#zoomReset")) { fitToView(); return; }
-            if (e.target.closest("#dgClose") || e.target === overlay) {
-                overlay.classList.remove("active");
-                document.body.style.overflow = "";
-            }
-        });
-
-        dgBody.addEventListener("wheel", e => {
-            e.preventDefault();
-            const r = dgBody.getBoundingClientRect();
-            doZoom(e.deltaY > 0 ? -0.12 : 0.12, e.clientX - r.left, e.clientY - r.top);
-        }, { passive: false });
-
-        dgBody.addEventListener("mousedown", e => { dragging = true; lastX = e.clientX; lastY = e.clientY; e.preventDefault(); });
-        window.addEventListener("mousemove", e => {
-            if (!dragging) return;
-            tx += e.clientX - lastX; ty += e.clientY - lastY;
-            lastX = e.clientX; lastY = e.clientY; applyTransform();
-        });
-        window.addEventListener("mouseup", () => dragging = false);
-        document.addEventListener("keydown", e => {
-            if (e.key === "Escape" && overlay.classList.contains("active")) {
-                overlay.classList.remove("active"); document.body.style.overflow = "";
-            }
-        });
-
-        // Nav active highlight
-        const navSections = document.querySelectorAll("[id]");
-        window.addEventListener("scroll", () => {
-            const scrollY = window.pageYOffset;
-            navSections.forEach(sec => {
-                const top = sec.offsetTop - 80;
-                const id = sec.getAttribute("id");
-                const link = document.querySelector(`nav a[href="#${id}"]`);
-                if (link) link.classList.toggle("active", scrollY >= top && scrollY < top + sec.offsetHeight);
-            });
-        });
-
-        document.querySelectorAll('nav a[href^="#"]').forEach(a => {
-            a.addEventListener("click", e => {
-                e.preventDefault();
-                document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth", block: "start" });
-            });
-        });
-    </script>
 </body>
 </html>

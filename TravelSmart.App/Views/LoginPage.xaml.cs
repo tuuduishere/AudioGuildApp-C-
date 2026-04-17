@@ -39,18 +39,19 @@ public partial class LoginPage : ContentPage
                     await SecureStorage.Default.SetAsync("role", result.role);
                     AppSession.CurrentUser = new UserModel { Username = username, Role = result.role };
 
-                    Application.Current.MainPage = new NavigationPage(new MainPage());
+                    // 🔥 FIX: Dùng AppShell để khôi phục thanh Tab ở đáy màn hình, không bị mất nút
+                    Application.Current.MainPage = new AppShell();
                 }
             }
             else await DisplayAlert("Thất bại", "Sai tên đăng nhập hoặc mật khẩu!", "OK");
         }
         catch { await DisplayAlert("Lỗi", "Không thể kết nối đến máy chủ!", "OK"); }
-        finally { BtnLogin.IsEnabled = true; BtnLogin.Text = "ĐĂNG NHẬP"; }
+        finally { BtnLogin.IsEnabled = true; BtnLogin.Text = "ĐĂNG NHẬP NGAY"; }
     }
 
-    // Chuyển sang trang Đăng Ký
+    // 🔥 FIX CRASH: Phải dùng PushModalAsync vì LoginPage đang là cửa sổ nổi
     private async void OnGoToRegisterClicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new RegisterPage());
+        await Navigation.PushModalAsync(new RegisterPage());
     }
 }

@@ -3,15 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelSmart.App.Views.HistoryPage"
              Title="Lịch sử hành trình"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="#F4F6F8"
+             NavigationPage.HasNavigationBar="False">
 
-    <ScrollView Padding="15">
+    <ScrollView Padding="20">
         <VerticalStackLayout Spacing="15">
-            <Label Text="📜 Lịch sử tham quan" FontSize="24" FontAttributes="Bold" TextColor="#1E88E5" Margin="0,0,0,10"/>
+            <HorizontalStackLayout Spacing="10" Margin="0,0,0,10" VerticalOptions="Center">
+                <Path Data="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z" Fill="#00838F" Aspect="Uniform" HeightRequest="28" WidthRequest="28"/>
+                <Label Text="Lịch sử tham quan" FontSize="24" FontAttributes="Bold" TextColor="#00838F" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
 
-            <VerticalStackLayout x:Name="HistoryContainer" Spacing="10" />
+            <VerticalStackLayout x:Name="HistoryContainer" Spacing="12" />
 
-            <Button x:Name="BtnClearHistory" Text="🗑 Xóa lịch sử" BackgroundColor="#E53935" TextColor="White" CornerRadius="8" Margin="0,20,0,0" Clicked="OnClearHistoryClicked" IsVisible="False"/>
+            <Frame x:Name="BtnClearHistory" BackgroundColor="#E53935" CornerRadius="10" Padding="0" HeightRequest="50" Margin="0,20,0,0" HasShadow="True" BorderColor="Transparent" IsVisible="False">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnClearHistoryClicked" />
+                </Frame.GestureRecognizers>
+                <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="10">
+                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" Fill="White" Aspect="Uniform" HeightRequest="20" WidthRequest="20"/>
+                    <Label Text="XÓA LỊCH SỬ" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Frame>
+
             <Label x:Name="LblEmpty" Text="Bạn chưa ghé thăm địa điểm nào cả." FontAttributes="Italic" TextColor="Gray" HorizontalOptions="Center" Margin="0,50,0,0" />
         </VerticalStackLayout>
     </ScrollView>

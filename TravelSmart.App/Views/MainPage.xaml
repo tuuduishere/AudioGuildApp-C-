@@ -3,134 +3,161 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:maps="clr-namespace:Microsoft.Maui.Controls.Maps;assembly=Microsoft.Maui.Controls.Maps"
              x:Class="TravelSmart.App.Views.MainPage"
-             NavigationPage.HasNavigationBar="False">
+             NavigationPage.HasNavigationBar="False"
+             Shell.NavBarIsVisible="False">
     <Grid>
-        <Grid RowDefinitions="*, Auto">
-            <Grid Grid.Row="0">
-                <maps:Map x:Name="MyMap" IsShowingUser="False" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-                <VerticalStackLayout Margin="15,40,15,0" VerticalOptions="Start" Spacing="10">
-                    <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
-                        <Frame Grid.Column="0" Padding="5,0" CornerRadius="25" HasShadow="True" BackgroundColor="White" HeightRequest="50" BorderColor="Transparent">
-                            <SearchBar x:Name="SearchPoi" Placeholder="🔍 Tìm quán ốc, lẩu..." BackgroundColor="Transparent" SearchButtonPressed="OnSearchButtonPressed" TextChanged="OnSearchTextChanged" />
-                        </Frame>
+        <maps:Map Grid.Row="0" Grid.RowSpan="2" x:Name="MyMap" IsShowingUser="False" ZIndex="0" />
 
-                        <Grid Grid.Column="1" WidthRequest="50" HeightRequest="50">
-                            <Frame Padding="0" CornerRadius="25" HasShadow="True" BackgroundColor="White" BorderColor="Transparent">
-                                <Label Text="🔔" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="OnNotificationClicked" />
-                                    </Label.GestureRecognizers>
-                                </Label>
-                            </Frame>
-                            <Frame x:Name="BadgeNoti" BackgroundColor="Red" CornerRadius="10" HeightRequest="20" WidthRequest="20" Padding="0" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" TranslationX="5" TranslationY="-5" IsVisible="False">
-                                <Label x:Name="LblUnreadCount" Text="0" TextColor="White" FontSize="10" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
-                            </Frame>
-                        </Grid>
-                    </Grid>
-                </VerticalStackLayout>
+        <VerticalStackLayout Grid.Row="0" Margin="15,50,15,0" VerticalOptions="Start" Spacing="10" ZIndex="2">
+            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="10">
+                <Border Grid.Column="0" Stroke="#00838F" StrokeThickness="1" BackgroundColor="White" HeightRequest="50" StrokeShape="RoundRectangle 25">
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Offset="0,2" Opacity="0.2" Radius="5" />
+                    </Border.Shadow>
+                    <SearchBar x:Name="SearchPoi" Placeholder="Tìm quán ốc, lẩu..." BackgroundColor="Transparent" TextColor="Black" PlaceholderColor="Gray" CancelButtonColor="Gray" SearchButtonPressed="OnSearchButtonPressed" TextChanged="OnSearchTextChanged" />
+                </Border>
+
+                <Grid Grid.Column="1" WidthRequest="50" HeightRequest="50">
+                    <Border Stroke="#00838F" StrokeThickness="1" BackgroundColor="White" StrokeShape="RoundRectangle 25">
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,2" Opacity="0.2" Radius="5" />
+                        </Border.Shadow>
+                        <Path Data="M12,22A2,2 0 0,0 14,20H10A2,2 0 0,0 12,22M18,16V11C18,7.93 16.36,5.36 13.5,4.68V4A1.5,1.5 0 0,0 12,2.5A1.5,1.5 0 0,0 10.5,4V4.68C7.63,5.36 6,7.92 6,11V16L4,18V19H20V18L18,16Z"
+                              Fill="#00838F" Aspect="Uniform" HeightRequest="22" WidthRequest="22" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Path.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnNotificationClicked" />
+                            </Path.GestureRecognizers>
+                        </Path>
+                    </Border>
+                    <Frame x:Name="BadgeNoti" BackgroundColor="Red" CornerRadius="10" HeightRequest="20" WidthRequest="20" Padding="0" HasShadow="False" HorizontalOptions="End" VerticalOptions="Start" TranslationX="5" TranslationY="-5" IsVisible="False">
+                        <Label x:Name="LblUnreadCount" Text="0" TextColor="White" FontSize="10" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                </Grid>
             </Grid>
+        </VerticalStackLayout>
 
-            <Frame Grid.Row="1" Padding="0" HeightRequest="70" BackgroundColor="White" HasShadow="True" CornerRadius="0" BorderColor="#E0E0E0" ZIndex="1">
+        <Grid Grid.Row="1" VerticalOptions="End" Margin="0" Padding="0" ZIndex="3">
+
+            <Border HeightRequest="65" VerticalOptions="End" Padding="0" Margin="0" Stroke="#E0E0E0" StrokeThickness="1" BackgroundColor="White" StrokeShape="RoundRectangle 0" ZIndex="1">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Offset="0,-2" Opacity="0.1" Radius="5" />
+                </Border.Shadow>
                 <Grid ColumnDefinitions="*, *, 80, *, *">
-                    <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="0" VerticalOptions="Center" Spacing="3">
                         <VerticalStackLayout.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnRefreshMapClicked" />
                         </VerticalStackLayout.GestureRecognizers>
-                        <Label Text="📍" FontSize="20" HorizontalOptions="Center"/>
-                        <Label Text="Bản đồ" FontSize="10" HorizontalOptions="Center" TextColor="#2196F3" FontAttributes="Bold"/>
+                        <Path Data="M12,2C15.86,2 19,5.14 19,9C19,14.25 12,22 12,22C12,22 5,14.25 5,9C5,5.14 8.14,2 12,2M12,6.5A2.5,2.5 0 0,0 9.5,9A2.5,2.5 0 0,0 12,11.5A2.5,2.5 0 0,0 14.5,9A2.5,2.5 0 0,0 12,6.5Z" Fill="#00838F" Aspect="Uniform" HeightRequest="24" WidthRequest="24" HorizontalOptions="Center"/>
+                        <Label Text="Bản đồ" FontSize="10" HorizontalOptions="Center" TextColor="#00838F" FontAttributes="Bold"/>
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="3">
                         <VerticalStackLayout.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnTourClicked" />
                         </VerticalStackLayout.GestureRecognizers>
-                        <Label Text="🗺️" FontSize="20" HorizontalOptions="Center"/>
-                        <Label Text="Tuyến đi" FontSize="10" HorizontalOptions="Center" TextColor="Gray"/>
+                        <Path Data="M21.71,11.29L12.71,2.29C12.53,2.11 12.28,2 12,2C11.72,2 11.47,2.11 11.29,2.29L2.29,11.29C1.9,11.68 1.9,12.31 2.29,12.71L11.29,21.71C11.47,21.89 11.72,22 12,22C12.28,22 12.53,21.89 12.71,21.71L21.71,12.71C22.1,12.31 22.1,11.68 21.71,11.29M14,14.5V12H10V15H8V11C8,10.45 8.45,10 9,10H14V7.5L17.5,11L14,14.5Z" Fill="Gray" Aspect="Uniform" HeightRequest="24" WidthRequest="24" HorizontalOptions="Center"/>
+                        <Label Text="Tuyến đi" FontSize="10" HorizontalOptions="Center" TextColor="Gray" FontAttributes="Bold"/>
                     </VerticalStackLayout>
 
-                    <BoxView Grid.Column="2" Color="Transparent" />
+                    <Label Grid.Column="2" Text="Quét QR" FontSize="10" HorizontalOptions="Center" VerticalOptions="End" TextColor="#00838F" FontAttributes="Bold" Margin="0,0,0,8">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnScanClicked" />
+                        </Label.GestureRecognizers>
+                    </Label>
 
-                    <VerticalStackLayout Grid.Column="3" VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="3" VerticalOptions="Center" Spacing="3">
                         <VerticalStackLayout.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnHistoryClicked" />
                         </VerticalStackLayout.GestureRecognizers>
-                        <Label Text="📜" FontSize="20" HorizontalOptions="Center"/>
-                        <Label Text="Lịch sử" FontSize="10" HorizontalOptions="Center" TextColor="Gray"/>
+                        <Path Data="M13.5,8H12V13L16.28,15.54L17,14.33L13.5,12.25V8M13,3A9,9 0 0,0 4,12H1L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z" Fill="Gray" Aspect="Uniform" HeightRequest="24" WidthRequest="24" HorizontalOptions="Center"/>
+                        <Label Text="Lịch sử" FontSize="10" HorizontalOptions="Center" TextColor="Gray" FontAttributes="Bold"/>
                     </VerticalStackLayout>
 
-                    <VerticalStackLayout Grid.Column="4" VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="4" VerticalOptions="Center" Spacing="3">
                         <VerticalStackLayout.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnProfileClicked" />
                         </VerticalStackLayout.GestureRecognizers>
-                        <Label Text="👤" FontSize="20" HorizontalOptions="Center"/>
-                        <Label Text="Tôi" FontSize="10" HorizontalOptions="Center" TextColor="Gray"/>
+                        <Path Data="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" Fill="Gray" Aspect="Uniform" HeightRequest="24" WidthRequest="24" HorizontalOptions="Center"/>
+                        <Label Text="Tôi" FontSize="10" HorizontalOptions="Center" TextColor="Gray" FontAttributes="Bold"/>
                     </VerticalStackLayout>
                 </Grid>
-            </Frame>
+            </Border>
+
+            <Border WidthRequest="66" HeightRequest="66" BackgroundColor="#00838F" Stroke="White" StrokeThickness="3" StrokeShape="RoundRectangle 33" HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,32" ZIndex="5">
+                <Border.Shadow>
+                    <Shadow Brush="White" Offset="0,4" Opacity="0.3" Radius="10" />
+                </Border.Shadow>
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnScanClicked" />
+                </Border.GestureRecognizers>
+                <Path Data="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" Fill="White" Aspect="Uniform" HeightRequest="28" WidthRequest="28" HorizontalOptions="Center" VerticalOptions="Center" />
+            </Border>
         </Grid>
 
-        <Frame WidthRequest="66" HeightRequest="66" CornerRadius="33" BackgroundColor="#E91E63" Padding="0" HasShadow="True" BorderColor="White" HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,37" ZIndex="5">
-            <Frame.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnScanClicked" />
-            </Frame.GestureRecognizers>
-            <Label Text="📷" FontSize="28" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" />
-        </Frame>
-
-        <BoxView x:Name="SheetOverlay" BackgroundColor="Transparent" InputTransparent="True" IsVisible="False">
+        <BoxView Grid.Row="0" Grid.RowSpan="2" x:Name="SheetOverlay" BackgroundColor="Black" Opacity="0.5" InputTransparent="True" IsVisible="False" ZIndex="10">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="CloseBottomSheet" />
             </BoxView.GestureRecognizers>
         </BoxView>
 
-        <Frame x:Name="BottomSheet" BackgroundColor="White" CornerRadius="30" HasShadow="True" VerticalOptions="End" HeightRequest="650" TranslationY="700" Padding="0">
+        <Border Grid.Row="0" Grid.RowSpan="2" x:Name="BottomSheet" BackgroundColor="White" StrokeThickness="0" VerticalOptions="End" HeightRequest="600" TranslationY="700" Padding="0" ZIndex="11" StrokeShape="RoundRectangle 30,30,0,0">
             <Grid RowDefinitions="Auto, Auto, *">
-                <Grid Grid.Row="0" ColumnDefinitions="*, Auto, Auto" Padding="20,15,20,10" BackgroundColor="#FAFAFA">
+                <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="20,15,20,10" BackgroundColor="#FAFAFA">
                     <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
-                        <Label x:Name="LblPoiName" Text="Tên Quán" FontSize="20" FontAttributes="Bold" TextColor="#1E88E5" />
-                        <Label x:Name="LblPoiAddress" Text="Địa chỉ quán" FontSize="12" TextColor="Gray" MaxLines="2" LineBreakMode="TailTruncation" />
-
+                        <Label x:Name="LblPoiName" Text="Tên Quán" FontSize="22" FontAttributes="Bold" TextColor="#006064" />
+                        <Label x:Name="LblPoiAddress" Text="Địa chỉ quán" FontSize="13" TextColor="Gray" MaxLines="2" />
                         <HorizontalStackLayout Spacing="8" Margin="0,10,0,0">
-                            <Label Text="Nghe bằng:" VerticalOptions="Center" FontSize="11" TextColor="Gray" />
-                            <Button Text="🇻🇳 VN" CommandParameter="vi" Clicked="OnLangClicked" Padding="5,0" HeightRequest="30" FontSize="11" CornerRadius="5" BackgroundColor="#E3F2FD" TextColor="Black"/>
-                            <Button Text="🇬🇧 EN" CommandParameter="en" Clicked="OnLangClicked" Padding="5,0" HeightRequest="30" FontSize="11" CornerRadius="5" BackgroundColor="#E3F2FD" TextColor="Black"/>
-                            <Button Text="🇯🇵 JP" CommandParameter="ja" Clicked="OnLangClicked" Padding="5,0" HeightRequest="30" FontSize="11" CornerRadius="5" BackgroundColor="#E3F2FD" TextColor="Black"/>
+                            <Label Text="Nghe bằng:" VerticalOptions="Center" FontSize="12" TextColor="Gray" />
+                            <Button Text="🇻🇳 VN" CommandParameter="vi" Clicked="OnLangClicked" HeightRequest="32" Padding="8,0" FontSize="12" BackgroundColor="#E0F7FA" TextColor="#006064" CornerRadius="6"/>
+                            <Button Text="🇬🇧 EN" CommandParameter="en" Clicked="OnLangClicked" HeightRequest="32" Padding="8,0" FontSize="12" BackgroundColor="#E0F7FA" TextColor="#006064" CornerRadius="6"/>
+                            <Button Text="🇯🇵 JP" CommandParameter="ja" Clicked="OnLangClicked" HeightRequest="32" Padding="8,0" FontSize="12" BackgroundColor="#E0F7FA" TextColor="#006064" CornerRadius="6"/>
                         </HorizontalStackLayout>
                     </VerticalStackLayout>
-                    <Button Grid.Column="1" Text="🗺 Đi ngay" BackgroundColor="#43A047" TextColor="White" CornerRadius="8" FontAttributes="Bold" HeightRequest="40" Padding="10,0" Margin="10,0" Clicked="OnGetDirectionsClicked" />
+                    <Border Grid.Column="1" BackgroundColor="#00838F" Padding="15,0" HeightRequest="45" VerticalOptions="Center" StrokeShape="RoundRectangle 12" StrokeThickness="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnGetDirectionsClicked" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                            <Path Data="M21,3L3,10.53V11.5L9.84,14.16L12.5,21H13.46L21,3Z" Fill="White" Aspect="Uniform" HeightRequest="18" WidthRequest="18"/>
+                            <Label Text="Đến ngay" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                    </Border>
                 </Grid>
                 <BoxView Grid.Row="1" HeightRequest="1" Color="#EEEEEE" />
-
                 <ScrollView Grid.Row="2" Padding="20">
                     <VerticalStackLayout Spacing="25">
-                        <Frame HeightRequest="180" CornerRadius="15" Padding="0" HasShadow="False" BorderColor="Transparent" IsClippedToBounds="True" BackgroundColor="#F5F5F5">
+                        <Border HeightRequest="200" StrokeShape="RoundRectangle 15" StrokeThickness="0" BackgroundColor="#F5F5F5">
                             <Image x:Name="ImgPoi" Source="https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&amp;w=800&amp;auto=format&amp;fit=crop" Aspect="AspectFill" />
-                        </Frame>
-
+                        </Border>
                         <VerticalStackLayout>
-                            <HorizontalStackLayout Spacing="5" Margin="0,0,0,10">
-                                <Label Text="🍽" FontSize="18"/>
-                                <Label Text="THỰC ĐƠN" FontAttributes="Bold" FontSize="16" TextColor="#D32F2F" VerticalOptions="Center"/>
+                            <HorizontalStackLayout Spacing="10" Margin="0,0,0,10">
+                                <Path Data="M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z" Fill="#00838F" Aspect="Uniform" HeightRequest="20" WidthRequest="20"/>
+                                <Label Text="THỰC ĐƠN" FontAttributes="Bold" FontSize="18" TextColor="#00838F"/>
                             </HorizontalStackLayout>
-                            <VerticalStackLayout x:Name="ContainerMenu" Spacing="5" />
+                            <VerticalStackLayout x:Name="ContainerMenu" Spacing="8" />
                         </VerticalStackLayout>
 
-                        <Frame x:Name="FrameWriteReview" BackgroundColor="#F3E5F5" CornerRadius="10" Padding="15" BorderColor="Transparent" IsVisible="False">
+                        <Border x:Name="FrameWriteReview" BackgroundColor="#E0F7FA" StrokeShape="RoundRectangle 10" Padding="15" StrokeThickness="0" IsVisible="False">
                             <VerticalStackLayout Spacing="10">
-                                <Label Text="Viết đánh giá của bạn" FontAttributes="Bold" TextColor="#8E24AA"/>
+                                <Label Text="Viết đánh giá của bạn" FontAttributes="Bold" TextColor="#00838F"/>
                                 <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
                                     <Label Text="Chấm điểm:" VerticalOptions="Center"/>
                                     <Stepper x:Name="StepperRating" Minimum="1" Maximum="5" Increment="1" Value="5" />
                                     <Label Text="{Binding Source={x:Reference StepperRating}, Path=Value, StringFormat='{0} Sao ⭐'}" FontAttributes="Bold" TextColor="#FFA000" VerticalOptions="Center"/>
                                 </HorizontalStackLayout>
-                                <Entry x:Name="EntryReview" Placeholder="Nhập bình luận..." BackgroundColor="White" />
-                                <Button Text="GỬI ĐÁNH GIÁ" BackgroundColor="#8E24AA" TextColor="White" CornerRadius="8" Clicked="OnSubmitReviewClicked" />
+                                <Entry x:Name="EntryReview" Placeholder="Nhập bình luận..." BackgroundColor="White" TextColor="Black" />
+                                <Button Text="GỬI ĐÁNH GIÁ" BackgroundColor="#00838F" TextColor="White" CornerRadius="8" Clicked="OnSubmitReviewClicked" />
                             </VerticalStackLayout>
-                        </Frame>
+                        </Border>
 
                         <VerticalStackLayout>
-                            <HorizontalStackLayout Spacing="5" Margin="0,0,0,10">
-                                <Label Text="⭐" FontSize="18"/>
+                            <HorizontalStackLayout Spacing="8" Margin="0,0,0,10" VerticalOptions="Center">
+                                <Path Data="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" Fill="#388E3C" Aspect="Uniform" HeightRequest="20" WidthRequest="20"/>
                                 <Label Text="ĐÁNH GIÁ GẦN ĐÂY" FontAttributes="Bold" FontSize="16" TextColor="#388E3C" VerticalOptions="Center"/>
                             </HorizontalStackLayout>
                             <VerticalStackLayout x:Name="ContainerReviews" Spacing="10" />
@@ -138,6 +165,6 @@
                     </VerticalStackLayout>
                 </ScrollView>
             </Grid>
-        </Frame>
+        </Border>
     </Grid>
 </ContentPage>

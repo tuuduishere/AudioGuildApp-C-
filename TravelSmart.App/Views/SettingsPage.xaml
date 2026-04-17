@@ -3,18 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="TravelSmart.App.Views.SettingsPage"
              Title="Cài đặt hệ thống"
-             BackgroundColor="#F5F5F5">
+             BackgroundColor="#F4F6F8"
+             NavigationPage.HasNavigationBar="False">
 
     <ScrollView Padding="15">
         <VerticalStackLayout Spacing="20">
 
-            <Label Text="🎧 ÂM THANH &amp; NGÔN NGỮ" FontSize="14" FontAttributes="Bold" TextColor="Gray" Margin="5,0,0,-10"/>
+            <HorizontalStackLayout Spacing="8" Margin="5,0,0,-10" VerticalOptions="Center">
+                <Path Data="M12,2C6.48,2 2,6.48 2,12V20A2,2 0 0,0 4,22H6V15H4V12C4,7.58 7.58,4 12,4C16.42,4 20,7.58 20,12V15H18V22H20A2,2 0 0,0 22,20V12C22,6.48 17.52,2 12,2M7,15V22H5A1,1 0 0,1 4,21V15H7M17,15H20V21A1,1 0 0,1 19,22H17V15Z" Fill="Gray" Aspect="Uniform" HeightRequest="16" WidthRequest="16"/>
+                <Label Text="ÂM THANH &amp; NGÔN NGỮ" FontSize="13" FontAttributes="Bold" TextColor="Gray" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
             <Frame BackgroundColor="White" CornerRadius="15" Padding="15" HasShadow="True" BorderColor="Transparent">
                 <VerticalStackLayout Spacing="15">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Ngôn ngữ thuyết minh mặc định" FontAttributes="Bold" FontSize="16" TextColor="Black"/>
                         <Label Text="Tự động đọc bằng ngôn ngữ này khi tới quán." FontSize="12" TextColor="Gray" />
-                        <Picker x:Name="PickerLanguage" Title="Chọn ngôn ngữ" SelectedIndexChanged="OnLanguageChanged" BackgroundColor="#E3F2FD" TextColor="Black">
+                        <Picker x:Name="PickerLanguage" Title="Chọn ngôn ngữ" SelectedIndexChanged="OnLanguageChanged" BackgroundColor="#E0F7FA" TextColor="Black">
                             <Picker.Items>
                                 <x:String>🇻🇳 Tiếng Việt</x:String>
                                 <x:String>🇬🇧 English (Tiếng Anh)</x:String>
@@ -28,27 +33,35 @@
                     <VerticalStackLayout Spacing="5">
                         <HorizontalStackLayout Spacing="5">
                             <Label Text="Tốc độ giọng đọc AI:" FontAttributes="Bold" FontSize="16" TextColor="Black" VerticalOptions="Center"/>
-                            <Label x:Name="LblSpeedValue" Text="1.0x" FontAttributes="Bold" TextColor="#1E88E5" VerticalOptions="Center"/>
+                            <Label x:Name="LblSpeedValue" Text="1.0x" FontAttributes="Bold" TextColor="#00838F" VerticalOptions="Center"/>
                         </HorizontalStackLayout>
                         <Label Text="Chỉnh tốc độ nói nhanh hoặc chậm hơn." FontSize="12" TextColor="Gray" />
-                        <Slider x:Name="SliderTtsSpeed" Minimum="0.5" Maximum="2.0" Value="1.0" MinimumTrackColor="#1E88E5" MaximumTrackColor="#BBDEFB" ValueChanged="OnSpeedSliderChanged"/>
+                        <Slider x:Name="SliderTtsSpeed" Minimum="0.5" Maximum="2.0" Value="1.0" MinimumTrackColor="#00838F" MaximumTrackColor="#B2EBF2" ValueChanged="OnSpeedSliderChanged"/>
                     </VerticalStackLayout>
                 </VerticalStackLayout>
             </Frame>
 
-            <Label Text="📍 ĐỊNH VỊ &amp; BẢN ĐỒ" FontSize="14" FontAttributes="Bold" TextColor="Gray" Margin="5,0,0,-10"/>
+            <HorizontalStackLayout Spacing="8" Margin="5,0,0,-10" VerticalOptions="Center">
+                <Path Data="M12,2C15.86,2 19,5.14 19,9C19,14.25 12,22 12,22C12,22 5,14.25 5,9C5,5.14 8.14,2 12,2M12,6.5A2.5,2.5 0 0,0 9.5,9A2.5,2.5 0 0,0 12,11.5A2.5,2.5 0 0,0 14.5,9A2.5,2.5 0 0,0 12,6.5Z" Fill="Gray" Aspect="Uniform" HeightRequest="16" WidthRequest="16"/>
+                <Label Text="ĐỊNH VỊ &amp; BẢN ĐỒ" FontSize="13" FontAttributes="Bold" TextColor="Gray" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
             <Frame BackgroundColor="White" CornerRadius="15" Padding="15" HasShadow="True" BorderColor="Transparent">
                 <VerticalStackLayout Spacing="5">
                     <HorizontalStackLayout Spacing="5">
                         <Label Text="Bán kính tự động kích hoạt:" FontAttributes="Bold" FontSize="16" TextColor="Black" VerticalOptions="Center"/>
-                        <Label x:Name="LblRadiusValue" Text="50m" FontAttributes="Bold" TextColor="#43A047" VerticalOptions="Center"/>
+                        <Label x:Name="LblRadiusValue" Text="50m" FontAttributes="Bold" TextColor="#00838F" VerticalOptions="Center"/>
                     </HorizontalStackLayout>
                     <Label Text="App sẽ tự phát âm thanh khi bạn bước vào vùng này." FontSize="12" TextColor="Gray" />
-                    <Slider x:Name="SliderRadius" Minimum="20" Maximum="200" Value="50" MinimumTrackColor="#43A047" MaximumTrackColor="#C8E6C9" ValueChanged="OnRadiusSliderChanged"/>
+                    <Slider x:Name="SliderRadius" Minimum="20" Maximum="200" Value="50" MinimumTrackColor="#00838F" MaximumTrackColor="#B2EBF2" ValueChanged="OnRadiusSliderChanged"/>
                 </VerticalStackLayout>
             </Frame>
 
-            <Label Text="💾 DỮ LIỆU &amp; LƯU TRỮ OFFLINE" FontSize="14" FontAttributes="Bold" TextColor="Gray" Margin="5,0,0,-10"/>
+            <HorizontalStackLayout Spacing="8" Margin="5,0,0,-10" VerticalOptions="Center">
+                <Path Data="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" Fill="Gray" Aspect="Uniform" HeightRequest="16" WidthRequest="16"/>
+                <Label Text="DỮ LIỆU &amp; LƯU TRỮ OFFLINE" FontSize="13" FontAttributes="Bold" TextColor="Gray" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
             <Frame BackgroundColor="White" CornerRadius="15" Padding="0" HasShadow="True" BorderColor="Transparent">
                 <VerticalStackLayout>
                     <Grid Padding="15">
@@ -56,7 +69,7 @@
                             <TapGestureRecognizer Tapped="OnSyncDataClicked"/>
                         </Grid.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto, *, Auto">
-                            <Label Text="🔄" FontSize="20" VerticalOptions="Center"/>
+                            <Path Grid.Column="0" Data="M12,18A6,6 0 0,1 6,12C6,11 6.25,10.03 6.7,9.2L5.24,7.74C4.46,8.97 4,10.43 4,12A8,8 0 0,0 12,20V23L16,19L12,15M12,4V1L8,5L12,9V6A6,6 0 0,1 18,12C18,13 17.75,13.97 17.3,14.8L18.76,16.26C19.54,15.03 20,13.57 20,12A8,8 0 0,0 12,4Z" Fill="#00838F" Aspect="Uniform" HeightRequest="24" WidthRequest="24" VerticalOptions="Center"/>
                             <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
                                 <Label Text="Cập nhật dữ liệu mới nhất" TextColor="Black" FontSize="16" FontAttributes="Bold"/>
                                 <Label Text="Tải thông tin quán ăn và bản dịch mới." TextColor="Gray" FontSize="12"/>
@@ -72,7 +85,7 @@
                             <TapGestureRecognizer Tapped="OnClearCacheClicked"/>
                         </Grid.GestureRecognizers>
                         <Grid ColumnDefinitions="Auto, *, Auto">
-                            <Label Text="🗑️" FontSize="20" VerticalOptions="Center"/>
+                            <Path Grid.Column="0" Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" Fill="#D32F2F" Aspect="Uniform" HeightRequest="24" WidthRequest="24" VerticalOptions="Center"/>
                             <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
                                 <Label Text="Xóa bộ nhớ đệm âm thanh" TextColor="#D32F2F" FontSize="16" FontAttributes="Bold"/>
                                 <Label x:Name="LblCacheSize" Text="Đang chiếm: 0 MB" TextColor="Gray" FontSize="12"/>
@@ -85,10 +98,13 @@
             <Frame BackgroundColor="White" CornerRadius="15" Padding="15" HasShadow="True" BorderColor="Transparent" Margin="0,0,0,30">
                 <Grid ColumnDefinitions="*, Auto">
                     <VerticalStackLayout Grid.Column="0" VerticalOptions="Center">
-                        <Label Text="🔔 Thông báo đẩy" FontAttributes="Bold" FontSize="16" TextColor="Black"/>
-                        <Label Text="Nhận tin tức ưu đãi từ các quán ăn." FontSize="12" TextColor="Gray"/>
+                        <HorizontalStackLayout Spacing="8">
+                            <Path Data="M12,22A2,2 0 0,0 14,20H10A2,2 0 0,0 12,22M18,16V11C18,7.93 16.36,5.36 13.5,4.68V4A1.5,1.5 0 0,0 12,2.5A1.5,1.5 0 0,0 10.5,4V4.68C7.63,5.36 6,7.92 6,11V16L4,18V19H20V18L18,16Z" Fill="#FFC107" Aspect="Uniform" HeightRequest="20" WidthRequest="20" VerticalOptions="Center"/>
+                            <Label Text="Thông báo đẩy" FontAttributes="Bold" FontSize="16" TextColor="Black" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+                        <Label Text="Nhận tin tức ưu đãi từ các quán ăn." FontSize="12" TextColor="Gray" Margin="28,0,0,0"/>
                     </VerticalStackLayout>
-                    <Switch Grid.Column="1" IsToggled="True" OnColor="#43A047" VerticalOptions="Center"/>
+                    <Switch Grid.Column="1" IsToggled="True" OnColor="#00838F" VerticalOptions="Center"/>
                 </Grid>
             </Frame>
 

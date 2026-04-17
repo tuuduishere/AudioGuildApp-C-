@@ -4,7 +4,7 @@
              xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
              x:Class="TravelSmart.App.Views.ScannerPage"
              Title="Quét mã QR/NFC"
-             BackgroundColor="Black"
+             BackgroundColor="#005662"
              NavigationPage.HasNavigationBar="False">
 
     <Grid>
@@ -12,24 +12,41 @@
                                        BarcodesDetected="BarcodesDetected"
                                        IsDetecting="True" />
 
-        <Border Stroke="White" StrokeThickness="4" 
+        <Border Stroke="#00E5FF" StrokeThickness="4" 
                 WidthRequest="250" HeightRequest="250"
                 HorizontalOptions="Center" VerticalOptions="Center"
                 BackgroundColor="Transparent" />
 
         <Label Text="Đưa mã QR Quán ăn vào khung hình" 
                TextColor="White" FontAttributes="Bold" FontSize="16"
-               HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,100" />
+               HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,120" />
 
-        <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,30" Spacing="20">
-            <Button Text="🖼 Tải ảnh lên" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="15,10" Clicked="OnUploadClicked"/>
-            <Button Text="✖ Đóng" BackgroundColor="#D32F2F" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="15,10" Clicked="OnCloseClicked"/>
+        <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="End" Margin="0,0,0,40" Spacing="20">
+            <Frame BackgroundColor="#00838F" CornerRadius="12" Padding="15,10" HasShadow="True" BorderColor="Transparent">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnUploadClicked"/>
+                </Frame.GestureRecognizers>
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <Path Data="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z" Fill="White" Aspect="Uniform" HeightRequest="20" WidthRequest="20"/>
+                    <Label Text="Tải ảnh lên" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Frame>
+
+            <Frame BackgroundColor="#E53935" CornerRadius="12" Padding="15,10" HasShadow="True" BorderColor="Transparent">
+                <Frame.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCloseClicked"/>
+                </Frame.GestureRecognizers>
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" Fill="White" Aspect="Uniform" HeightRequest="20" WidthRequest="20"/>
+                    <Label Text="Đóng lại" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Frame>
         </HorizontalStackLayout>
 
         <BoxView x:Name="LoadingOverlay" BackgroundColor="Black" Opacity="0.7" IsVisible="False"/>
-        <VerticalStackLayout x:Name="LoadingIndicator" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False" Spacing="10">
-            <ActivityIndicator IsRunning="True" Color="White" />
-            <Label Text="Đang giải mã ảnh..." TextColor="White" FontAttributes="Bold" />
+        <VerticalStackLayout x:Name="LoadingIndicator" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False" Spacing="15">
+            <ActivityIndicator IsRunning="True" Color="#00E5FF" />
+            <Label Text="Đang giải mã thông tin..." TextColor="White" FontAttributes="Bold" />
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

@@ -32,16 +32,19 @@ public partial class RegisterPage : ContentPage
             if (response.IsSuccessStatusCode)
             {
                 await DisplayAlert("Thành công", "Đăng ký thành công! Hãy đăng nhập.", "OK");
-                await Navigation.PopAsync(); // Quay lại trang đăng nhập
+
+                // 🔥 FIX CRASH: Trả về bằng PopModalAsync
+                await Navigation.PopModalAsync();
             }
             else await DisplayAlert("Lỗi", "Tên đăng nhập đã tồn tại!", "OK");
         }
         catch { await DisplayAlert("Lỗi", "Không thể kết nối đến máy chủ!", "OK"); }
-        finally { BtnRegister.IsEnabled = true; BtnRegister.Text = "ĐĂNG KÝ"; }
+        finally { BtnRegister.IsEnabled = true; BtnRegister.Text = "ĐĂNG KÝ NGAY"; }
     }
 
+    // 🔥 FIX CRASH: Trả về bằng PopModalAsync
     private async void OnGoToLoginClicked(object sender, EventArgs e)
     {
-        await Navigation.PopAsync();
+        await Navigation.PopModalAsync();
     }
 }

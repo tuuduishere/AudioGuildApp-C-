@@ -18,4 +18,7 @@ public partial class VisitLog
     public virtual Poi Poi { get; set; } = null!;
 
     public virtual User? User { get; set; }
+    public string? DeviceName { get; set; }
+    public string? LanguageCode { get; set; }
+    public double? DurationMinutes { get; set; }
 }

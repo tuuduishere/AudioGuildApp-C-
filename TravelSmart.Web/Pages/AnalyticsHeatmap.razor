@@ -1,0 +1,36 @@
+﻿@page "/analytics-heatmap"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<div class="container mt-4">
+    <h2>📍 Bản đồ Nhiệt (Heatmap)</h2>
+    <p class="text-muted">Trực quan hóa khu vực tập trung đông khách du lịch dựa trên dữ liệu GPS thật.</p>
+
+    <div class="card shadow-lg border-0 rounded-4">
+        <div id="heatmapContainer" style="height: 650px; width: 100%; border-radius: 15px;"></div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var data = await Http.GetFromJsonAsync<List<HeatPoint>>("https://localhost:7008/api/Analytics/heatmap");
+            var jsonPoints = System.Text.Json.JsonSerializer.Serialize(data);
+
+            var js = $@"
+                setTimeout(() => {{
+                    var hMap = L.map('heatmapContainer').setView([10.762622, 106.660172], 13);
+                    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(hMap);
+                    var points = {jsonPoints};
+                    points.forEach(p => {{
+                        L.circle([p.lat, p.lng], {{ color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: 200 }}).addTo(hMap).bindPopup(p.name);
+                    }});
+                }}, 500);";
+            await JS.InvokeVoidAsync("eval", js);
+        }
+    }
+    public class HeatPoint { public string name { get; set; } public double lat { get; set; } public double lng { get; set; } }
+}

@@ -37,6 +37,7 @@ public partial class VinhKhanhTravelDbContext : DbContext
 
     public DbSet<TourDetail> TourDetails { get; set; }
 
+
     public virtual DbSet<Notification> Notifications { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

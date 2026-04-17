@@ -17,11 +17,13 @@ public partial class MainPage : ContentPage
     private readonly DataService _dataService;
     private List<PoiModel> _pois = new();
 
-    private HashSet<string> _playedAudioPois = new();
+    private Dictionary<string, DateTime> _poiCooldowns = new();
+    private Dictionary<string, DateTime> _entryTimes = new();
+
     private IDispatcherTimer _timer;
     private Dictionary<Pin, PoiModel> _pinPoiMap = new();
 
-    private const string ApiBaseUrl = "http://10.0.2.2:5088/api";
+    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // GIỮ NGUYÊN LINK CỦA SẾP
 
     private Location _currentSelectedLocation;
     private string _currentPoiTts = "";
@@ -30,12 +32,20 @@ public partial class MainPage : ContentPage
     private CancellationTokenSource _ttsCancellationTokenSource;
     private IAudioPlayer _audioPlayer;
 
+    private Circle _currentRadar;
+    private Polyline _currentTourLine;
+
     public MainPage() { InitializeComponent(); _dataService = new DataService(); }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(10.7605, 106.7025), Distance.FromKilometers(1)));
+        await Task.Delay(500);
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try { MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(new Location(10.7605, 106.7025), Distance.FromKilometers(1))); } catch { }
+        });
 
         if (!Preferences.Default.ContainsKey("DefaultLang"))
         {
@@ -43,7 +53,6 @@ public partial class MainPage : ContentPage
             string langCode = "vi";
             if (action == "🇬🇧 English") langCode = "en";
             else if (action == "🇯🇵 日本語") langCode = "ja";
-
             Preferences.Default.Set("DefaultLang", langCode);
         }
 
@@ -56,23 +65,100 @@ public partial class MainPage : ContentPage
     {
         await _dataService.SyncFromServerAsync();
         _pois = await _dataService.GetPOIsAsync();
-        FilterMapPins("");
+        MainThread.BeginInvokeOnMainThread(() => { FilterMapPins(""); });
     }
 
     private void FilterMapPins(string keyword)
     {
-        MyMap.Pins.Clear(); _pinPoiMap.Clear();
+        MyMap.Pins.Clear();
+        _pinPoiMap.Clear();
+        ClearHighlight();
+
         var filtered = string.IsNullOrWhiteSpace(keyword) ? _pois : _pois.Where(p => p.Name.ToLower().Contains(keyword.ToLower())).ToList();
         foreach (var poi in filtered)
         {
             var pin = new Pin { Label = poi.Name, Address = poi.Description, Type = PinType.Place, Location = new Location(poi.Latitude, poi.Longitude) };
-            pin.MarkerClicked += OnPinClicked; _pinPoiMap[pin] = poi; MyMap.Pins.Add(pin);
+            pin.MarkerClicked += OnPinClicked;
+            _pinPoiMap[pin] = poi;
+            MyMap.Pins.Add(pin);
         }
     }
 
     private void OnSearchButtonPressed(object sender, EventArgs e) { FilterMapPins(SearchPoi.Text); }
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e) { if (string.IsNullOrWhiteSpace(e.NewTextValue)) FilterMapPins(""); }
     private async void OnNotificationClicked(object sender, EventArgs e) { BadgeNoti.IsVisible = false; await Navigation.PushAsync(new NotificationsPage()); }
+
+    public class TourDto { public Guid TourId { get; set; } public string Name { get; set; } }
+    public class TourDetailDto { public Guid PoiId { get; set; } public string Name { get; set; } public int Order { get; set; } }
+
+    // 🔥 ĐÃ ĐỔI TỪ POPUP NHỎ SANG TRANG TourListPage XỊN XÒ
+    private async void OnTourClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushModalAsync(new TourListPage(async (selectedTourId) =>
+        {
+            if (string.IsNullOrEmpty(selectedTourId))
+            {
+                if (_currentTourLine != null) { MyMap.MapElements.Remove(_currentTourLine); _currentTourLine = null; }
+                FilterMapPins("");
+                return;
+            }
+
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                var details = await client.GetFromJsonAsync<List<TourDetailDto>>($"{ApiBaseUrl}/Tours/{selectedTourId}/details");
+                if (details != null && details.Any())
+                {
+                    DrawTourRoute(details);
+                }
+                else
+                {
+                    await DisplayAlert("Thông báo", "Tour này chưa có địa điểm nào.", "OK");
+                }
+            }
+            catch { await DisplayAlert("Lỗi", "Không tải được lịch trình Tour.", "OK"); }
+        }));
+    }
+
+    private void DrawTourRoute(List<TourDetailDto> tourDetails)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                if (_currentTourLine != null) MyMap.MapElements.Remove(_currentTourLine);
+                ClearHighlight();
+                MyMap.Pins.Clear();
+                _pinPoiMap.Clear();
+
+                _currentTourLine = new Polyline { StrokeColor = Color.FromArgb("#1565C0"), StrokeWidth = 8 };
+
+                foreach (var td in tourDetails.OrderBy(t => t.Order))
+                {
+                    var poi = _pois.FirstOrDefault(p => p.Id.ToLower() == td.PoiId.ToString().ToLower());
+                    if (poi != null)
+                    {
+                        var loc = new Location(poi.Latitude, poi.Longitude);
+                        _currentTourLine.Geopath.Add(loc);
+
+                        var pin = new Pin { Label = $"Trạm {td.Order}: {poi.Name}", Address = poi.Description, Type = PinType.Place, Location = loc };
+                        pin.MarkerClicked += OnPinClicked;
+                        _pinPoiMap[pin] = poi;
+                        MyMap.Pins.Add(pin);
+                    }
+                }
+
+                MyMap.MapElements.Add(_currentTourLine);
+
+                if (_currentTourLine.Geopath.Any())
+                {
+                    MyMap.MoveToRegion(MapSpan.FromCenterAndRadius(_currentTourLine.Geopath.First(), Distance.FromKilometers(1.5)));
+                }
+            }
+            catch { }
+        });
+    }
 
     public async Task SyncWithServer()
     {
@@ -92,8 +178,10 @@ public partial class MainPage : ContentPage
                 if (data != null)
                 {
                     await SecureStorage.Default.SetAsync("role", data.roleId == 1 ? "Admin" : (data.roleId == 2 ? "Merchant" : "User"));
-                    BadgeNoti.IsVisible = data.unreadCount > 0;
-                    LblUnreadCount.Text = data.unreadCount > 9 ? "9+" : data.unreadCount.ToString();
+                    MainThread.BeginInvokeOnMainThread(() => {
+                        BadgeNoti.IsVisible = data.unreadCount > 0;
+                        LblUnreadCount.Text = data.unreadCount > 9 ? "9+" : data.unreadCount.ToString();
+                    });
                 }
             }
         }
@@ -103,7 +191,7 @@ public partial class MainPage : ContentPage
 
     private async Task OpenBottomSheetForPoi(Pin pin, PoiModel poi)
     {
-        _currentSelectedLocation = pin.Location;
+        _currentSelectedLocation = pin?.Location;
         _currentActivePoi = poi;
 
         LblPoiName.Text = poi.Name;
@@ -137,48 +225,124 @@ public partial class MainPage : ContentPage
 
     private async Task StartTrackingGPS()
     {
-        var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
-        if (status != PermissionStatus.Granted) status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
-        if (status != PermissionStatus.Granted) return;
+        try
+        {
+            var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+            if (status != PermissionStatus.Granted) status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+            if (status != PermissionStatus.Granted) return;
 
-        _timer = Application.Current.Dispatcher.CreateTimer();
-        _timer.Interval = TimeSpan.FromSeconds(5);
-        _timer.Tick += async (s, e) =>
+            MainThread.BeginInvokeOnMainThread(() => { try { MyMap.IsShowingUser = true; } catch { } });
+
+            _timer = Application.Current.Dispatcher.CreateTimer();
+            _timer.Interval = TimeSpan.FromSeconds(5);
+            _timer.Tick += async (s, e) =>
+            {
+                try
+                {
+                    var request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(2));
+                    var location = await Geolocation.GetLocationAsync(request);
+                    if (location != null) await CheckGeofence(location);
+                }
+                catch { }
+            };
+            _timer.Start();
+        }
+        catch { }
+    }
+
+    private void HighlightActivePoi(Location poiLocation, double radiusKm)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
         {
             try
             {
-                var request = new GeolocationRequest(GeolocationAccuracy.Medium, TimeSpan.FromSeconds(2));
-                var location = await Geolocation.GetLocationAsync(request);
-                if (location != null) await CheckGeofence(location);
+                if (_currentRadar != null) MyMap.MapElements.Remove(_currentRadar);
+
+                _currentRadar = new Circle
+                {
+                    Center = poiLocation,
+                    Radius = Distance.FromKilometers(radiusKm),
+                    StrokeColor = Color.FromArgb("#FF0000"),
+                    StrokeWidth = 6,
+                    FillColor = Color.FromArgb("#33FF0000")
+                };
+
+                MyMap.MapElements.Add(_currentRadar);
             }
             catch { }
-        };
-        _timer.Start();
+        });
+    }
+
+    private void ClearHighlight()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                if (_currentRadar != null)
+                {
+                    MyMap.MapElements.Remove(_currentRadar);
+                    _currentRadar = null;
+                }
+            }
+            catch { }
+        });
     }
 
     private async Task CheckGeofence(Location userLoc)
     {
+        var pOfEnteredPois = new List<Tuple<PoiModel, double>>();
+        double currentRadiusKm = Preferences.Default.Get("GeofenceRadius", 50) / 1000.0;
+
         foreach (var poi in _pois)
         {
             var poiLoc = new Location(poi.Latitude, poi.Longitude);
             var distanceKm = Location.CalculateDistance(userLoc, poiLoc, DistanceUnits.Kilometers);
 
-            if (distanceKm <= 0.05)
+            if (distanceKm <= currentRadiusKm)
             {
-                if (!_playedAudioPois.Contains(poi.Id))
-                {
-                    _playedAudioPois.Add(poi.Id);
-                    var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);
-                    if (pin != null)
-                    {
-                        _ = PlayPoiAudio(poi);
-                        await OpenBottomSheetForPoi(pin, poi);
-                    }
-                }
+                pOfEnteredPois.Add(new Tuple<PoiModel, double>(poi, distanceKm));
             }
-            else if (distanceKm > 0.1)
+        }
+
+        if (pOfEnteredPois.Any())
+        {
+            var closestData = pOfEnteredPois.OrderBy(x => x.Item2).First();
+            var poi = closestData.Item1;
+
+            bool isCoolingDown = _poiCooldowns.ContainsKey(poi.Id) && (DateTime.Now - _poiCooldowns[poi.Id]).TotalMinutes < 3;
+
+            if (!isCoolingDown)
             {
-                _playedAudioPois.Remove(poi.Id);
+                if (_currentActivePoi != null && _currentActivePoi.Id != poi.Id) StopSpeech();
+
+                _poiCooldowns[poi.Id] = DateTime.Now;
+                _entryTimes[poi.Id] = DateTime.Now;
+
+                var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);
+
+                HighlightActivePoi(new Location(poi.Latitude, poi.Longitude), currentRadiusKm);
+
+                _ = PlayPoiAudio(poi);
+                MainThread.BeginInvokeOnMainThread(async () => { await OpenBottomSheetForPoi(pin, poi); });
+            }
+        }
+
+        foreach (var poiId in _entryTimes.Keys.ToList())
+        {
+            var poi = _pois.FirstOrDefault(p => p.Id == poiId);
+            if (poi == null) continue;
+
+            var poiLoc = new Location(poi.Latitude, poi.Longitude);
+            var distanceKm = Location.CalculateDistance(userLoc, poiLoc, DistanceUnits.Kilometers);
+
+            if (distanceKm > (currentRadiusKm + 0.05))
+            {
+                var durationMinutes = (DateTime.Now - _entryTimes[poiId]).TotalMinutes;
+
+                if (_currentActivePoi != null && _currentActivePoi.Id == poiId) ClearHighlight();
+
+                _entryTimes.Remove(poiId);
             }
         }
     }
@@ -213,16 +377,13 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
-    // 🔥 BỘ NÃO 3 LỚP BẤT TỬ: OFFLINE -> ONLINE -> AI
     private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
     {
         StopSpeech();
 
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
-
         string localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_{targetLang}.mp3");
 
-        // LỚP 1: TÌM FILE TRONG MÁY (HOẠT ĐỘNG OFFLINE 100%)
         if (File.Exists(localFilePath))
         {
             try
@@ -230,36 +391,38 @@ public partial class MainPage : ContentPage
                 var stream = File.OpenRead(localFilePath);
                 _audioPlayer = AudioManager.Current.CreatePlayer(stream);
                 _audioPlayer.Play();
-                return; // Đã hát thì kết thúc hàm
+                return;
             }
             catch { Console.WriteLine("Lỗi đọc mp3 offline"); }
         }
 
-        // LỚP 2: LỠ CHƯA TẢI KỊP THÌ KÉO TỪ SERVER XUỐNG
-        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet && targetLang == "vi" && !string.IsNullOrEmpty(poi.AudioUrl))
+        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
         {
             try
             {
-                string safeAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+                string safeBaseUrl = ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+                string expectedAudioUrl = $"{safeBaseUrl}/audio/{poi.Id}_{targetLang}.mp3";
+
                 var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
                 using var httpClient = new HttpClient(handler);
 
-                var audioBytes = await httpClient.GetByteArrayAsync(safeAudioUrl);
-                await File.WriteAllBytesAsync(localFilePath, audioBytes); // Tiện tay lưu luôn cho lần sau Offline
+                var audioBytes = await httpClient.GetByteArrayAsync(expectedAudioUrl);
+                await File.WriteAllBytesAsync(localFilePath, audioBytes);
 
                 var stream = File.OpenRead(localFilePath);
                 _audioPlayer = AudioManager.Current.CreatePlayer(stream);
                 _audioPlayer.Play();
                 return;
             }
-            catch { Console.WriteLine("Tải file dự phòng thất bại."); }
+            catch
+            {
+                Console.WriteLine($"Server chưa có file {targetLang}, gọi AI chữa cháy.");
+            }
         }
 
-        // LỚP 3: NẾU TẤT CẢ THẤT BẠI (Hoặc là Tiếng Anh/Nhật không có MP3) -> GỌI AI ĐỌC CHỮA CHÁY
         await SmartSpeak(poi.TtsContent, targetLang);
     }
 
-    // 🔥 HÀM AI DỊCH THUẬT SIÊU NHANH
     private async Task SmartSpeak(string text, string targetLang)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -278,27 +441,15 @@ public partial class MainPage : ContentPage
             {
                 var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, err) => true };
                 using var client = new HttpClient(handler);
-
-                // Cắt văn bản xuống 800 ký tự để không bị lỗi 414 của Google
                 string safeText = text.Length > 800 ? text.Substring(0, 800) + "..." : text;
-
                 var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(safeText)}";
                 var response = await client.GetStringAsync(url);
                 using var doc = JsonDocument.Parse(response);
-
                 string translatedText = "";
-                foreach (var chunk in doc.RootElement[0].EnumerateArray())
-                {
-                    translatedText += chunk[0].GetString();
-                }
-
-                if (!string.IsNullOrWhiteSpace(translatedText)) textToSpeak = translatedText;
-                else throw new Exception("Rỗng");
+                foreach (var chunk in doc.RootElement[0].EnumerateArray()) translatedText += chunk[0].GetString();
+                if (!string.IsNullOrWhiteSpace(translatedText)) textToSpeak = translatedText; else throw new Exception("Rỗng");
             }
-            catch
-            {
-                textToSpeak = targetLang == "en" ? "Translation system error. Please check your network." : "翻訳システムエラー。";
-            }
+            catch { textToSpeak = targetLang == "en" ? "Translation error." : "翻訳エラー"; }
         }
 
         var locales = await TextToSpeech.Default.GetLocalesAsync();
@@ -306,7 +457,8 @@ public partial class MainPage : ContentPage
 
         try
         {
-            await TextToSpeech.Default.SpeakAsync(textToSpeak, new SpeechOptions { Locale = locale, Pitch = 1.0f, Volume = 1.0f }, _ttsCancellationTokenSource.Token);
+            float ttsSpeed = Preferences.Default.Get("TtsSpeed", 1.0f);
+            await TextToSpeech.Default.SpeakAsync(textToSpeak, new SpeechOptions { Locale = locale, Pitch = 1.0f, Volume = 1.0f, }, _ttsCancellationTokenSource.Token);
         }
         catch { }
     }
@@ -316,6 +468,11 @@ public partial class MainPage : ContentPage
         e.HideInfoWindow = true;
         if (sender is Pin pin && _pinPoiMap.TryGetValue(pin, out PoiModel poi))
         {
+            if (_currentActivePoi != null && _currentActivePoi.Id != poi.Id) StopSpeech();
+
+            double currentRadiusKm = Preferences.Default.Get("GeofenceRadius", 50) / 1000.0;
+            HighlightActivePoi(new Location(poi.Latitude, poi.Longitude), currentRadiusKm);
+
             _ = PlayPoiAudio(poi);
             await OpenBottomSheetForPoi(pin, poi);
         }
@@ -326,6 +483,7 @@ public partial class MainPage : ContentPage
         await BottomSheet.TranslateTo(0, 700, 300, Easing.CubicIn);
         SheetOverlay.InputTransparent = true; SheetOverlay.IsVisible = false;
         StopSpeech();
+        ClearHighlight();
     }
 
     private async Task FetchPoiDetails(string poiId, string description)
@@ -337,39 +495,28 @@ public partial class MainPage : ContentPage
             var details = await client.GetFromJsonAsync<PoiDetailDto>($"{ApiBaseUrl}/Pois/{poiId}");
             if (details != null)
             {
-                if (details.menu != null && details.menu.Count > 0)
-                {
-                    foreach (var item in details.menu)
+                MainThread.BeginInvokeOnMainThread(() => {
+                    if (details.menu != null && details.menu.Count > 0)
                     {
-                        ContainerMenu.Children.Add(new HorizontalStackLayout
+                        foreach (var item in details.menu)
                         {
-                            Children = {
-                            new Label { Text = item.itemName, FontAttributes = FontAttributes.Bold, WidthRequest = 200, TextColor = Colors.Black },
-                            new Label { Text = $"{item.price:N0} đ", TextColor = Colors.Green, FontAttributes = FontAttributes.Bold }
+                            ContainerMenu.Children.Add(new HorizontalStackLayout { Children = { new Label { Text = item.itemName, FontAttributes = FontAttributes.Bold, WidthRequest = 200, TextColor = Colors.Black }, new Label { Text = $"{item.price:N0} đ", TextColor = Colors.Green, FontAttributes = FontAttributes.Bold } } });
                         }
-                        });
                     }
-                }
-                else ContainerMenu.Children.Add(new Label { Text = "Chưa có thực đơn.", FontAttributes = FontAttributes.Italic, TextColor = Colors.Gray });
+                    else ContainerMenu.Children.Add(new Label { Text = "Chưa có thực đơn.", FontAttributes = FontAttributes.Italic, TextColor = Colors.Gray });
 
-                if (details.reviews != null && details.reviews.Count > 0)
-                {
-                    foreach (var rev in details.reviews)
+                    if (details.reviews != null && details.reviews.Count > 0)
                     {
-                        ContainerReviews.Children.Add(new VerticalStackLayout
+                        foreach (var rev in details.reviews)
                         {
-                            Spacing = 2,
-                            Children = {
-                            new Label { Text = new string('⭐', rev.rating), TextColor = Colors.Orange },
-                            new Label { Text = $"\"{rev.comment}\"", FontAttributes = FontAttributes.Italic, TextColor = Colors.DarkGray }
+                            ContainerReviews.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { new Label { Text = new string('⭐', rev.rating), TextColor = Colors.Orange }, new Label { Text = $"\"{rev.comment}\"", FontAttributes = FontAttributes.Italic, TextColor = Colors.DarkGray } } });
                         }
-                        });
                     }
-                }
-                else ContainerReviews.Children.Add(new Label { Text = "Chưa có đánh giá.", FontAttributes = FontAttributes.Italic, TextColor = Colors.Gray });
+                    else ContainerReviews.Children.Add(new Label { Text = "Chưa có đánh giá.", FontAttributes = FontAttributes.Italic, TextColor = Colors.Gray });
+                });
             }
         }
-        catch { LblPoiAddress.Text = "Lỗi kết nối mạng!"; }
+        catch { MainThread.BeginInvokeOnMainThread(() => LblPoiAddress.Text = "Lỗi kết nối mạng!"); }
     }
 
     private async void OnSubmitReviewClicked(object sender, EventArgs e)
@@ -432,18 +579,7 @@ public partial class MainPage : ContentPage
 
     private async void OnHistoryClicked(object sender, EventArgs e) { await Navigation.PushAsync(new HistoryPage()); }
 
-    private async void OnProfileClicked(object sender, EventArgs e)
-    {
-        var role = await SecureStorage.Default.GetAsync("role");
-        if (role == "Guest" || string.IsNullOrEmpty(role))
-        {
-            bool answer = await DisplayAlert("Yêu cầu đăng nhập", "Bạn cần có tài khoản để xem Hồ sơ cá nhân. Đến trang Đăng nhập?", "Đăng nhập", "Để sau");
-            if (answer) { await Navigation.PushModalAsync(new LoginPage()); }
-            return;
-        }
-
-        await Navigation.PushAsync(new ProfilePage());
-    }
+    private async void OnProfileClicked(object sender, EventArgs e) { await Navigation.PushAsync(new ProfilePage()); }
 
     public class PoiDetailDto { public List<MenuItemDto> menu { get; set; } public List<ReviewDto> reviews { get; set; } }
     public class MenuItemDto { public string itemName { get; set; } public decimal price { get; set; } }

@@ -1,0 +1,70 @@
+using System.Net.Http.Json;
+using System.Windows.Input;
+
+namespace TravelSmart.App.Views;
+
+public partial class TourListPage : ContentPage
+{
+    private Action<string> _onTourSelected;
+    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // Thay link Ngrok của sếp vào đây nhé!
+
+    public ICommand SelectTourCommand { get; private set; }
+
+    public TourListPage(Action<string> onTourSelected)
+    {
+        InitializeComponent();
+        _onTourSelected = onTourSelected;
+
+        // Khởi tạo lệnh khi bấm vào 1 Item trong danh sách
+        SelectTourCommand = new Command<Guid>(async (tourId) =>
+        {
+            await Navigation.PopModalAsync(); // Đóng trang này lại
+            _onTourSelected?.Invoke(tourId.ToString()); // Gửi ID tour về lại trang chính
+        });
+
+        BindingContext = this;
+        LoadTours();
+    }
+
+    private async void LoadTours()
+    {
+        RefreshTours.IsRefreshing = true;
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+            var tours = await client.GetFromJsonAsync<List<TourDto>>($"{ApiBaseUrl}/Tours");
+
+            if (tours != null)
+            {
+                ListTours.ItemsSource = tours.Where(t => t.IsActive).ToList();
+            }
+        }
+        catch { await DisplayAlert("Lỗi", "Mất kết nối với máy chủ.", "OK"); }
+        finally { RefreshTours.IsRefreshing = false; }
+    }
+
+    private void OnRefreshTours(object sender, EventArgs e)
+    {
+        LoadTours();
+    }
+
+    private async void OnCloseClicked(object sender, EventArgs e)
+    {
+        await Navigation.PopModalAsync();
+    }
+
+    private async void OnClearFilterClicked(object sender, EventArgs e)
+    {
+        await Navigation.PopModalAsync();
+        _onTourSelected?.Invoke(""); // Trả về chuỗi rỗng để ra lệnh XÓA TẤT CẢ Tour Line trên bản đồ
+    }
+
+    public class TourDto
+    {
+        public Guid TourId { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

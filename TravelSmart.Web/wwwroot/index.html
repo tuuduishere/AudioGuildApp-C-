@@ -41,6 +41,100 @@
             document.body.removeChild(link);
         }
     </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        var myMap, myMarker;
+        window.initMapPicker = () => {
+            setTimeout(() => {
+                if (myMap) { myMap.remove(); }
+                myMap = L.map('mapPicker').setView([10.762622, 106.660172], 13); // Mặc định ở TP.HCM
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(myMap);
+
+                myMarker = L.marker([10.762622, 106.660172], { draggable: true }).addTo(myMap);
+
+                // Lắng nghe khi kéo thả ghim
+                myMarker.on('dragend', function (event) { updateInputs(myMarker.getLatLng()); });
+
+                // Lắng nghe khi click bản đồ
+                myMap.on('click', function (e) {
+                    myMarker.setLatLng(e.latlng);
+                    updateInputs(e.latlng);
+                });
+            }, 500); // Chờ UI mở ra mới vẽ map
+        };
+
+        window.flyToMap = (lat, lng) => {
+            if (myMap && myMarker) {
+                myMap.flyTo([lat, lng], 16);
+                myMarker.setLatLng([lat, lng]);
+                updateInputs({ lat: lat, lng: lng });
+            }
+        };
+
+        function updateInputs(latlng) {
+            let latInput = document.getElementById('latInput');
+            let lngInput = document.getElementById('lngInput');
+            if (latInput && lngInput) {
+                latInput.value = latlng.lat;
+                lngInput.value = latlng.lng;
+                latInput.dispatchEvent(new Event('change'));
+                lngInput.dispatchEvent(new Event('change'));
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        var myMap, myMarker;
+        window.initMapPicker = () => {
+            setTimeout(() => {
+                if (myMap) { myMap.remove(); }
+                myMap = L.map('mapPicker').setView([10.762622, 106.660172], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(myMap);
+                myMarker = L.marker([10.762622, 106.660172], { draggable: true }).addTo(myMap);
+
+                myMarker.on('dragend', function (event) { updateInputs(myMarker.getLatLng()); });
+                myMap.on('click', function (e) {
+                    myMarker.setLatLng(e.latlng);
+                    updateInputs(e.latlng);
+                });
+            }, 500);
+        };
+
+        window.flyToMap = (lat, lng) => {
+            if (myMap && myMarker) {
+                myMap.flyTo([lat, lng], 16);
+                myMarker.setLatLng([lat, lng]);
+            }
+        };
+
+        function updateInputs(latlng) {
+            let latInput = document.getElementById('latInput');
+            let lngInput = document.getElementById('lngInput');
+            if (latInput && lngInput) {
+                latInput.value = latlng.lat;
+                lngInput.value = latlng.lng;
+                latInput.dispatchEvent(new Event('change'));
+                lngInput.dispatchEvent(new Event('change'));
+            }
+
+            // 🔥 TỰ ĐỘNG DỊCH NGƯỢC TỌA ĐỘ RA ĐỊA CHỈ KHI CLICK BẢN ĐỒ
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latlng.lat}&lon=${latlng.lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        let addrInput = document.getElementById('addressInput');
+                        if (addrInput) {
+                            addrInput.value = data.display_name;
+                            addrInput.dispatchEvent(new Event('input')); // Ép Blazor nhận diện
+                        }
+                    }
+                });
+        }
+    </script>
 </body>
 
 </html>

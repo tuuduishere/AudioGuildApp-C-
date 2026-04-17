@@ -1,0 +1,75 @@
+﻿@page "/audios"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="container mt-4">
+    <h2>🎵 Quản lý Audio & Bản dịch</h2>
+    <p class="text-muted">Trung tâm kiểm soát file thuyết minh và kịch bản dịch đa ngôn ngữ cho các điểm POI.</p>
+
+    @if (listPois == null)
+    {
+        <div class="spinner-border text-primary"></div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tên Quán (POI)</th>
+                            <th>Nội dung kịch bản AI (TTS)</th>
+                            <th>File Âm Thanh Gốc</th>
+                            <th class="text-center">Tình trạng Bản dịch</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in listPois)
+                        {
+                            <tr>
+                                <td class="fw-bold text-primary">@p.Name</td>
+                                <td><small class="text-muted" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">@p.TtsContent</small></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(p.AudioUrl))
+                                    {
+                                        <audio controls style="height: 30px; width: 200px;">
+                                            <source src="@p.AudioUrl" type="audio/mpeg">
+                                        </audio>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Dùng giọng AI đọc</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">🇻🇳 Tiếng Việt</span>
+                                    <span class="badge bg-primary">🇬🇧 Tiếng Anh</span>
+                                    <span class="badge bg-info">🇯🇵 Tiếng Nhật</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<PoiAudioDto> listPois;
+    private string apiBase = "https://localhost:7008/api/Pois"; // Đổi port nếu cần
+
+    protected override async Task OnInitializedAsync()
+    {
+        var rawData = await Http.GetFromJsonAsync<List<Dictionary<string, object>>>(apiBase);
+        listPois = rawData.Select(d => new PoiAudioDto
+        {
+            Id = d["id"].ToString(),
+            Name = d["name"].ToString(),
+            TtsContent = d.ContainsKey("ttsContent") && d["ttsContent"] != null ? d["ttsContent"].ToString() : "Trống",
+            AudioUrl = d.ContainsKey("audioUrl") && d["audioUrl"] != null ? d["audioUrl"].ToString() : null
+        }).ToList();
+    }
+
+    public class PoiAudioDto { public string Id { get; set; } public string Name { get; set; } public string TtsContent { get; set; } public string AudioUrl { get; set; } }
+}

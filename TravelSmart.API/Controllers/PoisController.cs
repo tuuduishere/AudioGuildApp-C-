@@ -92,18 +92,14 @@ namespace TravelSmart.API.Controllers
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var newPoi = new Poi { PoiId = Guid.NewGuid(), Latitude = request.Latitude, Longitude = request.Longitude, QrCodeKey = request.QrCodeKey, RadiusMeter = 50, IsActive = true, CreatedAt = DateTime.Now, OwnerId = userId, Address = request.Address };
 
-            // 🔥 TÍNH NĂNG MỚI: TỰ ĐỘNG DỊCH VÀ TẠO MP3 KHI TẠO QUÁN
             string baseText = $"Chào mừng bạn đến với {request.Name}. {request.Description}";
 
-            // Tạo MP3 Tiếng Việt
             string viAudio = await GenerateEdgeTts(newPoi.PoiId, baseText, "vi-VN-HoaiMyNeural", "vi");
-            newPoi.AudioUrl = viAudio; // Lưu mặc định là tiếng Việt
+            newPoi.AudioUrl = viAudio;
 
-            // Dịch và Tạo MP3 Tiếng Anh
             string enText = await TranslateText(baseText, "en");
             await GenerateEdgeTts(newPoi.PoiId, enText, "en-US-AriaNeural", "en");
 
-            // Dịch và Tạo MP3 Tiếng Nhật
             string jaText = await TranslateText(baseText, "ja");
             await GenerateEdgeTts(newPoi.PoiId, jaText, "ja-JP-NanamiNeural", "ja");
 
@@ -112,7 +108,37 @@ namespace TravelSmart.API.Controllers
             await _context.SaveChangesAsync(); return Ok();
         }
 
-        // 🔥 HÀM GỌI GOOGLE DỊCH (SERVER-SIDE)
+        // 🔥 THÊM TÍNH NĂNG CẬP NHẬT (EDIT) POI
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Merchant")]
+        public async Task<IActionResult> UpdatePOI(Guid id, PoiCreateDto request)
+        {
+            var poi = await _context.Pois.FindAsync(id);
+            if (poi == null) return NotFound();
+
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
+
+            // Cập nhật thông tin gốc
+            poi.Latitude = request.Latitude;
+            poi.Longitude = request.Longitude;
+            poi.Address = request.Address;
+
+            // Cập nhật bản dịch
+            var transVi = await _context.PoiTranslations.FirstOrDefaultAsync(t => t.PoiId == id && t.LanguageCode == "vi");
+            if (transVi != null)
+            {
+                transVi.Name = request.Name;
+                transVi.Description = request.Description;
+            }
+
+            // Nếu muốn làm gắt: Cập nhật luôn file âm thanh TTS mới ở đây (tùy sếp chọn)
+
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         private async Task<string> TranslateText(string text, string targetLang)
         {
             try
@@ -128,7 +154,6 @@ namespace TravelSmart.API.Controllers
             catch { return text; }
         }
 
-        // 🔥 HÀM GỌI EDGE-TTS TẠO FILE MP3 CHUẨN
         private async Task<string> GenerateEdgeTts(Guid poiId, string text, string voice, string langCode)
         {
             try
@@ -139,8 +164,6 @@ namespace TravelSmart.API.Controllers
 
                 string fileName = $"{poiId}_{langCode}.mp3";
                 string filePath = Path.Combine(uploadsFolder, fileName);
-
-                // Tránh lỗi ngoặc kép trong cmd
                 string safeText = text.Replace("\"", "\\\"");
 
                 ProcessStartInfo psi = new ProcessStartInfo
@@ -153,7 +176,6 @@ namespace TravelSmart.API.Controllers
                 };
                 using var process = Process.Start(psi);
                 await process.WaitForExitAsync();
-
                 return $"/audio/{fileName}";
             }
             catch { return null; }
@@ -179,31 +201,23 @@ namespace TravelSmart.API.Controllers
         {
             var poi = await _context.Pois.FindAsync(id);
             if (poi == null) return NotFound();
-
             var role = User.FindFirstValue(ClaimTypes.Role);
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
 
             if (file == null || file.Length == 0) return BadRequest("File rỗng.");
-            if (!file.FileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase))
-                return BadRequest("Chỉ hỗ trợ file .mp3");
+            if (!file.FileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)) return BadRequest("Chỉ hỗ trợ file .mp3");
 
             string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
             var uploadsFolder = Path.Combine(webRootPath, "audio");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            // Cố định tên file tiếng Việt nếu khách tự up
             var fileName = $"{id}_vi.mp3";
             var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            using (var stream = new FileStream(filePath, FileMode.Create)) { await file.CopyToAsync(stream); }
 
             poi.AudioUrl = $"/audio/{fileName}";
             await _context.SaveChangesAsync();
-
             return Ok(new { message = "Tải file âm thanh thành công!", audioUrl = poi.AudioUrl });
         }
 
@@ -213,35 +227,24 @@ namespace TravelSmart.API.Controllers
         {
             var poi = await _context.Pois.FindAsync(id);
             if (poi == null) return NotFound();
-
             var role = User.FindFirstValue(ClaimTypes.Role);
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
 
             if (file == null || file.Length == 0) return BadRequest("File rỗng.");
-
             var ext = Path.GetExtension(file.FileName).ToLower();
-            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png")
-                return BadRequest("Chỉ hỗ trợ file ảnh .jpg, .png");
+            if (ext != ".jpg" && ext != ".jpeg" && ext != ".png") return BadRequest("Chỉ hỗ trợ file ảnh .jpg, .png");
 
-            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath)
-                ? Path.Combine(_env.ContentRootPath, "wwwroot")
-                : _env.WebRootPath;
-
+            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
             var uploadsFolder = Path.Combine(webRootPath, "images");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             var fileName = $"{id}_{DateTime.Now.Ticks}{ext}";
             var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            using (var stream = new FileStream(filePath, FileMode.Create)) { await file.CopyToAsync(stream); }
 
             poi.ImageUrl = $"/images/{fileName}";
             await _context.SaveChangesAsync();
-
             return Ok(new { message = "Tải ảnh thành công!", imageUrl = poi.ImageUrl });
         }
 

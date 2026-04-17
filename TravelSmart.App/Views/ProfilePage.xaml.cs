@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.Maui.ApplicationModel;
 
 namespace TravelSmart.App.Views;
 
@@ -16,29 +17,34 @@ public partial class ProfilePage : ContentPage
     {
         base.OnAppearing();
 
-        // 1. Tải tốc độ cao từ bộ nhớ tạm (Giao diện không bị giật)
         var username = await SecureStorage.Default.GetAsync("username") ?? "Khách hàng";
-        var role = await SecureStorage.Default.GetAsync("role") ?? "User";
+        var role = await SecureStorage.Default.GetAsync("role") ?? "Guest";
         UpdateUI(username, role);
 
-        // 2. Tự động đâm API ngầm để lấy Quyền mới nhất
         await ForceSyncProfileRole();
     }
 
-    // Hàm đổi chữ giao diện
     private void UpdateUI(string username, string role)
     {
-        LblUsername.Text = username;
-        LblRole.Text = role == "Merchant" ? "Chủ quán" : (role == "Admin" ? "Quản trị viên" : "Khách du lịch");
-
-        // Ẩn bảng xin làm chủ quán nếu đã là Chủ quán hoặc Admin
-        if (role == "Merchant" || role == "Admin")
+        if (role == "Guest" || string.IsNullOrEmpty(role))
         {
+            LblUsername.Text = "Khách Vãng Lai";
+            LblRole.Text = "Vui lòng đăng nhập để lưu trữ";
             FrameMerchantRequest.IsVisible = false;
+            BtnLogout.IsVisible = false;
+            BtnLogin.IsVisible = true;
+        }
+        else
+        {
+            LblUsername.Text = username;
+            LblRole.Text = role == "Merchant" ? "Chủ quán" : (role == "Admin" ? "Quản trị viên" : "Khách du lịch");
+
+            FrameMerchantRequest.IsVisible = (role == "User");
+            BtnLogout.IsVisible = true;
+            BtnLogin.IsVisible = false;
         }
     }
 
-    // HÀM ÉP CẬP NHẬT QUYỀN
     private async Task ForceSyncProfileRole()
     {
         try
@@ -47,7 +53,6 @@ public partial class ProfilePage : ContentPage
             if (string.IsNullOrEmpty(token)) return;
 
             using var client = new HttpClient();
-            // Thêm thẻ vượt rào ngrok cho đồng bộ với các file kia
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -63,7 +68,7 @@ public partial class ProfilePage : ContentPage
                 }
             }
         }
-        catch { } // Rớt mạng thì thôi, xài đồ cũ
+        catch { }
     }
 
     private async void OnSettingsClicked(object sender, EventArgs e)
@@ -71,18 +76,23 @@ public partial class ProfilePage : ContentPage
         await Navigation.PushAsync(new SettingsPage());
     }
 
-    // 🔥 FIX LỖI TẠI ĐÂY: Đăng xuất chuẩn chỉ
+    private async void OnLoginClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushModalAsync(new LoginPage());
+    }
+
+    // 🔥 FIX LUỒNG ĐĂNG XUẤT AN TOÀN
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        // 1. Xóa sạch sành sanh thẻ VIP cũ
         SecureStorage.Default.RemoveAll();
         Preferences.Default.Clear();
 
-        // 2. Gắn ngay mác Khách Vãng Lai vào cho hệ thống nó nhận diện
         await SecureStorage.Default.SetAsync("role", "Guest");
 
-        // 3. Đá thẳng ra Bản Đồ (Trải nghiệm liền mạch)
-        Application.Current.MainPage = new NavigationPage(new MainPage());
+        UpdateUI("Khách Vãng Lai", "Guest");
+
+        // Lùi về màn hình Bản Đồ tự nhiên, không khởi tạo lại từ đầu gây sốc
+        await Navigation.PopAsync();
     }
 
     private async void OnRequestMerchantClicked(object sender, EventArgs e)
@@ -97,15 +107,10 @@ public partial class ProfilePage : ContentPage
         try
         {
             var response = await client.PostAsync($"{ApiBaseUrl}/Auth/request-merchant", null);
-
             if (response.IsSuccessStatusCode)
-            {
                 await DisplayAlert("Tuyệt vời", "Đã gửi yêu cầu thành công! Admin sẽ sớm liên hệ duyệt đơn cho bạn.", "OK");
-            }
             else
-            {
                 await DisplayAlert("Thông báo", "Yêu cầu của bạn đang chờ duyệt rồi, đừng bấm nữa!", "OK");
-            }
         }
         catch
         {

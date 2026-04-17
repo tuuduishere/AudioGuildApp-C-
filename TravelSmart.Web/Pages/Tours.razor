@@ -1,97 +1,135 @@
 ﻿@page "/tours"
+@using System.Net.Http.Json
+@using System.Net.Http.Headers
 @inject HttpClient Http
 @inject IJSRuntime JS
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between mb-4">
-        <h2>🗺️ Quản lý Tour Du lịch</h2>
-        <button class="btn btn-success" @onclick="CreateTour">+ Tạo Tour Mới</button>
+    <h2>🗺️ Quản lý Tour & Tuyến đi</h2>
+    
+    <div class="card shadow-sm mt-3">
+        <div class="card-header bg-primary text-white fw-bold">Thêm Tuyến Đi Mới</div>
+        <div class="card-body row g-3">
+            <div class="col-md-5"><input class="form-control" @bind="newTour.Name" placeholder="Tên Tour (VD: Tuyến Ẩm Thực Q4)" /></div>
+            <div class="col-md-5"><input class="form-control" @bind="newTour.Description" placeholder="Mô tả..." /></div>
+            <div class="col-md-2"><button class="btn btn-success w-100 fw-bold" @onclick="CreateTour">Tạo Tuyến</button></div>
+        </div>
     </div>
 
-    <div class="row">
-        @foreach (var tour in listTours)
-        {
-            <div class="col-md-4 mb-3">
-                <div class="card shadow-sm border-primary">
-                    <div class="card-body">
-                        <h5 class="fw-bold">@tour.Name</h5>
-                        <p class="small text-muted">@tour.Description</p>
-                        <button class="btn btn-sm btn-outline-primary w-100" @onclick="() => LoadTourDetails(tour.TourId)">
-                            ⚙️ Sắp xếp địa điểm
-                        </button>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    @if (selectedTourId != Guid.Empty)
+    @if (listTours == null)
     {
-        <div class="card mt-4 border-warning">
-            <div class="card-header bg-warning fw-bold">THỨ TỰ ĐỊA ĐIỂM TRONG TOUR</div>
+        <div class="spinner-border text-primary mt-4"></div>
+    }
+    else
+    {
+        <table class="table table-hover mt-4">
+            <thead class="table-dark">
+                <tr><th>Tên Tour</th><th>Mô tả</th><th>Trạng thái</th><th>Thao tác</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in listTours)
+                {
+                    <tr>
+                        <td class="fw-bold text-info">@t.Name</td>
+                        <td>@t.Description</td>
+                        <td><span class="badge bg-success">Hoạt động</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => LoadTourDetails(t.TourId)">Lên lịch trình 📍</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (!string.IsNullOrEmpty(selectedTourId))
+    {
+        <div class="card shadow-lg border-warning mt-4">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between">
+                <span>Thiết lập lịch trình POI cho Tour</span>
+                <button class="btn-close" @onclick='() => selectedTourId = ""'></button>
+            </div>
             <div class="card-body">
-                <ul class="list-group">
-                    @foreach (var item in tourDetails)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><strong>#@item.Order</strong> - @item.Name</span>
-                            <button class="btn btn-sm btn-danger">Xóa</button>
-                        </li>
-                    }
-                </ul>
-                <div class="input-group mt-3">
-                    <select class="form-select" @bind="poiToAdd">
-                        <option value="">-- Chọn quán ăn để thêm --</option>
+                <div class="input-group mb-3">
+                    <select class="form-select" @bind="selectedPoiToAdd">
+                        <option value="">-- Chọn quán ăn / địa điểm để đưa vào Tour --</option>
                         @foreach (var p in allPois)
                         {
                             <option value="@p.Id">@p.Name</option>
                         }
                     </select>
-                    <button class="btn btn-primary" @onclick="AddPoiToTour">Thêm vào Tour</button>
+                    <button class="btn btn-primary fw-bold" @onclick="AddPoiToTour">+ Thêm vào Tour</button>
                 </div>
+
+                <ul class="list-group">
+                    @foreach (var detail in tourDetails)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><span class="badge bg-secondary me-2">Trạm @detail.Order</span> @detail.Name</span>
+                        </li>
+                    }
+                </ul>
             </div>
         </div>
     }
 </div>
 
 @code {
-    private List<Tour> listTours = new();
-    private List<TourDetailView> tourDetails = new();
-    private List<PoiSmallDto> allPois = new();
-    private Guid selectedTourId = Guid.Empty;
-    private string poiToAdd = "";
-
-    protected override async Task OnInitializedAsync() { await LoadTours(); await LoadAllPois(); }
-
-    private async Task LoadTours() => listTours = await Http.GetFromJsonAsync<List<Tour>>("https://localhost:7008/api/Tours");
+    private string apiTourUrl = "https://localhost:7008/api/Tours";
+    private string apiPoiUrl = "https://localhost:7008/api/Pois";
     
-    private async Task LoadAllPois()
+    private List<TourDto> listTours;
+    private List<PoiBasicDto> allPois = new();
+    private List<TourDetailDto> tourDetails = new();
+    
+    private TourCreateDto newTour = new();
+    private string selectedTourId = "";
+    private string selectedPoiToAdd = "";
+
+    protected override async Task OnInitializedAsync()
     {
-        var raw = await Http.GetFromJsonAsync<List<PoiSmallDto>>("https://localhost:7008/api/Pois");
-        allPois = raw;
+        await LoadData();
+        // Tải danh sách POI để làm dropdown
+        var rawData = await Http.GetFromJsonAsync<List<Dictionary<string, object>>>(apiPoiUrl);
+        allPois = rawData.Select(d => new PoiBasicDto { Id = d["id"].ToString(), Name = d["name"].ToString() }).ToList();
     }
 
-    private async Task LoadTourDetails(Guid id)
+    private async Task LoadData()
     {
-        selectedTourId = id;
-        tourDetails = await Http.GetFromJsonAsync<List<TourDetailView>>($"https://localhost:7008/api/Tours/{id}/details");
-    }
-
-    private async Task AddPoiToTour()
-    {
-        if (string.IsNullOrEmpty(poiToAdd)) return;
-        await Http.PostAsJsonAsync($"https://localhost:7008/api/Tours/{selectedTourId}/add-poi", Guid.Parse(poiToAdd));
-        await LoadTourDetails(selectedTourId);
+        listTours = await Http.GetFromJsonAsync<List<TourDto>>(apiTourUrl);
     }
 
     private async Task CreateTour()
     {
-        var newTour = new Tour { Name = "Tour mới", Description = "Mô tả cho tour...", IsActive = true };
-        await Http.PostAsJsonAsync("https://localhost:7008/api/Tours", newTour);
-        await LoadTours();
+        if (string.IsNullOrEmpty(newTour.Name)) return;
+        newTour.IsActive = true;
+        var response = await Http.PostAsJsonAsync(apiTourUrl, newTour);
+        if (response.IsSuccessStatusCode)
+        {
+            newTour = new TourCreateDto();
+            await LoadData();
+        }
     }
 
-    public class Tour { public Guid TourId { get; set; } public string Name { get; set; } public string Description { get; set; } public bool IsActive { get; set; } }
-    public class TourDetailView { public string Name { get; set; } public int Order { get; set; } }
-    public class PoiSmallDto { public string Id { get; set; } public string Name { get; set; } }
+    private async Task LoadTourDetails(string tourId)
+    {
+        selectedTourId = tourId;
+        tourDetails = await Http.GetFromJsonAsync<List<TourDetailDto>>($"{apiTourUrl}/{tourId}/details");
+    }
+
+    private async Task AddPoiToTour()
+    {
+        if (string.IsNullOrEmpty(selectedPoiToAdd)) return;
+        var response = await Http.PostAsJsonAsync($"{apiTourUrl}/{selectedTourId}/add-poi", selectedPoiToAdd);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadTourDetails(selectedTourId);
+            selectedPoiToAdd = "";
+        }
+    }
+
+    public class TourDto { public string TourId { get; set; } public string Name { get; set; } public string Description { get; set; } }
+    public class TourCreateDto { public string Name { get; set; } public string Description { get; set; } public bool IsActive { get; set; } }
+    public class PoiBasicDto { public string Id { get; set; } public string Name { get; set; } }
+    public class TourDetailDto { public string PoiId { get; set; } public string Name { get; set; } public int Order { get; set; } }
 }

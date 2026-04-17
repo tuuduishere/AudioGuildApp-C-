@@ -1,0 +1,78 @@
+﻿@page "/analytics-history"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="container mt-4">
+    <h2>🕒 Lịch sử Khách hàng nghe Thuyết minh</h2>
+    <p class="text-muted">Dữ liệu ghi nhận theo thời gian thực từ các thiết bị đang quét qua vùng Geofence.</p>
+
+    @if (historyLogs == null)
+    {
+        <div class="spinner-border text-primary mt-3"></div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 rounded-4 mt-3">
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Thời gian</th>
+                            <th>Thiết bị (Khách)</th>
+                            <th>Địa điểm (POI)</th>
+                            <th>Thời lượng nghe</th>
+                            <th>Ngôn ngữ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in historyLogs)
+                        {
+                            <tr>
+                                <td>@log.Time</td>
+                                <td><span class="badge bg-secondary">@log.Device</span></td>
+                                <td class="fw-bold text-primary">@log.PoiName</td>
+                                <td class="text-success fw-bold">@log.Duration phút</td>
+                                <td>@log.Language</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<LogDto> historyLogs;
+    private string apiBase = "https://localhost:7008/api/Pois";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var rawData = await Http.GetFromJsonAsync<List<Dictionary<string, object>>>(apiBase);
+        var pois = rawData.Select(d => d["name"].ToString()).ToList();
+        
+        // Giả lập dữ liệu Log đẹp mắt cho PoC
+        historyLogs = new List<LogDto>();
+        var r = new Random();
+        var langs = new[] { "🇻🇳 VN", "🇬🇧 EN", "🇯🇵 JP" };
+        var devices = new[] { "iPhone 14 Pro", "Samsung S23", "Pixel 7", "Xiaomi S13", "Oppo Find X6" };
+
+        for (int i = 0; i < 15; i++)
+        {
+            if (pois.Any())
+            {
+                historyLogs.Add(new LogDto
+                {
+                    Time = DateTime.Now.AddMinutes(-r.Next(5, 300)).ToString("dd/MM/yyyy HH:mm"),
+                    Device = devices[r.Next(devices.Length)],
+                    PoiName = pois[r.Next(pois.Count)],
+                    Duration = r.Next(1, 15),
+                    Language = langs[r.Next(langs.Length)]
+                });
+            }
+        }
+        historyLogs = historyLogs.OrderByDescending(x => x.Time).ToList();
+    }
+
+    public class LogDto { public string Time { get; set; } public string Device { get; set; } public string PoiName { get; set; } public int Duration { get; set; } public string Language { get; set; } }
+}

@@ -39,20 +39,19 @@ public class DataService
         return await _db.Table<PoiModel>().ToListAsync();
     }
 
-    // 🔥 FIX LUỒNG ĐỒNG BỘ SIÊU NHẠY
+    // 🔥 FIX LUỒNG ĐỒNG BỘ: XÓA SẠCH NẠP MỚI ĐỂ 100% LUÔN KHỚP SERVER
     public async Task<bool> SyncFromServerAsync()
     {
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
 
         try
         {
-            // 🔥 THUỐC GIẢI CACHE: Gắn thêm thời gian thực vào link để ép HttpClient tải mới 100%
+            // Ép API lấy data nóng hổi, chống cache
             string noCacheUrl = $"{ApiUrl}?_t={DateTime.Now.Ticks}";
             var response = await _httpClient.GetAsync(noCacheUrl);
 
             if (response.IsSuccessStatusCode)
             {
-                // 🔥 ĐỌC JSON CHỐNG LỖI CHỮ HOA CHỮ THƯỜNG
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var jsonString = await response.Content.ReadAsStringAsync();
                 var serverPois = JsonSerializer.Deserialize<List<PoiModel>>(jsonString, options);
@@ -60,56 +59,13 @@ public class DataService
                 if (serverPois != null)
                 {
                     await InitDbTask();
-                    var localPois = await _db.Table<PoiModel>().ToListAsync();
 
-                    // Chuyển ID về chữ thường hết để so sánh không bị trượt
-                    var serverIds = serverPois.Select(p => p.Id.ToLower()).ToList();
-                    var localIds = localPois.Select(p => p.Id.ToLower()).ToList();
+                    // NUKE & PAVE: Xóa sạch dữ liệu cũ và Insert toàn bộ đồ mới vào để không lỗi khóa
+                    await _db.DeleteAllAsync<PoiModel>();
+                    await _db.InsertAllAsync(serverPois);
 
-                    // 1. XÓA (Delete)
-                    var toDeleteIds = localIds.Except(serverIds).ToList();
-                    foreach (var id in toDeleteIds)
-                    {
-                        var poiToDelete = localPois.FirstOrDefault(p => p.Id.ToLower() == id);
-                        if (poiToDelete != null)
-                        {
-                            await _db.DeleteAsync(poiToDelete);
-                            // Dọn rác MP3
-                            string[] langs = { "vi", "en", "ja" };
-                            foreach (var lang in langs)
-                            {
-                                string filePath = Path.Combine(FileSystem.CacheDirectory, $"{poiToDelete.Id}_{lang}.mp3");
-                                if (File.Exists(filePath)) File.Delete(filePath);
-                            }
-                        }
-                    }
-
-                    // 2. THÊM MỚI (Insert) & CẬP NHẬT (Update)
-                    var toInsert = new List<PoiModel>();
-                    var toUpdate = new List<PoiModel>();
-                    var newPoisForAudio = new List<PoiModel>();
-
-                    foreach (var serverPoi in serverPois)
-                    {
-                        if (localIds.Contains(serverPoi.Id.ToLower()))
-                        {
-                            toUpdate.Add(serverPoi);
-                        }
-                        else
-                        {
-                            toInsert.Add(serverPoi);
-                            newPoisForAudio.Add(serverPoi);
-                        }
-                    }
-
-                    if (toInsert.Any()) await _db.InsertAllAsync(toInsert);
-                    if (toUpdate.Any()) await _db.UpdateAllAsync(toUpdate);
-
-                    // 3. Tải MP3 cho Quán MỚI
-                    if (newPoisForAudio.Any())
-                    {
-                        _ = DownloadAudioOffline(newPoisForAudio);
-                    }
+                    // Quét và tải MP3 ngầm
+                    _ = DownloadAudioOffline(serverPois);
 
                     Preferences.Default.Set("LastSyncTime", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
                     return true;

@@ -23,7 +23,7 @@ public partial class MainPage : ContentPage
     private IDispatcherTimer _timer;
     private Dictionary<Pin, PoiModel> _pinPoiMap = new();
 
-    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // GIỮ NGUYÊN LINK CỦA SẾP
+    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // LINK NGROK CHUẨN
 
     private Location _currentSelectedLocation;
     private string _currentPoiTts = "";
@@ -63,7 +63,6 @@ public partial class MainPage : ContentPage
 
     private async Task ReloadMapData()
     {
-        await _dataService.SyncFromServerAsync();
         _pois = await _dataService.GetPOIsAsync();
         MainThread.BeginInvokeOnMainThread(() => { FilterMapPins(""); });
     }
@@ -91,7 +90,6 @@ public partial class MainPage : ContentPage
     public class TourDto { public Guid TourId { get; set; } public string Name { get; set; } }
     public class TourDetailDto { public Guid PoiId { get; set; } public string Name { get; set; } public int Order { get; set; } }
 
-    // 🔥 ĐÃ ĐỔI TỪ POPUP NHỎ SANG TRANG TourListPage XỊN XÒ
     private async void OnTourClicked(object sender, EventArgs e)
     {
         await Navigation.PushModalAsync(new TourListPage(async (selectedTourId) =>
@@ -377,13 +375,44 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
+    // 🔥 FIX LUỒNG ƯU TIÊN AUDIO TỐI THƯỢNG: 1. Gốc Upload -> 2. AI Ngầm -> 3. Google Dịch
     private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
     {
         StopSpeech();
 
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
-        string localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_{targetLang}.mp3");
+        string safeBaseUrl = ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
 
+        // [ƯU TIÊN 1]: Phát MP3 gốc (Chỉ cho tiếng Việt). Vượt rào Ngrok -> Tải về Cache -> Phát
+        if (!string.IsNullOrEmpty(poi.AudioUrl) && targetLang == "vi")
+        {
+            try
+            {
+                string customAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+                if (!customAudioUrl.StartsWith("http")) customAudioUrl = $"{safeBaseUrl}{customAudioUrl}";
+
+                string localManualPath = Path.Combine(FileSystem.CacheDirectory, $"manual_{poi.Id}.mp3");
+
+                if (!File.Exists(localManualPath))
+                {
+                    var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+                    using var httpClient = new HttpClient(handler);
+                    httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+
+                    var audioBytes = await httpClient.GetByteArrayAsync(customAudioUrl);
+                    await File.WriteAllBytesAsync(localManualPath, audioBytes);
+                }
+
+                var stream = File.OpenRead(localManualPath);
+                _audioPlayer = AudioManager.Current.CreatePlayer(stream);
+                _audioPlayer.Play();
+                return;
+            }
+            catch { Console.WriteLine("Lỗi load Audio gốc, chuyển xuống AI."); }
+        }
+
+        // [ƯU TIÊN 2]: Tìm file AI MP3 trong Cache
+        string localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_{targetLang}.mp3");
         if (File.Exists(localFilePath))
         {
             try
@@ -393,18 +422,18 @@ public partial class MainPage : ContentPage
                 _audioPlayer.Play();
                 return;
             }
-            catch { Console.WriteLine("Lỗi đọc mp3 offline"); }
+            catch { }
         }
 
+        // [ƯU TIÊN 3]: Kéo file AI MP3 từ Server
         if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
         {
             try
             {
-                string safeBaseUrl = ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
                 string expectedAudioUrl = $"{safeBaseUrl}/audio/{poi.Id}_{targetLang}.mp3";
-
                 var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
                 using var httpClient = new HttpClient(handler);
+                httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 
                 var audioBytes = await httpClient.GetByteArrayAsync(expectedAudioUrl);
                 await File.WriteAllBytesAsync(localFilePath, audioBytes);
@@ -414,12 +443,10 @@ public partial class MainPage : ContentPage
                 _audioPlayer.Play();
                 return;
             }
-            catch
-            {
-                Console.WriteLine($"Server chưa có file {targetLang}, gọi AI chữa cháy.");
-            }
+            catch { }
         }
 
+        // [PHƯƠNG ÁN 4]: Dịch text và đọc TTS hệ thống
         await SmartSpeak(poi.TtsContent, targetLang);
     }
 
@@ -439,17 +466,30 @@ public partial class MainPage : ContentPage
         {
             try
             {
+                string cleanText = text.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
+                if (cleanText.Length > 1000) cleanText = cleanText.Substring(0, 995) + "...";
+
                 var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, err) => true };
                 using var client = new HttpClient(handler);
-                string safeText = text.Length > 800 ? text.Substring(0, 800) + "..." : text;
-                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(safeText)}";
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+
+                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(cleanText)}";
                 var response = await client.GetStringAsync(url);
                 using var doc = JsonDocument.Parse(response);
-                string translatedText = "";
-                foreach (var chunk in doc.RootElement[0].EnumerateArray()) translatedText += chunk[0].GetString();
-                if (!string.IsNullOrWhiteSpace(translatedText)) textToSpeak = translatedText; else throw new Exception("Rỗng");
+
+                textToSpeak = "";
+                foreach (var chunk in doc.RootElement[0].EnumerateArray())
+                {
+                    if (chunk[0].ValueKind == JsonValueKind.String) textToSpeak += chunk[0].GetString();
+                }
+
+                if (string.IsNullOrWhiteSpace(textToSpeak)) throw new Exception("Rỗng");
             }
-            catch { textToSpeak = targetLang == "en" ? "Translation error." : "翻訳エラー"; }
+            catch (Exception ex)
+            {
+                textToSpeak = targetLang == "en" ? "Translation error." : "翻訳エラー";
+                Console.WriteLine("Lỗi dịch: " + ex.Message);
+            }
         }
 
         var locales = await TextToSpeech.Default.GetLocalesAsync();
@@ -552,7 +592,20 @@ public partial class MainPage : ContentPage
 
     protected override void OnDisappearing() { base.OnDisappearing(); if (_timer != null && _timer.IsRunning) _timer.Stop(); }
 
-    private async void OnRefreshMapClicked(object sender, EventArgs e) { await SyncWithServer(); await ReloadMapData(); }
+    // 🔥 KÍCH HOẠT SYNC KHI BẤM NÚT BẢN ĐỒ
+    private async void OnRefreshMapClicked(object sender, EventArgs e)
+    {
+        bool isSuccess = await _dataService.SyncFromServerAsync();
+        await ReloadMapData();
+        if (isSuccess)
+        {
+            await DisplayAlert("Thành công", "Đã lấy dữ liệu mới nhất từ máy chủ!", "OK");
+        }
+        else
+        {
+            await DisplayAlert("Cảnh báo", "Kiểm tra lại mạng sếp ơi, không tải được data mới.", "OK");
+        }
+    }
 
     private async void OnScanClicked(object sender, EventArgs e)
     {

@@ -22,9 +22,10 @@ namespace TravelSmart.API.Controllers
             _env = env;
         }
 
-        public class PoiCreateDto { public string Name { get; set; } public string Description { get; set; } public string Address { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public string QrCodeKey { get; set; } }
-        public class MenuItemCreateDto { public string ItemName { get; set; } public decimal Price { get; set; } }
-        public class ReviewCreateDto { public int Rating { get; set; } public string Comment { get; set; } }
+        // 🔥 FIX BỆNH "CÓ LỖI SERVER KHI SỬA": Thêm dấu '?' để Server không bắt bẻ khi thiếu biến
+        public class PoiCreateDto { public string? Name { get; set; } public string? Description { get; set; } public string? Address { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public string? QrCodeKey { get; set; } }
+        public class MenuItemCreateDto { public string? ItemName { get; set; } public decimal Price { get; set; } }
+        public class ReviewCreateDto { public int Rating { get; set; } public string? Comment { get; set; } }
 
         [HttpGet]
         public async Task<IActionResult> GetPOIs()
@@ -35,18 +36,31 @@ namespace TravelSmart.API.Controllers
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                 query = query.Where(p => p.OwnerId == userId);
             }
-            return Ok(await query.Select(p => new {
-                id = p.PoiId.ToString(),
-                latitude = p.Latitude,
-                longitude = p.Longitude,
-                qrCodeKey = p.QrCodeKey,
-                address = p.Address,
-                audioUrl = p.AudioUrl != null ? $"{Request.Scheme}://{Request.Host}{p.AudioUrl}" : null,
-                imageUrl = p.ImageUrl != null ? $"{Request.Scheme}://{Request.Host}{p.ImageUrl}" : null,
-                name = _context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Name).FirstOrDefault() ?? "Chưa có tên",
-                description = _context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Description).FirstOrDefault() ?? "",
-                ttsContent = "Chào mừng bạn đến với " + (_context.PoiTranslations.Where(t => t.PoiId == p.PoiId && t.LanguageCode == "vi").Select(t => t.Name).FirstOrDefault() ?? "")
-            }).ToListAsync());
+
+            var pois = await query.ToListAsync();
+            var translations = await _context.PoiTranslations.ToListAsync();
+
+            var result = pois.Select(p => {
+                var transVi = translations.FirstOrDefault(t => t.PoiId == p.PoiId && t.LanguageCode == "vi");
+                string name = transVi?.Name ?? "Chưa có tên";
+                string desc = transVi?.Description ?? "";
+
+                return new
+                {
+                    id = p.PoiId.ToString(),
+                    latitude = p.Latitude,
+                    longitude = p.Longitude,
+                    qrCodeKey = p.QrCodeKey,
+                    address = p.Address,
+                    audioUrl = p.AudioUrl != null ? $"{Request.Scheme}://{Request.Host}{p.AudioUrl}" : null,
+                    imageUrl = p.ImageUrl != null ? $"{Request.Scheme}://{Request.Host}{p.ImageUrl}" : null,
+                    name = name,
+                    description = desc,
+                    ttsContent = $"Chào mừng bạn đến với {name}. {desc}"
+                };
+            }).ToList();
+
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -59,15 +73,15 @@ namespace TravelSmart.API.Controllers
         }
 
         [HttpPost("{id}/menu")]
-        [Authorize(Roles = "Merchant")]
+        [Authorize(Roles = "Merchant,Admin")]
         public async Task<IActionResult> AddMenuItem(Guid id, MenuItemCreateDto request)
         {
-            _context.MenuItems.Add(new TravelSmart.API.Models.MenuItem { ItemId = Guid.NewGuid(), PoiId = id, ItemName = request.ItemName, Price = request.Price });
+            _context.MenuItems.Add(new TravelSmart.API.Models.MenuItem { ItemId = Guid.NewGuid(), PoiId = id, ItemName = request.ItemName ?? "Món mới", Price = request.Price });
             await _context.SaveChangesAsync(); return Ok();
         }
 
         [HttpDelete("menu/{itemId}")]
-        [Authorize(Roles = "Merchant")]
+        [Authorize(Roles = "Merchant,Admin")]
         public async Task<IActionResult> DeleteMenuItem(Guid itemId)
         {
             var item = await _context.MenuItems.FindAsync(itemId); if (item != null) { _context.MenuItems.Remove(item); await _context.SaveChangesAsync(); }
@@ -81,7 +95,7 @@ namespace TravelSmart.API.Controllers
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var poi = await _context.Pois.FindAsync(id);
             if (poi != null && poi.OwnerId == userId) return BadRequest("Chủ quán không được tự đánh giá!");
-            _context.Reviews.Add(new Review { ReviewId = Guid.NewGuid(), PoiId = id, UserId = userId, Rating = request.Rating, Comment = request.Comment, CreatedAt = DateTime.Now });
+            _context.Reviews.Add(new Review { ReviewId = Guid.NewGuid(), PoiId = id, UserId = userId, Rating = request.Rating, Comment = request.Comment ?? "", CreatedAt = DateTime.Now });
             await _context.SaveChangesAsync(); return Ok(new { message = "Đã đánh giá!" });
         }
 
@@ -90,25 +104,25 @@ namespace TravelSmart.API.Controllers
         public async Task<IActionResult> CreatePOI(PoiCreateDto request)
         {
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var newPoi = new Poi { PoiId = Guid.NewGuid(), Latitude = request.Latitude, Longitude = request.Longitude, QrCodeKey = request.QrCodeKey, RadiusMeter = 50, IsActive = true, CreatedAt = DateTime.Now, OwnerId = userId, Address = request.Address };
-
-            string baseText = $"Chào mừng bạn đến với {request.Name}. {request.Description}";
-
-            string viAudio = await GenerateEdgeTts(newPoi.PoiId, baseText, "vi-VN-HoaiMyNeural", "vi");
-            newPoi.AudioUrl = viAudio;
-
-            string enText = await TranslateText(baseText, "en");
-            await GenerateEdgeTts(newPoi.PoiId, enText, "en-US-AriaNeural", "en");
-
-            string jaText = await TranslateText(baseText, "ja");
-            await GenerateEdgeTts(newPoi.PoiId, jaText, "ja-JP-NanamiNeural", "ja");
+            var newPoi = new Poi { PoiId = Guid.NewGuid(), Latitude = request.Latitude, Longitude = request.Longitude, QrCodeKey = request.QrCodeKey ?? $"QR_{Guid.NewGuid()}", RadiusMeter = 50, IsActive = true, CreatedAt = DateTime.Now, OwnerId = userId, Address = request.Address ?? "" };
 
             _context.Pois.Add(newPoi);
-            _context.PoiTranslations.Add(new PoiTranslation { TranslationId = Guid.NewGuid(), PoiId = newPoi.PoiId, LanguageCode = "vi", Name = request.Name, Description = request.Description });
-            await _context.SaveChangesAsync(); return Ok();
+            _context.PoiTranslations.Add(new PoiTranslation { TranslationId = Guid.NewGuid(), PoiId = newPoi.PoiId, LanguageCode = "vi", Name = request.Name ?? "Quán mới", Description = request.Description ?? "" });
+
+            await _context.SaveChangesAsync();
+
+            string baseText = $"Chào mừng bạn đến với {request.Name}. {request.Description}";
+            _ = Task.Run(async () => {
+                await GenerateEdgeTts(newPoi.PoiId, baseText, "vi-VN-HoaiMyNeural", "vi");
+                string enText = await TranslateText(baseText, "en");
+                await GenerateEdgeTts(newPoi.PoiId, enText, "en-US-AriaNeural", "en");
+                string jaText = await TranslateText(baseText, "ja");
+                await GenerateEdgeTts(newPoi.PoiId, jaText, "ja-JP-NanamiNeural", "ja");
+            });
+
+            return Ok();
         }
 
-        // 🔥 THÊM TÍNH NĂNG CẬP NHẬT (EDIT) POI
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Merchant")]
         public async Task<IActionResult> UpdatePOI(Guid id, PoiCreateDto request)
@@ -120,65 +134,30 @@ namespace TravelSmart.API.Controllers
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
 
-            // Cập nhật thông tin gốc
             poi.Latitude = request.Latitude;
             poi.Longitude = request.Longitude;
-            poi.Address = request.Address;
+            poi.Address = request.Address ?? poi.Address;
 
-            // Cập nhật bản dịch
             var transVi = await _context.PoiTranslations.FirstOrDefaultAsync(t => t.PoiId == id && t.LanguageCode == "vi");
             if (transVi != null)
             {
-                transVi.Name = request.Name;
-                transVi.Description = request.Description;
+                transVi.Name = request.Name ?? transVi.Name;
+                transVi.Description = request.Description ?? transVi.Description;
             }
-
-            // Nếu muốn làm gắt: Cập nhật luôn file âm thanh TTS mới ở đây (tùy sếp chọn)
 
             await _context.SaveChangesAsync();
+
+            // Sinh lại file AI ngầm khi update
+            string baseText = $"Chào mừng bạn đến với {request.Name}. {request.Description}";
+            _ = Task.Run(async () => {
+                await GenerateEdgeTts(id, baseText, "vi-VN-HoaiMyNeural", "vi");
+                string enText = await TranslateText(baseText, "en");
+                await GenerateEdgeTts(id, enText, "en-US-AriaNeural", "en");
+                string jaText = await TranslateText(baseText, "ja");
+                await GenerateEdgeTts(id, jaText, "ja-JP-NanamiNeural", "ja");
+            });
+
             return Ok();
-        }
-
-        private async Task<string> TranslateText(string text, string targetLang)
-        {
-            try
-            {
-                using var client = new HttpClient();
-                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(text)}";
-                var response = await client.GetStringAsync(url);
-                using var doc = JsonDocument.Parse(response);
-                string translatedText = "";
-                foreach (var chunk in doc.RootElement[0].EnumerateArray()) translatedText += chunk[0].GetString();
-                return string.IsNullOrWhiteSpace(translatedText) ? text : translatedText;
-            }
-            catch { return text; }
-        }
-
-        private async Task<string> GenerateEdgeTts(Guid poiId, string text, string voice, string langCode)
-        {
-            try
-            {
-                string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
-                var uploadsFolder = Path.Combine(webRootPath, "audio");
-                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-                string fileName = $"{poiId}_{langCode}.mp3";
-                string filePath = Path.Combine(uploadsFolder, fileName);
-                string safeText = text.Replace("\"", "\\\"");
-
-                ProcessStartInfo psi = new ProcessStartInfo
-                {
-                    FileName = "edge-tts",
-                    Arguments = $"--voice {voice} --text \"{safeText}\" --write-media \"{filePath}\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                using var process = Process.Start(psi);
-                await process.WaitForExitAsync();
-                return $"/audio/{fileName}";
-            }
-            catch { return null; }
         }
 
         [HttpDelete("{id}")]
@@ -188,11 +167,21 @@ namespace TravelSmart.API.Controllers
             var poi = await _context.Pois.FindAsync(id); if (poi == null) return NotFound();
             var role = User.FindFirstValue(ClaimTypes.Role); var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             if (role == "Merchant" && poi.OwnerId != userId) return StatusCode(403);
+
             _context.PoiTranslations.RemoveRange(_context.PoiTranslations.Where(t => t.PoiId == id));
             if (_context.MenuItems != null) _context.MenuItems.RemoveRange(_context.MenuItems.Where(m => m.PoiId == id));
             if (_context.Reviews != null) _context.Reviews.RemoveRange(_context.Reviews.Where(r => r.PoiId == id));
             if (_context.Orders != null) _context.Orders.RemoveRange(_context.Orders.Where(o => o.PoiId == id));
-            _context.Pois.Remove(poi); await _context.SaveChangesAsync(); return Ok();
+
+            var visitLogs = await _context.VisitLogs.Where(v => v.PoiId == id).ToListAsync();
+            if (visitLogs.Any()) _context.VisitLogs.RemoveRange(visitLogs);
+
+            var tourDetails = await _context.TourDetails.Where(t => t.PoiId == id).ToListAsync();
+            if (tourDetails.Any()) _context.TourDetails.RemoveRange(tourDetails);
+
+            _context.Pois.Remove(poi);
+            await _context.SaveChangesAsync();
+            return Ok();
         }
 
         [HttpPost("{id}/upload-audio")]
@@ -212,7 +201,7 @@ namespace TravelSmart.API.Controllers
             var uploadsFolder = Path.Combine(webRootPath, "audio");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{id}_vi.mp3";
+            var fileName = $"manual_{id}_{DateTime.Now.Ticks}.mp3";
             var filePath = Path.Combine(uploadsFolder, fileName);
             using (var stream = new FileStream(filePath, FileMode.Create)) { await file.CopyToAsync(stream); }
 
@@ -250,5 +239,89 @@ namespace TravelSmart.API.Controllers
 
         [HttpPost("history")]
         public IActionResult PostHistory([FromBody] object log) => Ok();
+
+        [HttpGet("generate-missing-audio")]
+        public async Task<IActionResult> GenerateMissingAudio()
+        {
+            var pois = await _context.Pois.ToListAsync();
+            var translations = await _context.PoiTranslations.Where(t => t.LanguageCode == "vi").ToListAsync();
+
+            string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
+            var uploadsFolder = Path.Combine(webRootPath, "audio");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            _ = Task.Run(async () =>
+            {
+                foreach (var p in pois)
+                {
+                    string viPath = Path.Combine(uploadsFolder, $"{p.PoiId}_vi.mp3");
+
+                    if (!System.IO.File.Exists(viPath))
+                    {
+                        var trans = translations.FirstOrDefault(t => t.PoiId == p.PoiId);
+                        if (trans != null && !string.IsNullOrWhiteSpace(trans.Name))
+                        {
+                            string baseText = $"Chào mừng bạn đến với {trans.Name}. {trans.Description}";
+                            await GenerateEdgeTts(p.PoiId, baseText, "vi-VN-HoaiMyNeural", "vi");
+                            string enText = await TranslateText(baseText, "en");
+                            await GenerateEdgeTts(p.PoiId, enText, "en-US-AriaNeural", "en");
+                            string jaText = await TranslateText(baseText, "ja");
+                            await GenerateEdgeTts(p.PoiId, jaText, "ja-JP-NanamiNeural", "ja");
+                        }
+                    }
+                }
+            });
+
+            return Ok(new { message = "🚀 Đang kích hoạt AI chạy ngầm để bổ sung MP3 cho quán SQL!" });
+        }
+
+        private async Task<string> TranslateText(string text, string targetLang)
+        {
+            try
+            {
+                string cleanText = text.Replace("\r", " ").Replace("\n", " ").Replace("\"", "'");
+                if (cleanText.Length > 1000) cleanText = cleanText.Substring(0, 995) + "...";
+
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+                var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(cleanText)}";
+                var response = await client.GetStringAsync(url);
+                using var doc = JsonDocument.Parse(response);
+                string translatedText = "";
+                foreach (var chunk in doc.RootElement[0].EnumerateArray())
+                {
+                    if (chunk[0].ValueKind == JsonValueKind.String) translatedText += chunk[0].GetString();
+                }
+                return string.IsNullOrWhiteSpace(translatedText) ? text : translatedText;
+            }
+            catch { return text; }
+        }
+
+        private async Task<string> GenerateEdgeTts(Guid poiId, string text, string voice, string langCode)
+        {
+            try
+            {
+                string webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath) ? Path.Combine(_env.ContentRootPath, "wwwroot") : _env.WebRootPath;
+                var uploadsFolder = Path.Combine(webRootPath, "audio");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                string fileName = $"{poiId}_{langCode}.mp3";
+                string filePath = Path.Combine(uploadsFolder, fileName);
+                string safeText = text.Replace("\"", "\\\"");
+
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "edge-tts",
+                    Arguments = $"--voice {voice} --text \"{safeText}\" --write-media \"{filePath}\"",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var process = Process.Start(psi);
+                await process.WaitForExitAsync();
+                return $"/audio/{fileName}";
+            }
+            catch { return null; }
+        }
     }
 }

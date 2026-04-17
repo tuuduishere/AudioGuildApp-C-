@@ -14,15 +14,16 @@
             <h2>🏪 Quản lý Quán ăn</h2>
             @if (userRole == "Merchant" || userRole == "Admin")
             {
-                <button class="btn btn-primary fw-bold" @onclick="() => OpenCreateForm()">+ Thêm Quán Mới</button>
+                <button class="btn btn-primary fw-bold" @onclick="OpenCreateForm">+ Thêm Quán Mới</button>
             }
         </div>
 
         @if (showForm && (userRole == "Merchant" || userRole == "Admin"))
         {
             <div class="card shadow-sm mb-4 border-primary">
-                <div class="card-header bg-primary text-white fw-bold">
-                    @(isEditing ? "✏️ CHỈNH SỬA THÔNG TIN QUÁN" : "➕ NHẬP THÔNG TIN QUÁN MỚI")
+                <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                    <span>@(isEditing ? "✏️ CHỈNH SỬA THÔNG TIN QUÁN" : "➕ NHẬP THÔNG TIN QUÁN MỚI")</span>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseForm"></button>
                 </div>
                 <div class="card-body row g-3">
                     <div class="col-md-12">
@@ -33,7 +34,7 @@
                     <div class="col-md-12 position-relative">
                         <label class="fw-bold text-primary mb-1">🔍 Tìm địa chỉ hoặc Nhấp thẳng lên bản đồ: <span class="text-danger">*</span></label>
                         <div class="input-group mb-2">
-                            <input class="form-control border-primary" @bind="searchQuery" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" placeholder="Gõ địa chỉ rồi ấn Enter (VD: Chợ Bến Thành)..." />
+                            <input class="form-control border-primary" @bind="searchQuery" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" placeholder="Gõ địa chỉ rồi ấn Enter..." />
                             <button class="btn btn-warning fw-bold" type="button" @onclick="SearchAddress">Tìm Điểm</button>
                         </div>
                         @if (addressSuggestions != null && addressSuggestions.Any())
@@ -45,7 +46,6 @@
                                 }
                             </ul>
                         }
-
                         <div id="mapPicker" style="height: 300px; width: 100%; border-radius: 8px; border: 2px solid #0d6efd; z-index: 1;"></div>
                     </div>
 
@@ -56,11 +56,11 @@
                     
                     <div class="col-md-6">
                         <label class="fw-bold text-dark">Vĩ độ:</label>
-                        <input id="latInput" class="form-control bg-light fw-bold text-danger" @bind="newPoi.Latitude" placeholder="Bản đồ tự điền" type="number" readonly />
+                        <input id="latInput" class="form-control bg-light fw-bold text-danger" @bind="newPoi.Latitude" type="number" readonly />
                     </div>
                     <div class="col-md-6">
                         <label class="fw-bold text-dark">Kinh độ:</label>
-                        <input id="lngInput" class="form-control bg-light fw-bold text-danger" @bind="newPoi.Longitude" placeholder="Bản đồ tự điền" type="number" readonly />
+                        <input id="lngInput" class="form-control bg-light fw-bold text-danger" @bind="newPoi.Longitude" type="number" readonly />
                     </div>
                     
                     <div class="col-md-12">
@@ -70,11 +70,10 @@
 
                     <div class="col-md-12 text-end">
                         <button class="btn btn-secondary me-2" @onclick="CloseForm">Hủy</button>
-                        
                         <button class="btn btn-success fw-bold" @onclick="SavePoi" disabled="@isSaving">
                             @if (isSaving)
                             {
-                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span class="spinner-border spinner-border-sm me-1"></span>
                                 <span>Đang xử lý...</span>
                             }
                             else
@@ -97,32 +96,23 @@
                 <div class="card-body p-0">
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-dark">
-                            <tr><th>Tên Quán</th><th>Địa chỉ</th><th>Media</th><th class="text-center">Thao tác</th></tr>
+                            <tr><th>Tên Quán</th><th>Địa chỉ</th><th>Trạng thái Audio</th><th class="text-center">Thao tác</th></tr>
                         </thead>
                         <tbody>
                             @foreach (var p in listPois)
                             {
                                 <tr>
                                     <td class="fw-bold text-primary">@p.Name</td>
-                                    <td>@p.Address</td>
+                                    <td class="small">@p.Address</td>
                                     <td>
                                         @if (!string.IsNullOrEmpty(p.AudioUrl))
                                         {
-                                            <span class="badge bg-success me-1">🎵 MP3</span>
+                                            <span class="badge bg-success me-1">🎵 MP3 ĐÃ TẢI LÊN</span>
                                         }
                                         else
                                         {
 
-                                            <span class="badge bg-secondary me-1">🤖 AI</span>
-                                        }
-                                        @if (!string.IsNullOrEmpty(p.ImageUrl))
-                                        {
-                                            <span class="badge bg-info text-dark">🖼 Ảnh</span>
-                                        }
-                                        else
-                                        {
-
-                                            <span class="badge bg-light text-dark border">Trống</span>
+                                            <span class="badge bg-secondary me-1">🤖 GIỌNG AI MẶC ĐỊNH</span>
                                         }
                                     </td>
                                     <td class="text-center">
@@ -178,7 +168,7 @@
                                     <tbody>
                                         @if (poiDetails?.Menu != null)
                                         {
-                                            foreach (var m in poiDetails.Menu)
+                                            @foreach (var m in poiDetails.Menu)
                                             {
                                                 <tr>
                                                     <td class="fw-bold">@m.ItemName</td>
@@ -203,10 +193,10 @@
                             <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                                 @if (poiDetails?.Reviews != null && poiDetails.Reviews.Count > 0)
                                 {
-                                    foreach (var r in poiDetails.Reviews)
+                                    @foreach (var r in poiDetails.Reviews)
                                     {
                                         <div class="mb-3 border-bottom pb-2">
-                                            <div class="text-warning fw-bold">@for (int i = 0; i < r.Rating; i++) {
+                                            <div class="text-warning fw-bold">@for (int i=0; i<r.Rating; i++) {
                                                 <span>⭐</span>
                                             }
                                         </div>
@@ -284,30 +274,19 @@
         else _activeDropdownId = id;
     }
 
-    private async void OpenCreateForm()
+    private async Task OpenCreateForm()
     {
-        isEditing = false;
-        newPoi = new PoiCreateDto();
-        showForm = true;
-        await Task.Delay(200);
-        await JS.InvokeVoidAsync("initMapPicker");
+        isEditing = false; newPoi = new PoiCreateDto(); showForm = true; _activeDropdownId = "";
+        await Task.Delay(200); await JS.InvokeVoidAsync("initMapPicker");
     }
 
-    private async void EditPoi(PoiDto p)
+    private async Task EditPoi(PoiDto p)
     {
-        _activeDropdownId = "";
-        isEditing = true;
-        editingPoiId = p.Id;
-        newPoi.Name = p.Name;
-        newPoi.Address = p.Address;
-        newPoi.Description = p.Description;
-        newPoi.Latitude = p.Latitude;
-        newPoi.Longitude = p.Longitude;
-        
+        _activeDropdownId = ""; isEditing = true; editingPoiId = p.Id;
+        newPoi.Name = p.Name; newPoi.Address = p.Address; newPoi.Description = p.Description;
+        newPoi.Latitude = p.Latitude; newPoi.Longitude = p.Longitude;
         showForm = true;
-        StateHasChanged();
-        await Task.Delay(200);
-        await JS.InvokeVoidAsync("initMapPicker");
+        await Task.Delay(200); await JS.InvokeVoidAsync("initMapPicker");
         await JS.InvokeVoidAsync("flyToMap", p.Latitude, p.Longitude);
     }
 
@@ -318,38 +297,28 @@
     {
         var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        
-        // Đã xóa cách ép JSON lằng nhằng gây Crash. Ánh xạ thẳng vào List Class cực kỳ an toàn!
         listPois = await Http.GetFromJsonAsync<List<PoiDto>>(apiBase) ?? new List<PoiDto>();
+        StateHasChanged();
     }
 
     private async Task TriggerUpload(string poiId, string type)
     {
-        _uploadingPoiId = poiId;
-        _uploadType = type;
-        _acceptType = type == "audio" ? ".mp3" : ".jpg,.jpeg,.png";
-        _activeDropdownId = "";
-        StateHasChanged();
+        _uploadingPoiId = poiId; _uploadType = type; _acceptType = type == "audio" ? ".mp3" : ".jpg,.jpeg,.png";
+        _activeDropdownId = ""; StateHasChanged();
         await JS.InvokeVoidAsync("eval", "document.getElementById('globalFileInput').click()");
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
-        var file = e.File;
-        if (file == null || string.IsNullOrEmpty(_uploadingPoiId)) return;
+        var file = e.File; if (file == null || string.IsNullOrEmpty(_uploadingPoiId)) return;
         try
         {
             var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
             using var content = new MultipartFormDataContent();
             using var stream = file.OpenReadStream(20 * 1024 * 1024);
-            var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            var fileContent = new StreamContent(memoryStream);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            var memoryStream = new MemoryStream(); await stream.CopyToAsync(memoryStream); memoryStream.Position = 0;
+            var fileContent = new StreamContent(memoryStream); fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
             content.Add(fileContent, "file", file.Name);
-
             Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var endpoint = _uploadType == "audio" ? "upload-audio" : "upload-image";
             var response = await Http.PostAsync($"{apiBase}/{_uploadingPoiId}/{endpoint}", content);
@@ -362,14 +331,12 @@
     }
 
     private async Task HandleSearchKeyUp(KeyboardEventArgs e) { if (e.Key == "Enter") await SearchAddress(); }
-    
     private async Task SearchAddress()
     {
         if (string.IsNullOrWhiteSpace(searchQuery)) return;
         try
         {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("User-Agent", "TravelSmartApp/1.0");
+            using var client = new HttpClient(); client.DefaultRequestHeaders.Add("User-Agent", "TravelSmartApp/1.0");
             var url = $"https://nominatim.openstreetmap.org/search?format=json&q={Uri.EscapeDataString(searchQuery)}&limit=5";
             addressSuggestions = await client.GetFromJsonAsync<List<OSMResult>>(url);
         }
@@ -390,42 +357,20 @@
 
     private async Task SavePoi()
     {
-        if (string.IsNullOrWhiteSpace(newPoi.Name)) { await JS.InvokeVoidAsync("alert", "⚠️ Thiếu Tên quán rồi kìa sếp!"); return; }
-        if (newPoi.Latitude == 0 || newPoi.Longitude == 0) { await JS.InvokeVoidAsync("alert", "⚠️ Bản đồ trống trơn, lấy tọa độ đâu ra? Sếp chấm lên bản đồ hoặc bấm Tìm điểm đi!"); return; }
-        if (string.IsNullOrWhiteSpace(newPoi.Address)) { await JS.InvokeVoidAsync("alert", "⚠️ Chưa có địa chỉ chi tiết!"); return; }
-
-        isSaving = true;
-        StateHasChanged();
+        if (string.IsNullOrWhiteSpace(newPoi.Name) || newPoi.Latitude == 0 || string.IsNullOrWhiteSpace(newPoi.Address)) { await JS.InvokeVoidAsync("alert", "⚠️ Điền đủ Tên, Tọa độ và Địa chỉ sếp ơi!"); return; }
+        isSaving = true; StateHasChanged();
 
         var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         
         HttpResponseMessage response;
+        if (isEditing) response = await Http.PutAsJsonAsync($"{apiBase}/{editingPoiId}", newPoi);
+        else { newPoi.QrCodeKey = "QR_" + DateTime.Now.Ticks.ToString().Substring(10); response = await Http.PostAsJsonAsync(apiBase, newPoi); }
 
-        if (isEditing)
-        {
-            response = await Http.PutAsJsonAsync($"{apiBase}/{editingPoiId}", newPoi);
-        }
-        else
-        {
-            newPoi.QrCodeKey = "QR_" + DateTime.Now.Ticks.ToString().Substring(10);
-            response = await Http.PostAsJsonAsync(apiBase, newPoi);
-        }
-
-        if (response.IsSuccessStatusCode)
-        {
-            newPoi = new PoiCreateDto();
-            showForm = false;
-            isEditing = false;
-            await LoadData();
-        }
-        else
-        {
-            await JS.InvokeVoidAsync("alert", "❌ Có lỗi Server, chưa lưu được sếp ơi!");
-        }
-
-        isSaving = false;
-        StateHasChanged();
+        if (response.IsSuccessStatusCode) { newPoi = new PoiCreateDto(); showForm = false; isEditing = false; await LoadData(); }
+        else await JS.InvokeVoidAsync("alert", "❌ Có lỗi Server, chưa lưu được sếp ơi!");
+        
+        isSaving = false; StateHasChanged();
     }
 
     private async Task DeletePoi(string id) { _activeDropdownId = ""; if (await JS.InvokeAsync<bool>("confirm", "Xóa quán này sẽ bay luôn Menu. Chắc chưa?")) { var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken"); Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token); await Http.DeleteAsync($"{apiBase}/{id}"); await LoadData(); } }

@@ -23,6 +23,7 @@
             <li><a href="#analytics">Analytics</a></li>
             <li><a href="#qr">QR Code</a></li>
             <li><a href="#arch">Kiến trúc</a></li>
+            <li><a href="#uml">Sơ đồ UML</a></li>
             <li><a href="#roadmap">Roadmap</a></li>
         </ul>
     </nav>
@@ -704,6 +705,60 @@
         </div>
     </div>
 
+    <!-- ===== CHƯƠNG 12: SƠ ĐỒ UML ===== -->
+    <div id="uml" class="section-bg">
+        <div class="section-wrap">
+            <div class="section-header">
+                <div class="icon" style="background:#ede7f6;color:#6a1b9a;">🔷</div>
+                <div>
+                    <div class="section-num">Chương 12</div>
+                    <h2>Sơ Đồ UML — Đặc Tả Hệ Thống</h2>
+                </div>
+            </div>
+
+            <p style="color:var(--text-secondary);margin-bottom:1.8rem;">
+                Bộ 3 sơ đồ UML mô tả toàn diện hệ thống TravelSmart — từ các ca sử dụng, luồng hoạt động, đến tương tác nội bộ giữa các thành phần kỹ thuật. Bấm nút để xem sơ đồ tương tác, có thể zoom và kéo.
+            </p>
+
+            <div class="uml-card-row">
+                <div class="uml-type-card uml-usecase">
+                    <div class="uml-card-icon">👥</div>
+                    <div class="uml-card-info">
+                        <div class="uml-card-type">Use Case Diagram</div>
+                        <div class="uml-card-name">Sơ đồ ca sử dụng</div>
+                        <div class="uml-card-desc">Các tác nhân (Du Khách, Admin) và chức năng tương tác với hệ thống</div>
+                    </div>
+                    <button class="uml-open-btn uml-btn-usecase" data-diagram="uml_usecase">📊 Mở sơ đồ</button>
+                </div>
+
+                <div class="uml-type-card uml-activity">
+                    <div class="uml-card-icon">⚡</div>
+                    <div class="uml-card-info">
+                        <div class="uml-card-type">Activity Diagram</div>
+                        <div class="uml-card-name">Sơ đồ hoạt động</div>
+                        <div class="uml-card-desc">Luồng xử lý từ khởi động app → GPS/QR kích hoạt → phát audio → log analytics</div>
+                    </div>
+                    <button class="uml-open-btn uml-btn-activity" data-diagram="uml_activity">📊 Mở sơ đồ</button>
+                </div>
+
+                <div class="uml-type-card uml-sequence">
+                    <div class="uml-card-icon">🔀</div>
+                    <div class="uml-card-info">
+                        <div class="uml-card-type">Sequence Diagram</div>
+                        <div class="uml-card-name">Sơ đồ tuần tự</div>
+                        <div class="uml-card-desc">Tương tác giữa GPS Listener, Geofence Engine, SQLite, Audio Queue và Player</div>
+                    </div>
+                    <button class="uml-open-btn uml-btn-sequence" data-diagram="uml_sequence">📊 Mở sơ đồ</button>
+                </div>
+            </div>
+
+            <div class="highlight info" style="margin-top:1.5rem;">
+                <strong>💡 Ghi chú:</strong>
+                <p>Các sơ đồ được chuyển đổi từ file <code>.drawio</code> gốc sang Mermaid. Hỗ trợ zoom (cuộn chuột), kéo để di chuyển, và nút fit-to-view.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== FOOTER ===== -->
     <footer>
         <strong>TravelSmart — Hệ Thống Du Lịch Ẩm Thực Vĩnh Khánh</strong><br>
@@ -711,27 +766,31 @@
     </footer>
 
     <!-- ===== DIAGRAM MODAL ===== -->
-    <div class="diagram-overlay" id="dgOverlay">
+    <div id="dgOverlay" class="diagram-overlay">
         <div class="diagram-modal">
+
             <div class="dm-header">
-                <h3 id="dgTitle">Sơ đồ</h3>
+                <h3 id="dgTitle"></h3>
+
                 <div class="dm-ctrl">
-                    <button id="zoomIn" title="Phóng to">+</button>
-                    <span class="zpct" id="zpct">100%</span>
-                    <button id="zoomOut" title="Thu nhỏ">−</button>
-                    <button id="zoomReset" title="Fit">⊡</button>
-                    <button id="dgClose" title="Đóng">✕</button>
+                    <button id="zoomIn">+</button>
+                    <button id="zoomOut">-</button>
+                    <button id="zoomReset">⤢</button>
+                    <span id="zpct" class="zpct">100%</span>
+                    <button id="dgClose">✖</button>
                 </div>
             </div>
-            <div class="dm-body" id="dgBody">
-                <div class="vp" id="dgVp">
-                    <p class="loading-msg">Đang render sơ đồ...</p>
-                </div>
+
+            <div id="dgBody" class="dm-body">
+                <div id="dgVp" class="vp"></div>
             </div>
+
         </div>
     </div>
 
     <!-- ===== SCRIPTS ===== -->
+    <!-- Load mermaid synchronously so diagrams render even when opened locally -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
     <script src="script.js"></script>
 
 </body>

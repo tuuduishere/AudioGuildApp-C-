@@ -129,6 +129,94 @@ window.DIAGRAM_DATA = {
     APP->>APP: 🔊 Phát thuyết minh`
         },
 
+
+        uml_usecase: {
+            title: "Use Case Diagram — Ca Sử Dụng Hệ Thống TravelSmart",
+            mermaid: `graph LR
+    DK(["👤 Du Khách"])
+    AD(["👤 Admin"])
+
+    subgraph SYS["🔲 TravelSmart System"]
+        UC1(["Xem bản đồ POI"])
+        UC2(["Quét QR tại xe buýt"])
+        UC3(["Phát âm thanh thuyết minh"])
+        UC4(["Nhận thuyết minh tự động qua GPS"])
+        UC5(["Tải / Sử dụng dữ liệu offline"])
+        UC6(["Đăng nhập"])
+        UC7(["Quản lý POI"])
+        UC8(["Xem báo cáo và Thống kê"])
+        UC9(["Quản lý nội dung thuyết minh"])
+    end
+
+    DK --- UC1
+    DK --- UC2
+    DK --- UC3
+    DK --- UC4
+    DK --- UC5
+    AD --- UC6
+    AD --- UC7
+    AD --- UC8
+    AD --- UC9
+
+    UC2 -. include .-> UC3
+    UC4 -. include .-> UC3
+    UC7 -. include .-> UC6
+    UC7 -. include .-> UC9
+    UC8 -. include .-> UC6`
+        },
+
+        uml_activity: {
+            title: "Activity Diagram — Luồng Hoạt Động Ứng Dụng TravelSmart",
+            mermaid: `flowchart TD
+    S(["▶ Bắt đầu"]) --> A["Khởi động app"]
+    A --> B{"Có mạng?"}
+    B -- Có --> C["Sync POI từ server"]
+    B -- Không --> E["Load POI từ SQLite"]
+    C --> D["Lưu vào SQLite"]
+    D --> E
+    E --> F["Hiển thị Map View"]
+    F --> FORK["⬦ fork"]
+    FORK --> QR["Quét QR Code"]
+    FORK --> GPS["GPS tracking liên tục"]
+    QR --> J1["Load POI theo QR ID"]
+    GPS --> K{"Vào vùng POI?"}
+    K -- Không --> GPS
+    K -- Có --> L["Debounce / Cooldown check"]
+    L --> M["Enqueue POI lang"]
+    J1 --> M
+    M --> N{"Audio local?"}
+    N -- Có --> O["🔊 Phát audio"]
+    N -- Không --> P["TTS fallback"]
+    O --> R["Log analytics"]
+    P --> R
+    R --> END(["■ Kết thúc"])`
+        },
+
+        uml_sequence: {
+            title: "Sequence Diagram — Tương Tác GPS → Geofence → Audio Player",
+            mermaid: `sequenceDiagram
+    participant GPS as 📡 GPS Listener
+    participant GEO as 🔔 Geofence Engine
+    participant SQL as 💾 SQLite Local DB
+    participant TTS as 🎵 Audio Queue TTS
+    participant PLY as 🔊 Player Device
+
+    GPS->>GEO: GetLocationAsync()
+    GEO->>SQL: CalculateDistance(userLoc, poiLoc)
+    SQL-->>GEO: POI list
+
+    alt If not played → Tiếp tục xử lý
+        GEO->>GEO: _playedAudioPois.Contains(id)
+        GEO->>TTS: PlayPoiAudio(poi)
+        TTS->>TTS: File.Exists(localFilePath)
+        TTS->>PLY: _audioPlayer.Play()
+        PLY-->>TTS: SmartSpeak()
+        GEO->>GEO: _playedAudioPois.Add(id)
+    end
+
+    GEO->>SQL: SaveToHistory(name, addr)
+    SQL-->>GEO: luu da xong`
+        },
         offline_sync: {
             title: "Chiến lược Offline-First & Sync",
             mermaid: `flowchart TD
@@ -160,12 +248,47 @@ window.DIAGRAM_DATA = {
 };
 
 /* ===== LOAD MERMAID & INJECT DIAGRAM BUTTONS ===== */
-(function () {
+(() => {
+    const initAndInject = () => {
+        try {
+            mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
+        } catch (e) { /* ignore */ }
+        // Pre-render all diagrams to SVG so opening is instant and works offline after first load
+        (async () => {
+            try {
+                window.DIAGRAM_SVGS = window.DIAGRAM_SVGS || {};
+                const diagrams = window.DIAGRAM_DATA?.diagrams || {};
+                for (const key of Object.keys(diagrams)) {
+                    try {
+                        const d = diagrams[key];
+                        const id = 'pre_' + key;
+                        const result = await mermaid.render(id, d.mermaid);
+                        window.DIAGRAM_SVGS[key] = result.svg;
+                    } catch (err) {
+                        // ignore individual render failures
+                    }
+                }
+            } catch (err) {
+                // ignore
+            } finally {
+                injectDiagramButtons();
+            }
+        })();
+    };
+
+    // If mermaid already loaded (index.html included it), just init
+    if (window.mermaid) {
+        initAndInject();
+        return;
+    }
+
+    // Otherwise load mermaid dynamically
     const CDN = "https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js";
     const s = document.createElement("script");
     s.src = CDN;
-    s.onload = () => {
-        mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
+    s.onload = initAndInject;
+    s.onerror = () => {
+        // failed to load CDN; still attempt to inject buttons so user can see placeholders
         injectDiagramButtons();
     };
     document.head.appendChild(s);
@@ -188,7 +311,9 @@ function injectDiagramButtons() {
             btn.innerHTML = "📊 " + d.label;
             btnsDiv.appendChild(btn);
         });
-        anchor.after(btnsDiv);
+        // ensure anchor exists in DOM; use append if after() not supported in older browsers
+        if (anchor.after) anchor.after(btnsDiv);
+        else anchor.parentNode.insertBefore(btnsDiv, anchor.nextSibling);
     });
 }
 
@@ -231,6 +356,13 @@ function fitToView() {
 }
 
 /* ===== OPEN / CLOSE DIAGRAM ===== */
+const dmHeader = document.querySelector(".dm-header");
+const UML_TYPE_MAP = {
+    uml_usecase: "usecase",
+    uml_activity: "activity",
+    uml_sequence: "sequence"
+};
+
 async function openDiagram(key) {
     const d = window.DIAGRAM_DATA?.diagrams[key];
     if (!d) return;
@@ -239,11 +371,41 @@ async function openDiagram(key) {
     vp.innerHTML = '<p class="loading-msg">Đang render sơ đồ...</p>';
     overlay.classList.add("active");
     document.body.style.overflow = "hidden";
+    // Apply type-based header color
+    dmHeader.classList.remove("type-usecase", "type-activity", "type-sequence");
+    const umlType = UML_TYPE_MAP[key];
+    if (umlType) dmHeader.classList.add("type-" + umlType);
     try {
-        renderN++;
-        const result = await mermaid.render("dgr" + renderN, d.mermaid);
-        vp.innerHTML = result.svg;
-        requestAnimationFrame(fitToView);
+        // If we pre-rendered SVGs store exists, use it (works offline).
+        if (window.DIAGRAM_SVGS && window.DIAGRAM_SVGS[key]) {
+            vp.innerHTML = window.DIAGRAM_SVGS[key];
+            requestAnimationFrame(fitToView);
+            return;
+        }
+
+        // If mermaid is available in-page, render locally
+        if (window.mermaid && typeof mermaid.render === 'function') {
+            renderN++;
+            const result = await mermaid.render("dgr" + renderN, d.mermaid);
+            vp.innerHTML = result.svg;
+            requestAnimationFrame(fitToView);
+            return;
+        }
+
+        // Fallback: try remote render via mermaid.ink (returns SVG)
+        try {
+            const toBase64 = s => btoa(unescape(encodeURIComponent(s)));
+            const enc = encodeURIComponent(toBase64(d.mermaid));
+            const url = `https://mermaid.ink/svg/${enc}`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`Remote render failed ${resp.status}`);
+            const svg = await resp.text();
+            vp.innerHTML = svg;
+            requestAnimationFrame(fitToView);
+            return;
+        } catch (remoteErr) {
+            throw remoteErr;
+        }
     } catch (err) {
         vp.innerHTML = `<p style="color:#c62828;padding:2rem">Render error: ${err.message}</p>`;
     }
@@ -252,6 +414,7 @@ async function openDiagram(key) {
 function closeDiagram() {
     overlay.classList.remove("active");
     document.body.style.overflow = "";
+    dmHeader.classList.remove("type-usecase", "type-activity", "type-sequence");
 }
 
 /* ===== EVENT DELEGATION (CLICKS) ===== */
@@ -341,5 +504,19 @@ document.querySelectorAll('nav a[href^="#"]').forEach(a => {
     a.addEventListener("click", e => {
         e.preventDefault();
         document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+});
+// Click cả card để mở sơ đồ (UX xịn hơn)
+document.querySelectorAll(".uml-type-card").forEach(card => {
+    card.addEventListener("click", () => {
+        const btn = card.querySelector("[data-diagram]");
+        if (btn) openDiagram(btn.dataset.diagram);
+    });
+});
+
+// Ngăn double click khi bấm nút bên trong
+document.querySelectorAll(".uml-open-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
     });
 });

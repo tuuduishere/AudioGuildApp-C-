@@ -689,3 +689,165 @@ footer {
         grid-template-columns: repeat(2,1fr);
     }
 }
+
+/* ===== UML DIAGRAM CARDS ===== */
+.uml-card-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.2rem;
+    margin: 1rem 0;
+}
+
+.uml-type-card {
+    border-radius: 14px;
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    border: 2px solid transparent;
+    transition: transform .2s, box-shadow .2s;
+    position: relative;
+    overflow: hidden;
+}
+
+    .uml-type-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        opacity: .06;
+        background: currentColor;
+    }
+
+    .uml-type-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 28px rgba(0,0,0,.12);
+    }
+
+.uml-usecase {
+    background: #f3e5f5;
+    border-color: #ce93d8;
+    color: #6a1b9a;
+}
+
+.uml-activity {
+    background: #fff3e0;
+    border-color: #ffb74d;
+    color: #e65100;
+}
+
+.uml-sequence {
+    background: #e8f5e9;
+    border-color: #81c784;
+    color: #1b5e20;
+}
+
+.uml-card-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.uml-card-info {
+    flex: 1;
+}
+
+.uml-card-type {
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: .7;
+    margin-bottom: .2rem;
+}
+
+.uml-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: .35rem;
+    color: inherit;
+}
+
+.uml-card-desc {
+    font-size: .82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.uml-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    border: none;
+    padding: .55rem 1.1rem;
+    border-radius: 22px;
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .25s;
+    align-self: flex-start;
+    letter-spacing: .3px;
+}
+
+.uml-btn-usecase {
+    background: #6a1b9a;
+    color: white;
+    box-shadow: 0 3px 10px rgba(106,27,154,.3);
+}
+
+    .uml-btn-usecase:hover {
+        background: #7b1fa2;
+        box-shadow: 0 5px 16px rgba(106,27,154,.45);
+        transform: translateY(-1px);
+    }
+
+.uml-btn-activity {
+    background: #e65100;
+    color: white;
+    box-shadow: 0 3px 10px rgba(230,81,0,.3);
+}
+
+    .uml-btn-activity:hover {
+        background: #f4511e;
+        box-shadow: 0 5px 16px rgba(230,81,0,.45);
+        transform: translateY(-1px);
+    }
+
+.uml-btn-sequence {
+    background: #2e7d32;
+    color: white;
+    box-shadow: 0 3px 10px rgba(46,125,50,.3);
+}
+
+    .uml-btn-sequence:hover {
+        background: #388e3c;
+        box-shadow: 0 5px 16px rgba(46,125,50,.45);
+        transform: translateY(-1px);
+    }
+
+/* Header color per diagram type in modal */
+.dm-header.type-usecase {
+    background: #6a1b9a;
+}
+
+.dm-header.type-activity {
+    background: #e65100;
+}
+
+.dm-header.type-sequence {
+    background: #2e7d32;
+}
+
+@media (max-width: 768px) {
+    .uml-card-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+#dgVp {
+    position: absolute;
+    transform-origin: 0 0;
+}
+
+#dgBody {
+    position: relative;
+    overflow: hidden;
+}

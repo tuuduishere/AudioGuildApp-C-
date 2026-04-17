@@ -22,7 +22,6 @@ namespace TravelSmart.API.Controllers
             _env = env;
         }
 
-        // 🔥 FIX BỆNH "CÓ LỖI SERVER KHI SỬA": Thêm dấu '?' để Server không bắt bẻ khi thiếu biến
         public class PoiCreateDto { public string? Name { get; set; } public string? Description { get; set; } public string? Address { get; set; } public double Latitude { get; set; } public double Longitude { get; set; } public string? QrCodeKey { get; set; } }
         public class MenuItemCreateDto { public string? ItemName { get; set; } public decimal Price { get; set; } }
         public class ReviewCreateDto { public int Rating { get; set; } public string? Comment { get; set; } }
@@ -237,8 +236,38 @@ namespace TravelSmart.API.Controllers
             return Ok(new { message = "Tải ảnh thành công!", imageUrl = poi.ImageUrl });
         }
 
+        // Model hứng Data Log
+        public class HistoryLogDto
+        {
+            public Guid PoiId { get; set; }
+            public string? DeviceName { get; set; }
+            public string? LanguageCode { get; set; }
+            public double DurationMinutes { get; set; }
+        }
+
+        // 🔥 FIX: Lưu Log Lịch sử của khách vào DB để lên Heatmap
         [HttpPost("history")]
-        public IActionResult PostHistory([FromBody] object log) => Ok();
+        [AllowAnonymous] // App gửi mà ko cần đăng nhập
+        public async Task<IActionResult> PostHistory([FromBody] HistoryLogDto log)
+        {
+            try
+            {
+                var newLog = new VisitLog
+                {
+                    LogId = Guid.NewGuid(),
+                    PoiId = log.PoiId,
+                    DeviceName = string.IsNullOrWhiteSpace(log.DeviceName) ? "TravelSmart App" : log.DeviceName,
+                    LanguageCode = string.IsNullOrWhiteSpace(log.LanguageCode) ? "vi" : log.LanguageCode,
+                    DurationMinutes = log.DurationMinutes > 0 ? log.DurationMinutes : 1.5,
+                    VisitTime = DateTime.Now
+                };
+
+                _context.VisitLogs.Add(newLog);
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            catch { return BadRequest(); }
+        }
 
         [HttpGet("generate-missing-audio")]
         public async Task<IActionResult> GenerateMissingAudio()

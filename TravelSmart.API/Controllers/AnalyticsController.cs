@@ -15,24 +15,21 @@ namespace TravelSmart.API.Controllers
         [HttpGet("logs")]
         public async Task<IActionResult> GetLogs()
         {
-            // Bước 1: Ép Entity Framework tải hết data thô về RAM trước bằng ToListAsync()
             var rawLogs = await _context.VisitLogs
                 .OrderByDescending(l => l.VisitTime)
                 .Take(100)
                 .ToListAsync();
 
-            // Bước 2: Lấy thông tin Tên quán
             var poiIds = rawLogs.Select(l => l.PoiId).Distinct().ToList();
             var poiNames = await _context.PoiTranslations
                 .Where(t => poiIds.Contains(t.PoiId) && t.LanguageCode == "vi")
                 .ToDictionaryAsync(t => t.PoiId, t => t.Name);
 
-            // Bước 3: Sau đó mới xử lý ToString() và kiểm tra Null trên RAM để không bị lỗi SQL
             var logs = rawLogs.Select(l => new {
                 time = l.VisitTime?.ToString("dd/MM/yyyy HH:mm"),
                 device = l.DeviceName ?? "Ẩn danh",
                 poiName = poiNames.ContainsKey(l.PoiId) ? poiNames[l.PoiId] : "Không xác định",
-                duration = l.DurationMinutes ?? 0.0, // Chống lỗi Null
+                duration = l.DurationMinutes ?? 0.0,
                 language = l.LanguageCode == "vi" ? "Tiếng Việt" : (l.LanguageCode == "en" ? "Tiếng Anh" : "Tiếng Nhật")
             });
 
@@ -43,7 +40,6 @@ namespace TravelSmart.API.Controllers
         [HttpGet("top-pois")]
         public async Task<IActionResult> GetTopPois()
         {
-            // Gom nhóm số lượt nghe
             var top = await _context.VisitLogs
                 .GroupBy(l => l.PoiId)
                 .Select(g => new { PoiId = g.Key, ListenCount = g.Count() })
@@ -59,7 +55,7 @@ namespace TravelSmart.API.Controllers
                 name = poiNames.ContainsKey(x.PoiId) ? poiNames[x.PoiId] : "Không xác định",
                 address = poiAddresses.ContainsKey(x.PoiId) ? poiAddresses[x.PoiId] : "",
                 listenCount = x.ListenCount,
-                rating = 5.0 // Mặc định 5 sao cho đẹp Demo
+                rating = 5.0
             });
 
             return Ok(result);

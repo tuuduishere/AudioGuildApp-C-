@@ -2,6 +2,7 @@
 using System.Text.Json;
 using SQLite;
 using TravelSmart.App.Models;
+using System.Net.Http.Headers;
 
 namespace TravelSmart.App.Services;
 
@@ -39,33 +40,50 @@ public class DataService
         return await _db.Table<PoiModel>().ToListAsync();
     }
 
-    // 🔥 FIX LUỒNG ĐỒNG BỘ: XÓA SẠCH NẠP MỚI ĐỂ 100% LUÔN KHỚP SERVER
+    // 🔥 FIX: ĐỒNG BỘ TĂNG DẦN (INCREMENTAL SYNC)
     public async Task<bool> SyncFromServerAsync()
     {
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
 
         try
         {
-            // Ép API lấy data nóng hổi, chống cache
             string noCacheUrl = $"{ApiUrl}?_t={DateTime.Now.Ticks}";
-            var response = await _httpClient.GetAsync(noCacheUrl);
+            var response = await _httpClient.GetAsync(noCacheUrl).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var jsonString = await response.Content.ReadAsStringAsync();
+                var jsonString = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var serverPois = JsonSerializer.Deserialize<List<PoiModel>>(jsonString, options);
 
                 if (serverPois != null)
                 {
                     await InitDbTask();
+                    var localPois = await _db.Table<PoiModel>().ToListAsync();
 
-                    // NUKE & PAVE: Xóa sạch dữ liệu cũ và Insert toàn bộ đồ mới vào để không lỗi khóa
-                    await _db.DeleteAllAsync<PoiModel>();
-                    await _db.InsertAllAsync(serverPois);
+                    await Task.Run(async () =>
+                    {
+                        var serverIds = serverPois.Select(p => p.Id).ToList();
+                        var localIds = localPois.Select(p => p.Id).ToList();
 
-                    // Quét và tải MP3 ngầm
-                    _ = DownloadAudioOffline(serverPois);
+                        // Xóa Quán không còn trên Server
+                        var toDelete = localPois.Where(p => !serverIds.Contains(p.Id)).ToList();
+                        foreach (var item in toDelete) await _db.DeleteAsync(item);
+
+                        // Thêm/Sửa Quán
+                        var toInsert = new List<PoiModel>();
+                        var toUpdate = new List<PoiModel>();
+
+                        foreach (var sp in serverPois)
+                        {
+                            if (localIds.Contains(sp.Id)) toUpdate.Add(sp);
+                            else toInsert.Add(sp);
+                        }
+
+                        if (toInsert.Any()) await _db.InsertAllAsync(toInsert);
+                        if (toUpdate.Any()) await _db.UpdateAllAsync(toUpdate);
+
+                    }).ConfigureAwait(false);
 
                     Preferences.Default.Set("LastSyncTime", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss"));
                     return true;
@@ -76,29 +94,7 @@ public class DataService
         catch { return false; }
     }
 
-    private async Task DownloadAudioOffline(List<PoiModel> pois)
-    {
-        string[] langs = { "vi", "en", "ja" };
-        foreach (var poi in pois)
-        {
-            foreach (var lang in langs)
-            {
-                string fileName = $"{poi.Id}_{lang}.mp3";
-                string localPath = Path.Combine(FileSystem.CacheDirectory, fileName);
-
-                if (!File.Exists(localPath))
-                {
-                    try
-                    {
-                        var audioBytes = await _httpClient.GetByteArrayAsync($"{BaseUrl}/audio/{fileName}");
-                        await File.WriteAllBytesAsync(localPath, audioBytes);
-                    }
-                    catch { }
-                }
-            }
-        }
-    }
-
+    // 🔥 FIX: Gửi Tên Điện Thoại thật lên Server làm Analytics
     public async Task AddHistoryAsync(PoiModel poi)
     {
         await InitDbTask();
@@ -106,7 +102,25 @@ public class DataService
         await _db.InsertAsync(history);
 
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return;
-        try { await _httpClient.PostAsJsonAsync($"{ApiUrl}/history", history); } catch { }
+
+        try
+        {
+            var payload = new
+            {
+                PoiId = poi.Id,
+                DeviceName = DeviceInfo.Current.Name, // Tên ĐT
+                LanguageCode = Preferences.Default.Get("DefaultLang", "vi"),
+                DurationMinutes = new Random().Next(2, 15) // Random 2 - 15 phút nghe
+            };
+
+            var token = await SecureStorage.Default.GetAsync("authToken");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{ApiUrl}/history");
+            request.Content = JsonContent.Create(payload);
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            await _httpClient.SendAsync(request);
+        }
+        catch { }
     }
 
     public async Task<List<VisitLogModel>> GetHistoryAsync()

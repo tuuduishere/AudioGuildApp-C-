@@ -23,7 +23,7 @@ public partial class MainPage : ContentPage
     private IDispatcherTimer _timer;
     private Dictionary<Pin, PoiModel> _pinPoiMap = new();
 
-    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // LINK NGROK CHUẨN
+    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // LINK NGROK CỦA SẾP
 
     private Location _currentSelectedLocation;
     private string _currentPoiTts = "";
@@ -207,18 +207,9 @@ public partial class MainPage : ContentPage
 
         await BottomSheet.TranslateTo(0, 0, 300, Easing.CubicOut);
         await FetchPoiDetails(poi.Id, poi.Description);
-        SaveToHistory(poi.Name, poi.Description);
-    }
 
-    private void SaveToHistory(string name, string address)
-    {
-        var historyStr = Preferences.Default.Get("AppHistory", "[]");
-        var list = JsonSerializer.Deserialize<List<HistoryPage.HistoryItem>>(historyStr) ?? new();
-        if (list.Count == 0 || list[0].PoiName != name)
-        {
-            list.Insert(0, new HistoryPage.HistoryItem { PoiName = name, Address = address, Time = DateTime.Now.ToString("dd/MM/yyyy HH:mm") });
-            Preferences.Default.Set("AppHistory", JsonSerializer.Serialize(list));
-        }
+        // Ghi Log lên Server
+        _ = _dataService.AddHistoryAsync(poi);
     }
 
     private async Task StartTrackingGPS()
@@ -375,7 +366,7 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
-    // 🔥 FIX LUỒNG ƯU TIÊN AUDIO TỐI THƯỢNG: 1. Gốc Upload -> 2. AI Ngầm -> 3. Google Dịch
+    // 🔥 ĐÃ FIX LỖI XUNG ĐỘT TÊN (AMBIGUOUS REFERENCE)
     private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
     {
         StopSpeech();
@@ -383,70 +374,75 @@ public partial class MainPage : ContentPage
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
         string safeBaseUrl = ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
 
-        // [ƯU TIÊN 1]: Phát MP3 gốc (Chỉ cho tiếng Việt). Vượt rào Ngrok -> Tải về Cache -> Phát
-        if (!string.IsNullOrEmpty(poi.AudioUrl) && targetLang == "vi")
+        // 🟢 CHỈ TÌM FILE MP3 NẾU LÀ TIẾNG VIỆT
+        if (targetLang == "vi")
         {
-            try
+            // 1. Tải/Phát MP3 gốc do sếp up
+            if (!string.IsNullOrEmpty(poi.AudioUrl))
             {
-                string customAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
-                if (!customAudioUrl.StartsWith("http")) customAudioUrl = $"{safeBaseUrl}{customAudioUrl}";
-
-                string localManualPath = Path.Combine(FileSystem.CacheDirectory, $"manual_{poi.Id}.mp3");
-
-                if (!File.Exists(localManualPath))
+                try
                 {
+                    string customAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+                    if (!customAudioUrl.StartsWith("http")) customAudioUrl = $"{safeBaseUrl}{customAudioUrl}";
+
+                    string localManualPath = Path.Combine(FileSystem.CacheDirectory, $"manual_{poi.Id}.mp3");
+
+                    if (!File.Exists(localManualPath))
+                    {
+                        var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+                        using var httpClient = new HttpClient(handler);
+                        httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+
+                        var audioBytes = await httpClient.GetByteArrayAsync(customAudioUrl);
+                        await File.WriteAllBytesAsync(localManualPath, audioBytes);
+                    }
+
+                    var stream = File.OpenRead(localManualPath);
+                    // FIX CHỈ ĐÍCH DANH HỌ TÊN ĐẦY ĐỦ CỦA THẰNG AUDIOMANAGER
+                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
+                    _audioPlayer.Play();
+                    return;
+                }
+                catch { Console.WriteLine("Lỗi load Audio gốc, chuyển xuống AI."); }
+            }
+
+            // 2. Tìm MP3 AI tiếng Việt trong máy (nếu ko có file gốc)
+            string localFilePathVi = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_vi.mp3");
+            if (File.Exists(localFilePathVi))
+            {
+                try
+                {
+                    var stream = File.OpenRead(localFilePathVi);
+                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
+                    _audioPlayer.Play();
+                    return;
+                }
+                catch { }
+            }
+
+            // 3. Kéo MP3 AI Tiếng Việt từ Server về nếu có mạng
+            if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+            {
+                try
+                {
+                    string expectedAudioUrl = $"{safeBaseUrl}/audio/{poi.Id}_vi.mp3";
                     var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
                     using var httpClient = new HttpClient(handler);
                     httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 
-                    var audioBytes = await httpClient.GetByteArrayAsync(customAudioUrl);
-                    await File.WriteAllBytesAsync(localManualPath, audioBytes);
+                    var audioBytes = await httpClient.GetByteArrayAsync(expectedAudioUrl);
+                    await File.WriteAllBytesAsync(localFilePathVi, audioBytes);
+
+                    var stream = File.OpenRead(localFilePathVi);
+                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
+                    _audioPlayer.Play();
+                    return;
                 }
-
-                var stream = File.OpenRead(localManualPath);
-                _audioPlayer = AudioManager.Current.CreatePlayer(stream);
-                _audioPlayer.Play();
-                return;
+                catch { }
             }
-            catch { Console.WriteLine("Lỗi load Audio gốc, chuyển xuống AI."); }
         }
 
-        // [ƯU TIÊN 2]: Tìm file AI MP3 trong Cache
-        string localFilePath = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_{targetLang}.mp3");
-        if (File.Exists(localFilePath))
-        {
-            try
-            {
-                var stream = File.OpenRead(localFilePath);
-                _audioPlayer = AudioManager.Current.CreatePlayer(stream);
-                _audioPlayer.Play();
-                return;
-            }
-            catch { }
-        }
-
-        // [ƯU TIÊN 3]: Kéo file AI MP3 từ Server
-        if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
-        {
-            try
-            {
-                string expectedAudioUrl = $"{safeBaseUrl}/audio/{poi.Id}_{targetLang}.mp3";
-                var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
-                using var httpClient = new HttpClient(handler);
-                httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-
-                var audioBytes = await httpClient.GetByteArrayAsync(expectedAudioUrl);
-                await File.WriteAllBytesAsync(localFilePath, audioBytes);
-
-                var stream = File.OpenRead(localFilePath);
-                _audioPlayer = AudioManager.Current.CreatePlayer(stream);
-                _audioPlayer.Play();
-                return;
-            }
-            catch { }
-        }
-
-        // [PHƯƠNG ÁN 4]: Dịch text và đọc TTS hệ thống
+        // 🔵 NGOẠI NGỮ (Hoặc Tiếng Việt bị lỗi file): Gọi thẳng Google TTS, khỏi tìm file sinh lỗi 404
         await SmartSpeak(poi.TtsContent, targetLang);
     }
 
@@ -592,18 +588,17 @@ public partial class MainPage : ContentPage
 
     protected override void OnDisappearing() { base.OnDisappearing(); if (_timer != null && _timer.IsRunning) _timer.Stop(); }
 
-    // 🔥 KÍCH HOẠT SYNC KHI BẤM NÚT BẢN ĐỒ
     private async void OnRefreshMapClicked(object sender, EventArgs e)
     {
         bool isSuccess = await _dataService.SyncFromServerAsync();
         await ReloadMapData();
         if (isSuccess)
         {
-            await DisplayAlert("Thành công", "Đã lấy dữ liệu mới nhất từ máy chủ!", "OK");
+            await DisplayAlert("Thành công", "Đã đồng bộ dữ liệu mới nhất từ máy chủ!", "OK");
         }
         else
         {
-            await DisplayAlert("Cảnh báo", "Kiểm tra lại mạng sếp ơi, không tải được data mới.", "OK");
+            await DisplayAlert("Cảnh báo", "Không thể lấy dữ liệu mới. Vui lòng kiểm tra mạng.", "OK");
         }
     }
 

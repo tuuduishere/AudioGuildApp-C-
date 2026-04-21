@@ -15,5 +15,7 @@ public class PoiModel
     public string QrCodeKey { get; set; }
     public string AudioUrl { get; set; }
 
+    public int Priority { get; set; } = 0;
+
     public string ImageUrl { get; set; }
 }

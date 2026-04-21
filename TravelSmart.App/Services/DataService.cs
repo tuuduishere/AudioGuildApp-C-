@@ -11,9 +11,6 @@ public class DataService
     private static SQLiteAsyncConnection _db;
     private readonly HttpClient _httpClient;
 
-    private const string ApiUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Pois";
-    private const string BaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev";
-
     public DataService()
     {
         _httpClient = new HttpClient();
@@ -40,14 +37,13 @@ public class DataService
         return await _db.Table<PoiModel>().ToListAsync();
     }
 
-    // 🔥 FIX: ĐỒNG BỘ TĂNG DẦN (INCREMENTAL SYNC)
     public async Task<bool> SyncFromServerAsync()
     {
         if (Connectivity.Current.NetworkAccess != NetworkAccess.Internet) return false;
 
         try
         {
-            string noCacheUrl = $"{ApiUrl}?_t={DateTime.Now.Ticks}";
+            string noCacheUrl = $"{AppConfig.ApiBaseUrl}/Pois?_t={DateTime.Now.Ticks}";
             var response = await _httpClient.GetAsync(noCacheUrl).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
@@ -66,11 +62,9 @@ public class DataService
                         var serverIds = serverPois.Select(p => p.Id).ToList();
                         var localIds = localPois.Select(p => p.Id).ToList();
 
-                        // Xóa Quán không còn trên Server
                         var toDelete = localPois.Where(p => !serverIds.Contains(p.Id)).ToList();
                         foreach (var item in toDelete) await _db.DeleteAsync(item);
 
-                        // Thêm/Sửa Quán
                         var toInsert = new List<PoiModel>();
                         var toUpdate = new List<PoiModel>();
 
@@ -94,7 +88,6 @@ public class DataService
         catch { return false; }
     }
 
-    // 🔥 FIX: Gửi Tên Điện Thoại thật lên Server làm Analytics
     public async Task AddHistoryAsync(PoiModel poi)
     {
         await InitDbTask();
@@ -108,13 +101,13 @@ public class DataService
             var payload = new
             {
                 PoiId = poi.Id,
-                DeviceName = DeviceInfo.Current.Name, // Tên ĐT
+                DeviceName = DeviceInfo.Current.Name,
                 LanguageCode = Preferences.Default.Get("DefaultLang", "vi"),
-                DurationMinutes = new Random().Next(2, 15) // Random 2 - 15 phút nghe
+                DurationMinutes = new Random().Next(2, 15)
             };
 
             var token = await SecureStorage.Default.GetAsync("authToken");
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{ApiUrl}/history");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{AppConfig.ApiBaseUrl}/Pois/history");
             request.Content = JsonContent.Create(payload);
             if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 

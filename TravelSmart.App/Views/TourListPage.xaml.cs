@@ -6,7 +6,6 @@ namespace TravelSmart.App.Views;
 public partial class TourListPage : ContentPage
 {
     private Action<string> _onTourSelected;
-    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // Thay link Ngrok của sếp vào đây nhé!
 
     public ICommand SelectTourCommand { get; private set; }
 
@@ -15,11 +14,10 @@ public partial class TourListPage : ContentPage
         InitializeComponent();
         _onTourSelected = onTourSelected;
 
-        // Khởi tạo lệnh khi bấm vào 1 Item trong danh sách
         SelectTourCommand = new Command<Guid>(async (tourId) =>
         {
-            await Navigation.PopModalAsync(); // Đóng trang này lại
-            _onTourSelected?.Invoke(tourId.ToString()); // Gửi ID tour về lại trang chính
+            await Navigation.PopModalAsync();
+            _onTourSelected?.Invoke(tourId.ToString());
         });
 
         BindingContext = this;
@@ -33,7 +31,7 @@ public partial class TourListPage : ContentPage
         {
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-            var tours = await client.GetFromJsonAsync<List<TourDto>>($"{ApiBaseUrl}/Tours");
+            var tours = await client.GetFromJsonAsync<List<TourDto>>($"{AppConfig.ApiBaseUrl}/Tours");
 
             if (tours != null)
             {
@@ -57,7 +55,7 @@ public partial class TourListPage : ContentPage
     private async void OnClearFilterClicked(object sender, EventArgs e)
     {
         await Navigation.PopModalAsync();
-        _onTourSelected?.Invoke(""); // Trả về chuỗi rỗng để ra lệnh XÓA TẤT CẢ Tour Line trên bản đồ
+        _onTourSelected?.Invoke("");
     }
 
     public class TourDto

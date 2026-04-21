@@ -99,7 +99,7 @@ public partial class SettingsPage : ContentPage
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 
             // Nhớ thay link nếu sếp đổi Ngrok
-            var response = await client.GetAsync("https://rule-twiddling-recoil.ngrok-free.dev/api/Pois");
+            var response = await client.GetAsync("https://articles-covers-logs-dist.trycloudflare.com/api/Pois");
 
             if (!response.IsSuccessStatusCode)
             {

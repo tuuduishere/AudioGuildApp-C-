@@ -5,7 +5,6 @@ namespace TravelSmart.App.Views;
 
 public partial class LoginPage : ContentPage
 {
-    private const string ApiLoginUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Auth/login";
     private readonly HttpClient _httpClient;
 
     public LoginPage()
@@ -27,7 +26,8 @@ public partial class LoginPage : ContentPage
         BtnLogin.IsEnabled = false; BtnLogin.Text = "ĐANG KẾT NỐI...";
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(ApiLoginUrl, new { Username = username, Password = password });
+            // 🔥 Ăn link từ AppConfig
+            var response = await _httpClient.PostAsJsonAsync($"{AppConfig.ApiBaseUrl}/Auth/login", new { Username = username, Password = password });
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
@@ -39,7 +39,6 @@ public partial class LoginPage : ContentPage
                     await SecureStorage.Default.SetAsync("role", result.role);
                     AppSession.CurrentUser = new UserModel { Username = username, Role = result.role };
 
-                    // 🔥 FIX: Dùng AppShell để khôi phục thanh Tab ở đáy màn hình, không bị mất nút
                     Application.Current.MainPage = new AppShell();
                 }
             }
@@ -49,7 +48,6 @@ public partial class LoginPage : ContentPage
         finally { BtnLogin.IsEnabled = true; BtnLogin.Text = "ĐĂNG NHẬP NGAY"; }
     }
 
-    // 🔥 FIX CRASH: Phải dùng PushModalAsync vì LoginPage đang là cửa sổ nổi
     private async void OnGoToRegisterClicked(object sender, EventArgs e)
     {
         await Navigation.PushModalAsync(new RegisterPage());

@@ -6,30 +6,21 @@ namespace TravelSmart.API.Models;
 public partial class Poi
 {
     public Guid PoiId { get; set; }
-
-    public Guid? OwnerId { get; set; } // ĐÂY CHÍNH LÀ SỔ ĐỎ CHỦ QUÁN NHÉ!
-
+    public Guid? OwnerId { get; set; }
     public double Latitude { get; set; }
-
     public double Longitude { get; set; }
-
     public int? RadiusMeter { get; set; }
-
     public string? QrCodeKey { get; set; }
-
     public bool? IsActive { get; set; }
-
     public string? Address { get; set; }
-
     public DateTime? CreatedAt { get; set; }
-
     public string? AudioUrl { get; set; }
-
     public string? ImageUrl { get; set; }
 
+    // 🔥 ĐÂY! SỔ ĐỎ ƯU TIÊN PHÁT AUDIO TRƯỚC (SỐ CÀNG TO CÀNG ƯU TIÊN)
+    public int Priority { get; set; } = 0;
+
     public virtual User? Owner { get; set; }
-
     public virtual ICollection<PoiTranslation> PoiTranslations { get; set; } = new List<PoiTranslation>();
-
     public virtual ICollection<VisitLog> VisitLogs { get; set; } = new List<VisitLog>();
 }

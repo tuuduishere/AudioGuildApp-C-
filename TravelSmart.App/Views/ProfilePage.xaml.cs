@@ -1,13 +1,10 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Microsoft.Maui.ApplicationModel;
 
 namespace TravelSmart.App.Views;
 
 public partial class ProfilePage : ContentPage
 {
-    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api";
-
     public ProfilePage()
     {
         InitializeComponent();
@@ -56,7 +53,7 @@ public partial class ProfilePage : ContentPage
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await client.GetAsync($"{ApiBaseUrl}/Auth/sync");
+            var response = await client.GetAsync($"{AppConfig.ApiBaseUrl}/Auth/sync");
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<MainPage.SyncDataDto>();
@@ -81,7 +78,6 @@ public partial class ProfilePage : ContentPage
         await Navigation.PushModalAsync(new LoginPage());
     }
 
-    // 🔥 FIX LUỒNG ĐĂNG XUẤT AN TOÀN
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
         SecureStorage.Default.RemoveAll();
@@ -91,7 +87,6 @@ public partial class ProfilePage : ContentPage
 
         UpdateUI("Khách Vãng Lai", "Guest");
 
-        // Lùi về màn hình Bản Đồ tự nhiên, không khởi tạo lại từ đầu gây sốc
         await Navigation.PopAsync();
     }
 
@@ -106,7 +101,7 @@ public partial class ProfilePage : ContentPage
 
         try
         {
-            var response = await client.PostAsync($"{ApiBaseUrl}/Auth/request-merchant", null);
+            var response = await client.PostAsync($"{AppConfig.ApiBaseUrl}/Auth/request-merchant", null);
             if (response.IsSuccessStatusCode)
                 await DisplayAlert("Tuyệt vời", "Đã gửi yêu cầu thành công! Admin sẽ sớm liên hệ duyệt đơn cho bạn.", "OK");
             else

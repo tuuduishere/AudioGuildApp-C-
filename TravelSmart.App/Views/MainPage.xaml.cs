@@ -8,6 +8,7 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Plugin.Maui.Audio;
+using Microsoft.AspNetCore.SignalR.Client;
 using Map = Microsoft.Maui.Controls.Maps.Map;
 
 namespace TravelSmart.App.Views;
@@ -23,8 +24,6 @@ public partial class MainPage : ContentPage
     private IDispatcherTimer _timer;
     private Dictionary<Pin, PoiModel> _pinPoiMap = new();
 
-    private const string ApiBaseUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api"; // LINK NGROK CỦA SẾP
-
     private Location _currentSelectedLocation;
     private string _currentPoiTts = "";
     private PoiModel _currentActivePoi;
@@ -34,6 +33,8 @@ public partial class MainPage : ContentPage
 
     private Circle _currentRadar;
     private Polyline _currentTourLine;
+
+    private HubConnection _hubConnection;
 
     public MainPage() { InitializeComponent(); _dataService = new DataService(); }
 
@@ -56,9 +57,34 @@ public partial class MainPage : ContentPage
             Preferences.Default.Set("DefaultLang", langCode);
         }
 
+        await ConnectToSignalR();
         await SyncWithServer();
         await ReloadMapData();
         await StartTrackingGPS();
+    }
+
+    private async Task ConnectToSignalR()
+    {
+        try
+        {
+            string hubUrl = AppConfig.ApiBaseUrl.Replace("/api", "/travelhub?clientType=app");
+            if (_hubConnection == null)
+            {
+                _hubConnection = new HubConnectionBuilder()
+                    .WithUrl(hubUrl, options =>
+                    {
+                        options.Headers.Add("ngrok-skip-browser-warning", "true");
+                    })
+                    .WithAutomaticReconnect()
+                    .Build();
+            }
+
+            if (_hubConnection.State == HubConnectionState.Disconnected)
+            {
+                await _hubConnection.StartAsync();
+            }
+        }
+        catch { }
     }
 
     private async Task ReloadMapData()
@@ -105,7 +131,7 @@ public partial class MainPage : ContentPage
             {
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-                var details = await client.GetFromJsonAsync<List<TourDetailDto>>($"{ApiBaseUrl}/Tours/{selectedTourId}/details");
+                var details = await client.GetFromJsonAsync<List<TourDetailDto>>($"{AppConfig.ApiBaseUrl}/Tours/{selectedTourId}/details");
                 if (details != null && details.Any())
                 {
                     DrawTourRoute(details);
@@ -169,7 +195,7 @@ public partial class MainPage : ContentPage
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await client.GetAsync($"{ApiBaseUrl}/Auth/sync");
+            var response = await client.GetAsync($"{AppConfig.ApiBaseUrl}/Auth/sync");
             if (response.IsSuccessStatusCode)
             {
                 var data = await response.Content.ReadFromJsonAsync<SyncDataDto>();
@@ -206,9 +232,12 @@ public partial class MainPage : ContentPage
         SheetOverlay.IsVisible = true; SheetOverlay.InputTransparent = false;
 
         await BottomSheet.TranslateTo(0, 0, 300, Easing.CubicOut);
+
+        if (_hubConnection?.State == HubConnectionState.Connected)
+            await _hubConnection.SendAsync("JoinPoi", poi.Id.ToString());
+
         await FetchPoiDetails(poi.Id, poi.Description);
 
-        // Ghi Log lên Server
         _ = _dataService.AddHistoryAsync(poi);
     }
 
@@ -296,7 +325,11 @@ public partial class MainPage : ContentPage
 
         if (pOfEnteredPois.Any())
         {
-            var closestData = pOfEnteredPois.OrderBy(x => x.Item2).First();
+            var closestData = pOfEnteredPois
+                .OrderBy(x => x.Item2)
+                .ThenByDescending(x => x.Item1.Priority)
+                .First();
+
             var poi = closestData.Item1;
 
             bool isCoolingDown = _poiCooldowns.ContainsKey(poi.Id) && (DateTime.Now - _poiCooldowns[poi.Id]).TotalMinutes < 3;
@@ -366,18 +399,17 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
-    // 🔥 ĐÃ FIX LỖI XUNG ĐỘT TÊN (AMBIGUOUS REFERENCE)
     private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
     {
         StopSpeech();
 
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
-        string safeBaseUrl = ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+        string safeBaseUrl = AppConfig.ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
 
-        // 🟢 CHỈ TÌM FILE MP3 NẾU LÀ TIẾNG VIỆT
+        // CHỈ ƯU TIÊN TÌM MP3 NẾU LÀ TIẾNG VIỆT
         if (targetLang == "vi")
         {
-            // 1. Tải/Phát MP3 gốc do sếp up
+            // Trường hợp 1: Quán có Audio Manual (Audio Url do Admin tự up)
             if (!string.IsNullOrEmpty(poi.AudioUrl))
             {
                 try
@@ -398,15 +430,14 @@ public partial class MainPage : ContentPage
                     }
 
                     var stream = File.OpenRead(localManualPath);
-                    // FIX CHỈ ĐÍCH DANH HỌ TÊN ĐẦY ĐỦ CỦA THẰNG AUDIOMANAGER
                     _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return;
+                    return; // Hát MP3 thành công -> Thoát
                 }
-                catch { Console.WriteLine("Lỗi load Audio gốc, chuyển xuống AI."); }
+                catch { Console.WriteLine("Lỗi load Audio Manual gốc, chuyển xuống AI."); }
             }
 
-            // 2. Tìm MP3 AI tiếng Việt trong máy (nếu ko có file gốc)
+            // Trường hợp 2: Quán không có Manual, thử tìm file MP3 EdgeTTS sinh ngầm
             string localFilePathVi = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_vi.mp3");
             if (File.Exists(localFilePathVi))
             {
@@ -415,12 +446,12 @@ public partial class MainPage : ContentPage
                     var stream = File.OpenRead(localFilePathVi);
                     _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return;
+                    return; // Hát MP3 Local thành công -> Thoát
                 }
                 catch { }
             }
 
-            // 3. Kéo MP3 AI Tiếng Việt từ Server về nếu có mạng
+            // Trường hợp 3: Chưa tải về, thử lên Server tải file MP3 EdgeTTS
             if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
             {
                 try
@@ -436,13 +467,14 @@ public partial class MainPage : ContentPage
                     var stream = File.OpenRead(localFilePathVi);
                     _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return;
+                    return; // Hát MP3 Server thành công -> Thoát
                 }
-                catch { }
+                catch { Console.WriteLine("Server không có file MP3 EdgeTTS, chuyển xuống AI."); }
             }
         }
 
-        // 🔵 NGOẠI NGỮ (Hoặc Tiếng Việt bị lỗi file): Gọi thẳng Google TTS, khỏi tìm file sinh lỗi 404
+        // 🔥 TRƯỜNG HỢP CUỐI CÙNG (FALLBACK): 
+        // Nếu chọn tiếng Anh/Nhật, HOẶC nãy giờ tìm tiếng Việt mà đéo thấy file MP3 nào -> Ép đọc AI (TTS)
         await SmartSpeak(poi.TtsContent, targetLang);
     }
 
@@ -518,6 +550,10 @@ public partial class MainPage : ContentPage
     {
         await BottomSheet.TranslateTo(0, 700, 300, Easing.CubicIn);
         SheetOverlay.InputTransparent = true; SheetOverlay.IsVisible = false;
+
+        if (_currentActivePoi != null && _hubConnection?.State == HubConnectionState.Connected)
+            await _hubConnection.SendAsync("LeavePoi", _currentActivePoi.Id.ToString());
+
         StopSpeech();
         ClearHighlight();
     }
@@ -528,7 +564,7 @@ public partial class MainPage : ContentPage
         {
             LblPoiAddress.Text = description; using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-            var details = await client.GetFromJsonAsync<PoiDetailDto>($"{ApiBaseUrl}/Pois/{poiId}");
+            var details = await client.GetFromJsonAsync<PoiDetailDto>($"{AppConfig.ApiBaseUrl}/Pois/{poiId}");
             if (details != null)
             {
                 MainThread.BeginInvokeOnMainThread(() => {
@@ -573,7 +609,7 @@ public partial class MainPage : ContentPage
         var selectedPoi = _pinPoiMap.Values.FirstOrDefault(p => p.Latitude == _currentSelectedLocation.Latitude && p.Longitude == _currentSelectedLocation.Longitude);
         if (selectedPoi != null)
         {
-            var response = await client.PostAsJsonAsync($"{ApiBaseUrl}/Pois/{selectedPoi.Id}/review", new { Rating = (int)StepperRating.Value, Comment = EntryReview.Text });
+            var response = await client.PostAsJsonAsync($"{AppConfig.ApiBaseUrl}/Pois/{selectedPoi.Id}/review", new { Rating = (int)StepperRating.Value, Comment = EntryReview.Text });
             if (response.IsSuccessStatusCode)
             {
                 await DisplayAlert("Thành công", "Đã gửi đánh giá!", "OK"); EntryReview.Text = "";
@@ -586,7 +622,12 @@ public partial class MainPage : ContentPage
 
     private async void OnGetDirectionsClicked(object sender, EventArgs e) { if (_currentSelectedLocation != null) await Microsoft.Maui.ApplicationModel.Map.OpenAsync(_currentSelectedLocation, new MapLaunchOptions { Name = LblPoiName.Text, NavigationMode = NavigationMode.Driving }); }
 
-    protected override void OnDisappearing() { base.OnDisappearing(); if (_timer != null && _timer.IsRunning) _timer.Stop(); }
+    // 🔥 FIX LỖI: Bỏ hàm _hubConnection.StopAsync() để giữ Realtime khi lướt sang tab khác
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (_timer != null && _timer.IsRunning) _timer.Stop();
+    }
 
     private async void OnRefreshMapClicked(object sender, EventArgs e)
     {
@@ -610,7 +651,10 @@ public partial class MainPage : ContentPage
 
         await Navigation.PushModalAsync(new ScannerPage(async (qrCodeData) =>
         {
-            var poi = _pois.FirstOrDefault(p => p.QrCodeKey == qrCodeData);
+            var key = qrCodeData;
+            if (key.Contains("poi=")) { key = key.Split("poi=")[1].Split("&")[0]; }
+
+            var poi = _pois.FirstOrDefault(p => p.QrCodeKey == key);
             if (poi != null)
             {
                 var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);

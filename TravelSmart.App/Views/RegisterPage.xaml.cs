@@ -4,7 +4,6 @@ namespace TravelSmart.App.Views;
 
 public partial class RegisterPage : ContentPage
 {
-    private const string ApiRegisterUrl = "https://rule-twiddling-recoil.ngrok-free.dev/api/Auth/register";
     private readonly HttpClient _httpClient;
 
     public RegisterPage()
@@ -28,12 +27,11 @@ public partial class RegisterPage : ContentPage
         BtnRegister.IsEnabled = false; BtnRegister.Text = "ĐANG XỬ LÝ...";
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(ApiRegisterUrl, new { Username = username, Password = password, Email = email });
+            // 🔥 Ăn link từ AppConfig
+            var response = await _httpClient.PostAsJsonAsync($"{AppConfig.ApiBaseUrl}/Auth/register", new { Username = username, Password = password, Email = email });
             if (response.IsSuccessStatusCode)
             {
                 await DisplayAlert("Thành công", "Đăng ký thành công! Hãy đăng nhập.", "OK");
-
-                // 🔥 FIX CRASH: Trả về bằng PopModalAsync
                 await Navigation.PopModalAsync();
             }
             else await DisplayAlert("Lỗi", "Tên đăng nhập đã tồn tại!", "OK");
@@ -42,7 +40,6 @@ public partial class RegisterPage : ContentPage
         finally { BtnRegister.IsEnabled = true; BtnRegister.Text = "ĐĂNG KÝ NGAY"; }
     }
 
-    // 🔥 FIX CRASH: Trả về bằng PopModalAsync
     private async void OnGoToLoginClicked(object sender, EventArgs e)
     {
         await Navigation.PopModalAsync();

@@ -3,6 +3,9 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="DEMO_GUIDE.md" />
+  </Folder>
   <Project Path="TravelSmart.API/TravelSmart.API.csproj">
     <Platform Solution="Release|x64" Project="x64" />
     <Build Solution="Debug|x64" Project="false" />

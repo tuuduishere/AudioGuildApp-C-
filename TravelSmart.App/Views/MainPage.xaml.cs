@@ -325,9 +325,11 @@ public partial class MainPage : ContentPage
 
         if (pOfEnteredPois.Any())
         {
+            // 🔥 ĐÃ NHÚNG THUẬT TOÁN XỬ LÝ TRÙNG LẶP (COLLISION RESOLUTION ALGORITHM)
             var closestData = pOfEnteredPois
-                .OrderBy(x => x.Item2)
-                .ThenByDescending(x => x.Item1.Priority)
+                .OrderBy(x => x.Item2) // Ưu tiên 1: Gần nhất theo khoảng cách
+                .ThenByDescending(x => x.Item1.Priority) // Ưu tiên 2: Trả tiền làm Premium (Dùng tạm cột Priority)
+                .ThenBy(x => x.Item1.Name) // Ưu tiên 3: Theo tên quán A-Z
                 .First();
 
             var poi = closestData.Item1;
@@ -406,10 +408,8 @@ public partial class MainPage : ContentPage
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
         string safeBaseUrl = AppConfig.ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
 
-        // CHỈ ƯU TIÊN TÌM MP3 NẾU LÀ TIẾNG VIỆT
         if (targetLang == "vi")
         {
-            // Trường hợp 1: Quán có Audio Manual (Audio Url do Admin tự up)
             if (!string.IsNullOrEmpty(poi.AudioUrl))
             {
                 try
@@ -432,12 +432,11 @@ public partial class MainPage : ContentPage
                     var stream = File.OpenRead(localManualPath);
                     _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return; // Hát MP3 thành công -> Thoát
+                    return;
                 }
-                catch { Console.WriteLine("Lỗi load Audio Manual gốc, chuyển xuống AI."); }
+                catch { Console.WriteLine("Lỗi load Audio gốc, chuyển xuống AI."); }
             }
 
-            // Trường hợp 2: Quán không có Manual, thử tìm file MP3 EdgeTTS sinh ngầm
             string localFilePathVi = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_vi.mp3");
             if (File.Exists(localFilePathVi))
             {
@@ -446,12 +445,11 @@ public partial class MainPage : ContentPage
                     var stream = File.OpenRead(localFilePathVi);
                     _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return; // Hát MP3 Local thành công -> Thoát
+                    return;
                 }
                 catch { }
             }
 
-            // Trường hợp 3: Chưa tải về, thử lên Server tải file MP3 EdgeTTS
             if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
             {
                 try
@@ -467,14 +465,12 @@ public partial class MainPage : ContentPage
                     var stream = File.OpenRead(localFilePathVi);
                     _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return; // Hát MP3 Server thành công -> Thoát
+                    return;
                 }
-                catch { Console.WriteLine("Server không có file MP3 EdgeTTS, chuyển xuống AI."); }
+                catch { }
             }
         }
 
-        // 🔥 TRƯỜNG HỢP CUỐI CÙNG (FALLBACK): 
-        // Nếu chọn tiếng Anh/Nhật, HOẶC nãy giờ tìm tiếng Việt mà đéo thấy file MP3 nào -> Ép đọc AI (TTS)
         await SmartSpeak(poi.TtsContent, targetLang);
     }
 
@@ -622,7 +618,6 @@ public partial class MainPage : ContentPage
 
     private async void OnGetDirectionsClicked(object sender, EventArgs e) { if (_currentSelectedLocation != null) await Microsoft.Maui.ApplicationModel.Map.OpenAsync(_currentSelectedLocation, new MapLaunchOptions { Name = LblPoiName.Text, NavigationMode = NavigationMode.Driving }); }
 
-    // 🔥 FIX LỖI: Bỏ hàm _hubConnection.StopAsync() để giữ Realtime khi lướt sang tab khác
     protected override void OnDisappearing()
     {
         base.OnDisappearing();

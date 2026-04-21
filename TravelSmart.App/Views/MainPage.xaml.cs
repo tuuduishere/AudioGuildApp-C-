@@ -216,6 +216,17 @@ public partial class MainPage : ContentPage
     private async Task OpenBottomSheetForPoi(Pin pin, PoiModel poi)
     {
         _currentSelectedLocation = pin?.Location;
+
+        // 🔥 FIX SIGNALR: GỬI LÊN ADMIN BẰNG CHỮ THƯỜNG ĐỂ KHỚP DATA
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            if (_currentActivePoi != null && _currentActivePoi.Id != poi.Id)
+            {
+                await _hubConnection.SendAsync("LeavePoi", _currentActivePoi.Id.ToString().ToLower());
+            }
+            await _hubConnection.SendAsync("JoinPoi", poi.Id.ToString().ToLower());
+        }
+
         _currentActivePoi = poi;
 
         LblPoiName.Text = poi.Name;
@@ -232,9 +243,6 @@ public partial class MainPage : ContentPage
         SheetOverlay.IsVisible = true; SheetOverlay.InputTransparent = false;
 
         await BottomSheet.TranslateTo(0, 0, 300, Easing.CubicOut);
-
-        if (_hubConnection?.State == HubConnectionState.Connected)
-            await _hubConnection.SendAsync("JoinPoi", poi.Id.ToString());
 
         await FetchPoiDetails(poi.Id, poi.Description);
 
@@ -325,11 +333,10 @@ public partial class MainPage : ContentPage
 
         if (pOfEnteredPois.Any())
         {
-            // 🔥 ĐÃ NHÚNG THUẬT TOÁN XỬ LÝ TRÙNG LẶP (COLLISION RESOLUTION ALGORITHM)
             var closestData = pOfEnteredPois
-                .OrderBy(x => x.Item2) // Ưu tiên 1: Gần nhất theo khoảng cách
-                .ThenByDescending(x => x.Item1.Priority) // Ưu tiên 2: Trả tiền làm Premium (Dùng tạm cột Priority)
-                .ThenBy(x => x.Item1.Name) // Ưu tiên 3: Theo tên quán A-Z
+                .OrderBy(x => x.Item2)
+                .ThenByDescending(x => x.Item1.Priority)
+                .ThenBy(x => x.Item1.Name)
                 .First();
 
             var poi = closestData.Item1;
@@ -467,7 +474,7 @@ public partial class MainPage : ContentPage
                     _audioPlayer.Play();
                     return;
                 }
-                catch { }
+                catch { Console.WriteLine("Server không có file MP3 EdgeTTS, chuyển xuống AI."); }
             }
         }
 
@@ -547,8 +554,9 @@ public partial class MainPage : ContentPage
         await BottomSheet.TranslateTo(0, 700, 300, Easing.CubicIn);
         SheetOverlay.InputTransparent = true; SheetOverlay.IsVisible = false;
 
+        // 🔥 FIX SIGNALR: THOÁT QUÁN CŨNG PHẢI DÙNG CHỮ THƯỜNG
         if (_currentActivePoi != null && _hubConnection?.State == HubConnectionState.Connected)
-            await _hubConnection.SendAsync("LeavePoi", _currentActivePoi.Id.ToString());
+            await _hubConnection.SendAsync("LeavePoi", _currentActivePoi.Id.ToString().ToLower());
 
         StopSpeech();
         ClearHighlight();

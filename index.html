@@ -12,16 +12,19 @@
             --primary-dark: #7f0000;
             --accent: #f57f17;
             --accent-light: #ffb300;
-            --bg: #fafafa;
+            --bg: #f5f5f5;
             --surface: #ffffff;
             --text: #212121;
             --text-secondary: #616161;
             --border: #e0e0e0;
-            --code-bg: #263238;
+            --code-bg: #1e272e;
             --code-text: #eeffff;
             --success: #2e7d32;
             --warning: #f57f17;
             --info: #1565c0;
+            --radius: 12px;
+            --shadow: 0 2px 12px rgba(0,0,0,.07);
+            --shadow-hover: 0 6px 24px rgba(0,0,0,.12);
         }
 
         * {
@@ -132,63 +135,80 @@
             background: var(--surface);
         }
 
+        div[id]:not(.stat-card):not(.diagram-overlay) {
+            border-top: 1px solid var(--border);
+        }
+
         .section-header {
             display: flex;
             align-items: center;
-            gap: .8rem;
+            gap: 1rem;
             margin-bottom: 1.5rem;
         }
 
             .section-header .icon {
-                width: 44px;
-                height: 44px;
-                border-radius: 12px;
+                width: 48px;
+                height: 48px;
+                border-radius: 14px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 1.4rem;
+                font-size: 1.5rem;
                 flex-shrink: 0;
+                box-shadow: 0 2px 8px rgba(0,0,0,.1);
             }
 
             .section-header h2 {
                 font-size: 1.55rem;
                 font-weight: 700;
+                line-height: 1.3;
             }
 
         .section-num {
-            font-size: .72rem;
+            font-size: .7rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             color: var(--primary);
-            font-weight: 600;
+            font-weight: 700;
+            margin-bottom: .1rem;
         }
 
         /* ===== STATS ===== */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px,1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
             gap: 1rem;
             margin: 1.5rem 0;
         }
 
         .stat-card {
             text-align: center;
-            padding: 1.2rem .8rem;
+            padding: 1.4rem .8rem;
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--radius);
+            border-top: 3px solid var(--primary);
+            box-shadow: var(--shadow);
+            transition: transform .2s, box-shadow .2s;
         }
 
+            .stat-card:hover {
+                transform: translateY(-3px);
+                box-shadow: var(--shadow-hover);
+            }
+
             .stat-card .value {
-                font-size: 1.8rem;
+                font-size: 1.9rem;
                 font-weight: 800;
                 color: var(--primary);
+                line-height: 1;
             }
 
             .stat-card .label {
-                font-size: .75rem;
+                font-size: .72rem;
                 color: var(--text-secondary);
-                margin-top: .2rem;
+                margin-top: .4rem;
+                line-height: 1.3;
             }
 
         /* ===== CARDS ===== */
@@ -202,23 +222,27 @@
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: var(--radius);
             padding: 1.4rem;
-            transition: box-shadow .2s, transform .2s;
+            transition: box-shadow .2s, transform .2s, border-color .2s;
+            box-shadow: var(--shadow);
         }
 
             .card:hover {
-                box-shadow: 0 4px 20px rgba(0,0,0,.08);
-                transform: translateY(-2px);
+                box-shadow: var(--shadow-hover);
+                transform: translateY(-3px);
+                border-color: var(--primary-light);
             }
 
             .card h3 {
                 font-size: 1rem;
-                margin-bottom: .4rem;
+                margin-bottom: .5rem;
                 color: var(--primary-dark);
                 display: flex;
                 align-items: center;
                 gap: .4rem;
+                padding-bottom: .4rem;
+                border-bottom: 1px solid var(--border);
             }
 
             .card p, .card li {
@@ -228,11 +252,12 @@
 
             .card ul {
                 padding-left: 1.2rem;
-                margin-top: .4rem;
+                margin-top: .5rem;
             }
 
             .card li {
-                margin-bottom: .25rem;
+                margin-bottom: .3rem;
+                line-height: 1.5;
             }
 
         /* ===== HIGHLIGHT BOX ===== */
@@ -403,6 +428,8 @@
         .table-wrap {
             overflow-x: auto;
             margin: 1rem 0;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
 
         table {
@@ -412,16 +439,34 @@
         }
 
         th {
-            background: var(--primary);
+            background: var(--primary-dark);
             color: white;
-            padding: .6rem .85rem;
+            padding: .7rem 1rem;
             text-align: left;
             font-weight: 600;
+            letter-spacing: .3px;
         }
 
+            th:first-child {
+                border-radius: var(--radius) 0 0 0;
+            }
+
+            th:last-child {
+                border-radius: 0 var(--radius) 0 0;
+            }
+
         td {
-            padding: .5rem .85rem;
+            padding: .6rem 1rem;
             border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background: #fafafa;
         }
 
         tr:hover td {
@@ -858,6 +903,192 @@
             position: relative;
             overflow: hidden;
         }
+
+        /* ===== CHAPTER 4 — POI FIELD GRID ===== */
+        .poi-field-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: .75rem;
+            margin-bottom: 1rem;
+        }
+
+        .poi-field {
+            border-radius: var(--radius);
+            padding: 1rem 1.1rem;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto auto;
+            gap: .2rem .5rem;
+            transition: box-shadow .2s, transform .2s;
+        }
+
+            .poi-field:hover {
+                box-shadow: var(--shadow-hover);
+                transform: translateY(-2px);
+            }
+
+            .poi-field.core {
+                border-left: 4px solid var(--success);
+            }
+
+            .poi-field.missing {
+                border-left: 4px solid var(--warning);
+                background: #fffdf5;
+            }
+
+        .poi-field-name {
+            font-size: .95rem;
+            font-weight: 700;
+            color: var(--text);
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+            .poi-field-name code {
+                background: #f0f0f0;
+                padding: .1rem .4rem;
+                border-radius: 4px;
+                font-size: .9rem;
+            }
+
+        .poi-field-badge {
+            grid-column: 2;
+            grid-row: 1 / 3;
+            align-self: start;
+            font-size: .72rem;
+            font-weight: 700;
+            padding: .2rem .55rem;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+            .poi-field-badge.present {
+                background: #e8f5e9;
+                color: #1b5e20;
+            }
+
+            .poi-field-badge.absent {
+                background: #fff3e0;
+                color: #e65100;
+            }
+
+        .poi-field-type {
+            font-size: .75rem;
+            color: var(--info);
+            font-family: monospace;
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .poi-field-desc {
+            font-size: .8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            grid-column: 1 / 3;
+            grid-row: 3;
+            margin-top: .3rem;
+            padding-top: .4rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ===== CHAPTER 4 — LIFECYCLE ROW ===== */
+        .lifecycle-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            margin: 1rem 0;
+            overflow-x: auto;
+            padding-bottom: .5rem;
+        }
+
+        .lc-step {
+            flex: 1;
+            min-width: 160px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.1rem .9rem;
+            background: var(--surface);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: .4rem;
+            box-shadow: var(--shadow);
+            transition: transform .2s, box-shadow .2s;
+        }
+
+            .lc-step:hover {
+                transform: translateY(-3px);
+                box-shadow: var(--shadow-hover);
+            }
+
+        .lc-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            color: white;
+            font-size: .75rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .lc-icon {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-top: .4rem;
+        }
+
+        .lc-title {
+            font-size: .85rem;
+            font-weight: 700;
+            text-align: center;
+            color: var(--text);
+        }
+
+        .lc-desc {
+            font-size: .75rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            text-align: center;
+        }
+
+            .lc-desc code {
+                font-size: .7rem;
+            }
+
+        .lc-arrow {
+            display: flex;
+            align-items: center;
+            color: var(--primary);
+            font-size: 1.4rem;
+            font-weight: 900;
+            padding: 0 .3rem;
+            flex-shrink: 0;
+            padding-top: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .lifecycle-row {
+                flex-direction: column;
+            }
+
+            .lc-arrow {
+                transform: rotate(90deg);
+                align-self: center;
+                padding: .2rem 0;
+            }
+
+            .poi-field-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -873,42 +1104,49 @@
             <li><a href="#poi">POI</a></li>
             <li><a href="#mvp">MVP</a></li>
             <li><a href="#map">Map View</a></li>
+            <li><a href="#bottomsheet">Bottom Sheet</a></li>
+            <li><a href="#roles">Roles</a></li>
             <li><a href="#cms">CMS</a></li>
             <li><a href="#analytics">Analytics</a></li>
             <li><a href="#qr">QR Code</a></li>
             <li><a href="#arch">Kiến trúc</a></li>
-            <li><a href="#uml">Sơ đồ UML</a></li>
-            <li><a href="#seq_flows">Sequence Flows</a></li>
             <li><a href="#roadmap">Roadmap</a></li>
+            <li><a href="#uml">UML</a></li>
+            <li><a href="#seq_flows">Sequences</a></li>
         </ul>
     </nav>
 
     <!-- ===== HERO ===== -->
     <div class="hero">
         <h1>🍜 Hệ Thống Du Lịch Ẩm Thực Vĩnh Khánh</h1>
-        <p class="subtitle">Ứng dụng hướng dẫn ẩm thực thông minh — GPS Tracking thời gian thực, Geofence kích hoạt thuyết minh tự động, hỗ trợ offline hoàn toàn tại phố ẩm thực Vĩnh Khánh, Quận 4, TP.HCM</p>
+        <p class="subtitle">Ứng dụng hướng dẫn ẩm thực thông minh — GPS Geofence tự động, thuyết minh 4 bước fallback, offline SQLite, QR tại trạm xe buýt, SignalR realtime, đa ngôn ngữ vi/en/ja</p>
         <div class="badges">
-            <span class="badge">.NET MAUI · App</span>
+            <span class="badge">.NET MAUI · iOS/Android</span>
             <span class="badge">ASP.NET Core · API</span>
-            <span class="badge">Blazor · Admin</span>
+            <span class="badge">Blazor WASM · Admin</span>
             <span class="badge">GPS + Geofencing</span>
-            <span class="badge">Text-to-Speech</span>
-            <span class="badge">SQLite Offline</span>
+            <span class="badge">TTS 4 bước fallback</span>
+            <span class="badge">SQLite Offline-First</span>
             <span class="badge">QR Code</span>
-            <span class="badge">Analytics</span>
+            <span class="badge">SignalR Realtime</span>
+            <span class="badge">vi / en / ja</span>
+            <span class="badge">Reviews &amp; Menu</span>
+            <span class="badge">Cloudflare Tunnel</span>
         </div>
     </div>
 
     <!-- ===== STATS ===== -->
-    <div style="background:var(--surface);">
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);">
         <div class="section-wrap" style="padding-top:2rem;padding-bottom:2rem;">
             <div class="stats-row">
-                <div class="stat-card"><div class="value">2</div><div class="label">Giai đoạn (PoC → MVP)</div></div>
-                <div class="stat-card"><div class="value">4</div><div class="label">Module PoC cốt lõi</div></div>
-                <div class="stat-card"><div class="value">4</div><div class="label">Tính năng MVP mở rộng</div></div>
-                <div class="stat-card"><div class="value">3</div><div class="label">Điểm QR (Xe buýt)</div></div>
-                <div class="stat-card"><div class="value">∞</div><div class="label">Offline hoạt động</div></div>
-                <div class="stat-card"><div class="value">2+</div><div class="label">Ngôn ngữ TTS</div></div>
+                <div class="stat-card"><div class="value">3</div><div class="label">Project (App · API · Web)</div></div>
+                <div class="stat-card"><div class="value">25</div><div class="label">API Endpoints thực tế</div></div>
+                <div class="stat-card"><div class="value">4</div><div class="label">Bước fallback PlayPoiAudio</div></div>
+                <div class="stat-card"><div class="value">8</div><div class="label">Màn hình App (Views)</div></div>
+                <div class="stat-card"><div class="value">8</div><div class="label">Trang Web Admin (Blazor)</div></div>
+                <div class="stat-card"><div class="value">3</div><div class="label">Ngôn ngữ TTS (vi/en/ja)</div></div>
+                <div class="stat-card"><div class="value">5s</div><div class="label">Chu kỳ GPS Timer</div></div>
+                <div class="stat-card"><div class="value">3 phút</div><div class="label">Cooldown Geofence/POI</div></div>
             </div>
         </div>
     </div>
@@ -976,28 +1214,28 @@
                 </div>
             </div>
 
-            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">PoC tập trung chứng minh 4 module kỹ thuật cốt lõi hoạt động được trên thiết bị thực: GPS tracking liên tục, Geofence kích hoạt đúng, TTS phát audio, và quản lý dữ liệu POI offline.</p>
+            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">PoC tập trung chứng minh 4 module kỹ thuật cốt lõi hoạt động được trên thiết bị thực: GPS tracking liên tục, Geofence kích hoạt đúng, TTS phát audio đa tầng, và quản lý dữ liệu POI offline với SQLite delta sync.</p>
 
             <div class="arch-grid">
                 <div class="arch-module poc">
                     <div class="mod-icon">📡</div>
                     <div class="mod-name">GPS Tracking</div>
-                    <div class="mod-desc">Foreground + background, tối ưu pin, độ chính xác cao</div>
+                    <div class="mod-desc"><code>IDispatcherTimer</code> tick 5s → <code>Geolocation.GetLocationAsync(Medium)</code> → <code>CheckGeofence()</code>. Foreground service, yêu cầu <code>LocationWhenInUse</code></div>
                 </div>
                 <div class="arch-module poc">
                     <div class="mod-icon">🔔</div>
                     <div class="mod-name">Geofence Engine</div>
-                    <div class="mod-desc">Phát hiện vào vùng / gần điểm, debounce chống spam</div>
+                    <div class="mod-desc">Tính khoảng cách thủ công bằng <code>Location.CalculateDistance()</code>. Sắp xếp theo <code>Priority</code>. Cooldown 3 phút/POI qua <code>_poiCooldowns</code></div>
                 </div>
                 <div class="arch-module poc">
                     <div class="mod-icon">🔊</div>
                     <div class="mod-name">TTS Engine</div>
-                    <div class="mod-desc">Hàng chờ audio, đa ngôn ngữ, tự dừng khi có thông báo</div>
+                    <div class="mod-desc"><code>PlayPoiAudio()</code>: 4 bước fallback — audio Admin upload → cache local → EdgeTTS server → <code>SmartSpeak()</code> Google Translate + <code>TextToSpeech.Default</code>. Hỗ trợ vi/en/ja</div>
                 </div>
                 <div class="arch-module poc">
                     <div class="mod-icon">🗃️</div>
                     <div class="mod-name">POI Data Manager</div>
-                    <div class="mod-desc">SQLite offline, sync server khi có mạng</div>
+                    <div class="mod-desc">SQLite <code>TravelSmartLocal.db3</code> — bảng <code>PoiModel</code> + <code>VisitLogModel</code>. Delta sync: so sánh Id để insert/update/delete. Offline-first hoàn toàn</div>
                 </div>
             </div>
         </div>
@@ -1019,56 +1257,58 @@
 
             <div class="card-grid">
                 <div class="card">
-                    <h3>📡 GPS Tracking thời gian thực</h3>
+                    <h3>📡 GPS Tracking — IDispatcherTimer</h3>
                     <ul>
-                        <li>Lấy vị trí người dùng liên tục (foreground + background)</li>
-                        <li>Tối ưu pin: giảm tần suất khi người dùng đứng yên</li>
-                        <li>Độ chính xác cao (fine location), fallback coarse khi cần</li>
-                        <li>Hiển thị trên bản đồ với marker thời gian thực</li>
+                        <li>Timer 5 giây: <code>Application.Current.Dispatcher.CreateTimer()</code></li>
+                        <li>Mỗi tick: <code>Geolocation.GetLocationAsync(GeolocationAccuracy.Medium, timeout:2s)</code></li>
+                        <li>Yêu cầu quyền <code>Permissions.LocationWhenInUse</code> khi khởi động</li>
+                        <li><code>MyMap.IsShowingUser = true</code> — hiển thị vị trí user trên bản đồ MAUI Maps</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>🔔 Geofence — Kích Hoạt Điểm POI</h3>
+                    <h3>🔔 Geofence — Tính Thủ Công</h3>
                     <ul>
-                        <li>Thiết lập vùng POI với: tọa độ, bán kính, mức ưu tiên</li>
-                        <li>Tự động phát thuyết minh khi người dùng <em>vào vùng</em> hoặc <em>đến gần điểm</em></li>
-                        <li>Chống spam: Debounce + Cooldown giữa các lần kích hoạt</li>
-                        <li>Hỗ trợ cả chế độ "đi vào vùng" và "gần điểm nhất"</li>
+                        <li>Không dùng OS Geofence API — tự tính bằng <code>Location.CalculateDistance(DistanceUnits.Kilometers)</code></li>
+                        <li>Bán kính cấu hình: <code>Preferences.Default.Get("GeofenceRadius", 50)</code> (mặc định 50m)</li>
+                        <li>Sắp xếp: <code>OrderBy(Item2=khoảng cách).ThenByDescending(Item1.Priority).ThenBy(Name)</code></li>
+                        <li>Exit detection: distance > radius + 50m buffer → ghi nhận thời gian ở lại</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>⚙️ Cấu hình Geofence</h3>
+                    <h3>⚙️ Cooldown & Stop Logic</h3>
                     <ul>
-                        <li><code>radius</code>: bán kính kích hoạt (mét)</li>
-                        <li><code>priority</code>: mức ưu tiên khi nhiều POI chồng nhau</li>
-                        <li><code>cooldown_sec</code>: thời gian chờ giữa 2 lần kích hoạt cùng POI</li>
-                        <li><code>trigger_on</code>: enter / dwell / nearest</li>
+                        <li>Cooldown: <code>_poiCooldowns[poi.Id]</code> — nếu chưa đủ 3 phút thì skip</li>
+                        <li>Vào POI mới: <code>StopSpeech()</code> → hủy <code>CancellationToken</code> + dispose <code>_audioPlayer</code></li>
+                        <li>Highlight active POI: vẽ <code>Circle</code> đỏ bán kính <code>currentRadiusKm</code> trên bản đồ</li>
+                        <li>Tắt khi rời POI: <code>ClearHighlight()</code> xóa circle khỏi <code>MapElements</code></li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>🔋 Tối Ưu Pin</h3>
+                    <h3>🔴 SignalR Real-time</h3>
                     <ul>
-                        <li>Background location với WorkManager / BackgroundService</li>
-                        <li>Giảm tần suất GPS khi tốc độ di chuyển thấp</li>
-                        <li>Dùng Geofence API của OS thay vì polling thủ công</li>
-                        <li>Thông báo foreground service để duy trì độ chính xác</li>
+                        <li>Kết nối: <code>/travelhub?clientType=app</code> với <code>WithAutomaticReconnect()</code></li>
+                        <li>Vào quán: <code>SendAsync("JoinPoi", poi.Id.ToLower())</code></li>
+                        <li>Rời quán: <code>SendAsync("LeavePoi", poi.Id.ToLower())</code></li>
+                        <li>Admin web nhận realtime: biết số người đang ở từng POI tại thời điểm đó</li>
                     </ul>
                 </div>
             </div>
 
             <h3 style="margin:1.5rem 0 .8rem;">Luồng kích hoạt Geofence</h3>
             <div class="flow">
-                <span class="flow-step blue">GPS cập nhật vị trí</span>
+                <span class="flow-step blue">IDispatcherTimer tick 5s</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">Tính khoảng cách đến POI</span>
+                <span class="flow-step">Geolocation.GetLocationAsync(Medium)</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step alt">Vào vùng / Gần nhất?</span>
+                <span class="flow-step">Location.CalculateDistance() mỗi POI</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">Cooldown check</span>
+                <span class="flow-step alt">Gom POI trong bán kính → sort Priority</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step green">Đẩy vào hàng chờ TTS</span>
+                <span class="flow-step">Cooldown check 3 phút</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">🔊 Phát audio</span>
+                <span class="flow-step green">StopSpeech() → PlayPoiAudio(poi)</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-step">🔊 Phát audio + OpenBottomSheet</span>
             </div>
         </div>
     </div>
@@ -1085,78 +1325,81 @@
             </div>
 
             <div class="highlight warning">
-                <strong>Chiến lược 2 tầng:</strong>
-                <p>Ưu tiên dùng <strong>file audio thu sẵn</strong> (giọng tự nhiên, chuyên nghiệp). Nếu không có, fallback sang <strong>Text-to-Speech (TTS)</strong> linh hoạt, đa ngôn ngữ, dùng dữ liệu nội dung từ API.</p>
+                <strong>Chiến lược 4 bước — hàm <code>PlayPoiAudio(PoiModel poi, string tempLangOverride = null)</code>:</strong>
+                <p>Mỗi lần vào vùng POI, app gọi <code>StopSpeech()</code> trước (dừng audio cũ), sau đó thử từng bước theo thứ tự ưu tiên. Không có Queue FIFO — audio mới thay thế ngay audio cũ.</p>
             </div>
 
-            <div class="card-grid">
-                <div class="card">
-                    <h3>🎙️ File Audio Thu Sẵn</h3>
-                    <ul>
-                        <li>Giọng tự nhiên, chuyên nghiệp — chất lượng cao nhất</li>
-                        <li>Lưu trữ theo POI: <code>/audio/{poi_id}/{lang}.mp3</code></li>
-                        <li>Cache local SQLite + file system</li>
-                        <li>Ưu tiên phát trước khi dùng TTS</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3>🤖 Text-to-Speech (TTS)</h3>
-                    <ul>
-                        <li>Linh hoạt, đa ngôn ngữ — fallback khi thiếu audio sẵn</li>
-                        <li>Dùng dữ liệu script/nội dung từ POI record</li>
-                        <li>Nhẹ nhàng — không quá dramatic</li>
-                        <li>Hỗ trợ tối thiểu: Tiếng Việt + Tiếng Anh</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3>📋 Hàng Chờ Audio</h3>
-                    <ul>
-                        <li>Queue FIFO — phát tuần tự, không chồng chéo</li>
-                        <li>Tự dừng khi có thông báo hệ thống khác</li>
-                        <li>Resume sau khi thông báo kết thúc</li>
-                        <li>Skip nếu người dùng rời khỏi vùng POI</li>
-                    </ul>
-                </div>
-                <div class="card">
-                    <h3>🌐 Đa Ngôn Ngữ</h3>
-                    <ul>
-                        <li>Phát theo ngôn ngữ cài đặt của app</li>
-                        <li>Script TTS lưu trong POI record theo từng ngôn ngữ</li>
-                        <li>Admin có thể thêm/sửa script từng ngôn ngữ trên CMS</li>
-                        <li>Fallback: Tiếng Việt nếu không có ngôn ngữ yêu cầu</li>
-                    </ul>
-                </div>
-            </div>
-
-            <h3 style="margin:1.5rem 0 .8rem;">Pipeline xử lý Audio — 4 Tầng Fallback</h3>
+            <h3 style="margin:1.5rem 0 .8rem;">Pipeline <code>PlayPoiAudio()</code> — 4 Bước Fallback Thực Tế</h3>
             <div class="tier-list">
                 <div class="tier-item">
-                    <div class="tier-label" style="background:var(--success);">Tier 1</div>
+                    <div class="tier-label" style="background:#1b5e20;">Bước 0</div>
                     <div class="tier-content">
-                        <strong>File Audio Thu Sẵn (0ms, chất lượng cao nhất)</strong>
-                        <span>Kiểm tra local cache → nếu có, phát ngay. Không cần mạng, không cần xử lý.</span>
+                        <strong>Audio Gốc do Admin Upload (<code>poi.AudioUrl</code>) — chất lượng cao nhất</strong>
+                        <span>Nếu Admin đã upload file riêng qua CMS: download về cache <code>manual_{poi.Id}.mp3</code> → <code>AudioManager.Current.CreatePlayer(stream).Play()</code> → <code>return</code>. Giọng thu âm chuyên nghiệp, đúng ngữ điệu địa phương.</span>
                     </div>
                 </div>
                 <div class="tier-item">
-                    <div class="tier-label" style="background:var(--info);">Tier 2</div>
+                    <div class="tier-label" style="background:var(--success);">Bước 1</div>
                     <div class="tier-content">
-                        <strong>File Audio từ Server (yêu cầu mạng, 1-3s)</strong>
-                        <span>Download MP3 từ API → cache local → phát. Lần sau dùng Tier 1.</span>
+                        <strong>Cache Local đã có sẵn — <code>File.Exists("{poi.Id}_vi.mp3")</code></strong>
+                        <span>Kiểm tra <code>FileSystem.CacheDirectory/{poi.Id}_vi.mp3</code>. Nếu có → <code>File.OpenRead()</code> → <code>AudioManager.Current.CreatePlayer(stream).Play()</code> → <code>return</code>. Không cần mạng, 0ms.</span>
                     </div>
                 </div>
                 <div class="tier-item">
-                    <div class="tier-label" style="background:var(--warning);color:#212121;">Tier 3</div>
+                    <div class="tier-label" style="background:var(--info);">Bước 2</div>
                     <div class="tier-content">
-                        <strong>TTS Live (yêu cầu mạng, 2-5s)</strong>
-                        <span>Gọi TTS API với script text → nhận audio stream → phát. Cache kết quả.</span>
+                        <strong>Download EdgeTTS từ Server — <code>GET /audio/{poi.Id}_vi.mp3</code></strong>
+                        <span>Nếu có mạng (<code>Connectivity.Current.NetworkAccess == NetworkAccess.Internet</code>): <code>httpClient.GetByteArrayAsync(url)</code> → <code>File.WriteAllBytesAsync(localPath)</code> → play. Lần sau dùng Bước 1. Server không có → catch → xuống Bước 3.</span>
                     </div>
                 </div>
                 <div class="tier-item">
-                    <div class="tier-label" style="background:#616161;">Tier 4</div>
+                    <div class="tier-label" style="background:#616161;">Bước 3</div>
                     <div class="tier-content">
-                        <strong>Device TTS Offline (0ms, chất lượng thấp nhất)</strong>
-                        <span>Dùng <code>SpeechSynthesis</code> của hệ điều hành. Luôn khả dụng kể cả offline.</span>
+                        <strong>SmartSpeak — Google Translate + <code>TextToSpeech.Default.SpeakAsync()</code></strong>
+                        <span>Dịch <code>poi.TtsContent</code> sang ngôn ngữ đích qua <code>translate.googleapis.com</code> (vi/en/ja). Sau đó dùng <code>TextToSpeech.Default.SpeakAsync(text, SpeechOptions{Locale, Pitch, Volume}, cancelToken)</code>. Offline thì fallback text cứng.</span>
                     </div>
+                </div>
+            </div>
+
+            <div class="card-grid" style="margin-top:1.5rem;">
+                <div class="card">
+                    <h3>🌐 Đa Ngôn Ngữ — vi / en / ja</h3>
+                    <ul>
+                        <li>Lần đầu mở app: <code>DisplayActionSheet</code> chọn 🇻🇳 Tiếng Việt / 🇬🇧 English / 🇯🇵 日本語 → lưu <code>Preferences["DefaultLang"]</code></li>
+                        <li>Nút chuyển ngôn ngữ tức thì: <code>OnLangClicked → PlayPoiAudio(poi, "en"/"ja")</code></li>
+                        <li><strong>SmartSpeak translate URL:</strong> <code>translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={lang}&dt=t&q={text}</code></li>
+                        <li>Header giả Chrome: <code>User-Agent: Mozilla/5.0 ... Chrome/91</code> để bypass Google Translate bot protection</li>
+                        <li>Giới hạn: truncate 1000 ký tự, sanitize <code>\r\n → space</code>, escape <code>"</code> → <code>'</code></li>
+                        <li>Offline + lang != vi → fallback: <code>"App is offline."</code> / <code>"オフラインです"</code></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>⏱️ Cooldown &amp; Stop Logic</h3>
+                    <ul>
+                        <li>Cooldown 3 phút/POI — <code>_poiCooldowns[poi.Id]</code> dictionary</li>
+                        <li>Vào POI mới → <code>StopSpeech()</code>: cancel <code>CancellationTokenSource</code> + <code>_audioPlayer.Stop().Dispose()</code></li>
+                        <li>TtsSpeed: <code>Preferences.Default.Get("TtsSpeed", 1.0f)</code> — đọc nhưng chưa pass vào <code>SpeechOptions</code></li>
+                        <li>Thoát vùng geofence (+50m buffer) → <code>_entryTimes.Remove(poiId)</code></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📡 SignalR — Real-time Tracking</h3>
+                    <ul>
+                        <li>Hub URL: <code>ApiBaseUrl.Replace("/api", "/travelhub?clientType=app")</code></li>
+                        <li>Header bắt buộc: <code>ngrok-skip-browser-warning: true</code> cho tất cả API call qua Cloudflare</li>
+                        <li>Vào quán: <code>SendAsync("JoinPoi", poi.Id.ToLower())</code> — bắt buộc lowercase để khớp server</li>
+                        <li>Đóng sheet / rời quán: <code>SendAsync("LeavePoi", poi.Id.ToLower())</code></li>
+                        <li>Web Admin kết nối: <code>clientType=admin</code> (không phải "web") → nhận <code>UpdateOnlineCount</code> + <code>UpdateViewerCount(poiId, count)</code></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>💾 SQLite Offline-First</h3>
+                    <ul>
+                        <li>DB: <code>TravelSmartLocal.db3</code> — bảng <code>PoiModel</code> + <code>VisitLogModel</code></li>
+                        <li>Delta sync: <code>GET /api/Pois?_t={ticks}</code> → insert/update/delete so sánh Id</li>
+                        <li>Android emulator: URL replace <code>localhost → 10.0.2.2</code>, <code>https:7008 → http:5088</code>; SSL bypass <code>ServerCertificateCustomValidationCallback = true</code></li>
+                        <li>History log: ghi SQLite local trước → <code>POST /api/Pois/history</code> nếu có mạng</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -1173,46 +1416,164 @@
                 </div>
             </div>
 
-            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">POI (Point of Interest) là đơn vị dữ liệu trung tâm của hệ thống — mỗi quán ăn, điểm đặc sản trên phố Vĩnh Khánh là một POI.</p>
+            <p style="color:var(--text-secondary);margin-bottom:1.8rem;">
+                <strong>POI (Point of Interest)</strong> là đơn vị dữ liệu trung tâm — mỗi quán ăn, điểm đặc sản trên phố Vĩnh Khánh là một POI. Toàn bộ tính năng Geofence, TTS, QR, Analytics đều xoay quanh model này.
+            </p>
 
+            <!-- POI Model Fields -->
+            <h3 style="margin:0 0 1rem;font-size:1.1rem;">🗃️ PoiModel — Cấu Trúc Dữ Liệu Thực Tế</h3>
+            <div class="poi-field-grid">
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>Id</code></div>
+                    <div class="poi-field-type">string (Guid)</div>
+                    <div class="poi-field-desc">PrimaryKey SQLite. App dùng string Guid, PoC API dùng int — cần đồng nhất khi production</div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>Name</code></div>
+                    <div class="poi-field-type">string</div>
+                    <div class="poi-field-desc">Tên quán ăn — hiển thị trên Pin bản đồ, bottom sheet, sort geofence</div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>Latitude / Longitude</code></div>
+                    <div class="poi-field-type">double</div>
+                    <div class="poi-field-desc">Tọa độ GPS. Dùng để tính khoảng cách geofence và vẽ Pin, Circle, Polyline trên bản đồ</div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>Radius</code></div>
+                    <div class="poi-field-type">double (mét)</div>
+                    <div class="poi-field-desc">Bán kính geofence của từng POI. App override bởi <code>Preferences["GeofenceRadius"]</code> (mặc định 50m)</div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>TtsContent</code></div>
+                    <div class="poi-field-type">string</div>
+                    <div class="poi-field-desc">Script thuyết minh tiếng Việt — input cho <code>SmartSpeak()</code>, truncate 1000 ký tự khi dịch</div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>QrCodeKey</code></div>
+                    <div class="poi-field-type">string</div>
+                    <div class="poi-field-desc">Khớp với chuỗi QR tại trạm xe buýt. VD: <code>"VK_OC_OANH"</code> → parse từ <code>poi=VK_OC_OANH</code></div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field core">
+                    <div class="poi-field-name"><code>Description</code></div>
+                    <div class="poi-field-type">string</div>
+                    <div class="poi-field-desc">Mô tả ngắn hiển thị trong bottom sheet trước khi fetch detail từ API</div>
+                    <div class="poi-field-badge present">✅ PoC API</div>
+                </div>
+                <div class="poi-field missing">
+                    <div class="poi-field-name"><code>AudioUrl</code></div>
+                    <div class="poi-field-type">string</div>
+                    <div class="poi-field-desc">URL file MP3 do Admin upload thủ công qua CMS. Được ưu tiên ở <strong>Bước 0</strong> trong <code>PlayPoiAudio()</code></div>
+                    <div class="poi-field-badge absent">❌ Thiếu PoC</div>
+                </div>
+                <div class="poi-field missing">
+                    <div class="poi-field-name"><code>Priority</code></div>
+                    <div class="poi-field-type">int</div>
+                    <div class="poi-field-desc">Ưu tiên khi nhiều POI chồng vùng. Sort: <code>OrderBy(distance).ThenByDescending(Priority)</code></div>
+                    <div class="poi-field-badge absent">❌ Thiếu PoC</div>
+                </div>
+                <div class="poi-field missing">
+                    <div class="poi-field-name"><code>ImageUrl</code></div>
+                    <div class="poi-field-type">string</div>
+                    <div class="poi-field-desc">Ảnh quán hiển thị trên bottom sheet. Nếu null → dùng ảnh Unsplash mặc định</div>
+                    <div class="poi-field-badge absent">❌ Thiếu PoC</div>
+                </div>
+            </div>
+
+            <!-- Warning box -->
+            <div class="highlight warning" style="margin:1.5rem 0;">
+                <strong>⚠️ Bug cần fix trước production — AnalyticsLog không khớp</strong>
+                <p>PoC API lưu <code>AnalyticsLog{PoiId, ActionType, Timestamp}</code> nhưng App thực tế gửi <code>{PoiId, DeviceName, LanguageCode, DurationMinutes}</code>. Production API cần thêm 3 field này và bỏ <code>ActionType</code>.</p>
+            </div>
+
+            <!-- Sub-models -->
+            <h3 style="margin:1.5rem 0 1rem;font-size:1.1rem;">📦 Sub-Models Liên Quan</h3>
             <div class="card-grid">
                 <div class="card">
-                    <h3>📄 Cấu trúc dữ liệu POI</h3>
+                    <h3>🍽️ MenuItem</h3>
                     <ul>
-                        <li><code>id</code>: định danh duy nhất</li>
-                        <li><code>name</code>: tên điểm ẩm thực</li>
-                        <li><code>description</code>: mô tả văn bản</li>
-                        <li><code>coordinates</code>: tọa độ GPS (lat, lng)</li>
-                        <li><code>radius_m</code>: bán kính geofence (mét)</li>
-                        <li><code>images[]</code>: ảnh minh hoạ</li>
-                        <li><code>map_link</code>: link Google Maps</li>
-                        <li><code>audio_files{}</code>: dict ngôn ngữ → file audio</li>
-                        <li><code>tts_scripts{}</code>: dict ngôn ngữ → script TTS</li>
+                        <li><code>ItemId</code> — string, unique</li>
+                        <li><code>ItemName</code> — tên món ăn</li>
+                        <li><code>Price</code> — decimal, format <code>N0 đ</code></li>
+                        <li>API: <code>POST /api/Pois/{id}/menu</code> · <code>DELETE /api/Pois/menu/{itemId}</code></li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>💾 Offline Storage (SQLite)</h3>
+                    <h3>⭐ Review</h3>
                     <ul>
-                        <li>Toàn bộ POI lưu local SQLite khi có mạng</li>
-                        <li>Sync tự động khi kết nối lại (background)</li>
-                        <li>So sánh <code>updated_at</code> để chỉ sync phần thay đổi</li>
-                        <li>App hoạt động đầy đủ kể cả khi mất mạng hoàn toàn</li>
+                        <li><code>Rating</code> — int 1–5 (StepperRating)</li>
+                        <li><code>Comment</code> — string</li>
+                        <li><code>CreatedAt</code> — DateTime</li>
+                        <li>API: <code>POST /api/Pois/{id}/review</code> — chỉ role <code>User</code></li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>🔄 Vòng đời dữ liệu POI</h3>
+                    <h3>📋 VisitLogModel (SQLite)</h3>
                     <ul>
-                        <li>Admin tạo/sửa POI trên CMS (web)</li>
-                        <li>Server lưu + xử lý audio background</li>
-                        <li>App sync khi mở / có mạng</li>
-                        <li>App dùng SQLite local cho mọi truy vấn</li>
+                        <li><code>Id</code> — int AutoIncrement</li>
+                        <li><code>PoiId</code> — string (FK)</li>
+                        <li><code>Name</code> — tên POI lúc ghé</li>
+                        <li><code>VisitTime</code> — DateTime lưu local</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🗺️ TourDetail</h3>
+                    <ul>
+                        <li><code>PoiId</code> — Guid</li>
+                        <li><code>Name</code> — tên POI trong tour</li>
+                        <li><code>Order</code> — int, thứ tự trạm</li>
+                        <li>API: <code>GET /api/Tours/{id}/details</code> → vẽ Polyline theo Order</li>
                     </ul>
                 </div>
             </div>
 
-            <div class="highlight success">
-                <strong>Thiết kế Offline-First:</strong>
-                <p>Mọi truy vấn POI đều đọc từ SQLite local trước. Kết nối mạng chỉ dùng để sync — không bao giờ block trải nghiệm người dùng.</p>
+            <!-- Data lifecycle -->
+            <h3 style="margin:1.5rem 0 1rem;font-size:1.1rem;">🔄 Vòng Đời Dữ Liệu POI</h3>
+            <div class="lifecycle-row">
+                <div class="lc-step" style="border-color:#1565c0;">
+                    <div class="lc-num" style="background:#1565c0;">1</div>
+                    <div class="lc-icon">🖥️</div>
+                    <div class="lc-title">Admin tạo POI</div>
+                    <div class="lc-desc">Nhập tên, tọa độ, QrCodeKey, TtsContent. Upload ảnh (<code>upload-image</code>) và audio gốc (<code>upload-audio</code>) qua <code>Pois.razor</code></div>
+                </div>
+                <div class="lc-arrow">→</div>
+                <div class="lc-step" style="border-color:#6a1b9a;">
+                    <div class="lc-num" style="background:#6a1b9a;">2</div>
+                    <div class="lc-icon">⚡</div>
+                    <div class="lc-title">API lưu DB</div>
+                    <div class="lc-desc">SQL Server lưu <code>PoiEntity</code>. Static file <code>/audio/{id}_vi.mp3</code> sinh bởi EdgeTTS và serve qua Cloudflare CDN</div>
+                </div>
+                <div class="lc-arrow">→</div>
+                <div class="lc-step" style="border-color:#2e7d32;">
+                    <div class="lc-num" style="background:#2e7d32;">3</div>
+                    <div class="lc-icon">📱</div>
+                    <div class="lc-title">App delta sync</div>
+                    <div class="lc-desc"><code>GET /api/Pois?_t={ticks}</code> → so sánh Id → insert/update/delete vào <code>TravelSmartLocal.db3</code></div>
+                </div>
+                <div class="lc-arrow">→</div>
+                <div class="lc-step" style="border-color:#e65100;">
+                    <div class="lc-num" style="background:#e65100;">4</div>
+                    <div class="lc-icon">🔔</div>
+                    <div class="lc-title">Geofence trigger</div>
+                    <div class="lc-desc">Timer 5s → GPS vào vùng → đọc SQLite (0ms, offline) → <code>PlayPoiAudio()</code> + bottom sheet</div>
+                </div>
+                <div class="lc-arrow">→</div>
+                <div class="lc-step" style="border-color:#c62828;">
+                    <div class="lc-num" style="background:#c62828;">5</div>
+                    <div class="lc-icon">📊</div>
+                    <div class="lc-title">Analytics log</div>
+                    <div class="lc-desc">Ghi <code>VisitLogModel</code> local → <code>POST /api/Pois/history</code> → hiện trên Analytics Dashboard</div>
+                </div>
+            </div>
+
+            <div class="highlight success" style="margin-top:1.5rem;">
+                <strong>✅ Thiết kế Offline-First:</strong>
+                <p>Mọi truy vấn POI đọc từ SQLite local trước — không bao giờ block UI chờ mạng. Kết nối internet chỉ dùng để sync delta và log analytics.</p>
             </div>
         </div>
     </div>
@@ -1228,28 +1589,86 @@
                 </div>
             </div>
 
-            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">Sau khi PoC chứng minh kỹ thuật hoạt động, MVP bổ sung 4 module lớn: Map View tương tác, CMS quản lý nội dung, Analytics theo dõi hành vi, và QR Code tại trạm xe buýt.</p>
+            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">Sau khi PoC chứng minh kỹ thuật hoạt động, MVP bổ sung đầy đủ tính năng người dùng: Map View tương tác, CMS Admin Blazor, Analytics 3 trang, QR Code, Reviews, Notifications, Tours, Profile, Settings.</p>
 
-            <div class="arch-grid">
+            <h3 style="margin:0 0 .8rem;">📱 Mobile App — Views thực tế</h3>
+            <div class="arch-grid" style="margin-bottom:1.5rem;">
                 <div class="arch-module mvp">
                     <div class="mod-icon">🗺️</div>
-                    <div class="mod-name">Map View</div>
-                    <div class="mod-desc">Bản đồ tương tác, POI markers, highlight gần nhất</div>
+                    <div class="mod-name">MainPage — Map View</div>
+                    <div class="mod-desc">MAUI Maps, search POI, bottom sheet chi tiết (ảnh + menu + reviews), radar circle đỏ, polyline tour, nút Directions</div>
                 </div>
+                <div class="arch-module mvp">
+                    <div class="mod-icon">📱</div>
+                    <div class="mod-name">ScannerPage — QR Code</div>
+                    <div class="mod-desc">Modal camera scan, decode <code>poi=</code> prefix, khớp <code>poi.QrCodeKey</code>, gọi <code>PlayPoiAudio()</code> ngay — không cần đăng nhập</div>
+                </div>
+                <div class="arch-module mvp">
+                    <div class="mod-icon">🗺️</div>
+                    <div class="mod-name">TourListPage — Tuyến đi</div>
+                    <div class="mod-desc">Chọn Tour → vẽ <code>Polyline</code> xanh (#1565C0, width 8) nối các POI theo <code>Order</code> trên bản đồ</div>
+                </div>
+                <div class="arch-module mvp">
+                    <div class="mod-icon">🔔</div>
+                    <div class="mod-name">NotificationsPage</div>
+                    <div class="mod-desc">Badge đỏ hiển thị số chưa đọc. Sync từ <code>GET /api/Auth/sync</code> → <code>unreadCount</code></div>
+                </div>
+                <div class="arch-module mvp">
+                    <div class="mod-icon">📋</div>
+                    <div class="mod-name">HistoryPage — Lịch sử</div>
+                    <div class="mod-desc">Đọc <code>VisitLogModel</code> từ SQLite local, hiển thị lịch sử ghé thăm POI theo thứ tự thời gian</div>
+                </div>
+                <div class="arch-module mvp">
+                    <div class="mod-icon">⚙️</div>
+                    <div class="mod-name">SettingsPage</div>
+                    <div class="mod-desc">Cấu hình <code>TtsSpeed</code>, <code>GeofenceRadius</code> (mặc định 50m), chọn ngôn ngữ mặc định — lưu qua <code>Preferences.Default</code></div>
+                </div>
+                <div class="arch-module mvp">
+                    <div class="mod-icon">👤</div>
+                    <div class="mod-name">ProfilePage + RegisterPage</div>
+                    <div class="mod-desc">Đăng ký tài khoản, xem thông tin cá nhân. Khách chưa đăng nhập vẫn dùng được app ở chế độ Guest</div>
+                </div>
+            </div>
+
+            <h3 style="margin:0 0 .8rem;">🖥️ Web Admin — Blazor WebAssembly</h3>
+            <div class="arch-grid" style="margin-bottom:1.5rem;">
                 <div class="arch-module mvp">
                     <div class="mod-icon">🖥️</div>
                     <div class="mod-name">CMS Admin</div>
-                    <div class="mod-desc">Quản lý POI, Audio, Bản dịch, Tour, Lịch sử</div>
+                    <div class="mod-desc">5 trang: Login · Pois · Tours · Audios · Users — quản lý toàn bộ nội dung và tài khoản</div>
                 </div>
                 <div class="arch-module mvp">
                     <div class="mod-icon">📊</div>
                     <div class="mod-name">Analytics</div>
-                    <div class="mod-desc">Tuyến di chuyển, top POI, heatmap vị trí</div>
+                    <div class="mod-desc">3 trang riêng: AnalyticsHeatmap (Leaflet) · AnalyticsHistory (bảng log) · AnalyticsTop (xếp hạng)</div>
                 </div>
-                <div class="arch-module mvp">
-                    <div class="mod-icon">📱</div>
-                    <div class="mod-name">QR Code</div>
-                    <div class="mod-desc">Kích hoạt nội dung tại điểm dừng xe buýt, offline</div>
+            </div>
+
+            <h3 style="margin:0 0 .8rem;">✨ Tính năng nổi bật trong Bottom Sheet</h3>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🍽️ Menu & Thực Đơn</h3>
+                    <ul>
+                        <li>Gọi <code>GET /api/Pois/{id}</code> → lấy <code>menu[]</code> + <code>reviews[]</code></li>
+                        <li>Hiển thị từng món: <code>itemName</code> + <code>price</code> (format N0 đ)</li>
+                        <li>Load sau khi mở bottom sheet — không block audio</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>⭐ Reviews & Đánh Giá</h3>
+                    <ul>
+                        <li>Hiển thị danh sách reviews: rating ⭐ + comment</li>
+                        <li>User đã đăng nhập: viết review qua <code>StepperRating</code> + <code>EntryReview</code></li>
+                        <li>Guest → prompt đăng nhập khi bấm gửi đánh giá</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🧭 Chỉ Đường & Tương Tác</h3>
+                    <ul>
+                        <li>Nút Directions: <code>Map.OpenAsync(location, NavigationMode.Driving)</code></li>
+                        <li>Nút đổi ngôn ngữ tức thì: VN / EN / JP → gọi lại <code>PlayPoiAudio(poi, langCode)</code></li>
+                        <li>Refresh bản đồ: <code>SyncFromServerAsync()</code> → delta update SQLite</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -1268,30 +1687,201 @@
 
             <div class="card-grid">
                 <div class="card">
-                    <h3>📍 Hiển thị vị trí &amp; POI</h3>
+                    <h3>📍 MAUI Maps + Pins + Search</h3>
                     <ul>
-                        <li>Marker vị trí người dùng theo thời gian thực</li>
-                        <li>Marker tất cả POI với icon phân loại</li>
-                        <li>Highlight POI gần nhất với animation/màu nổi bật</li>
-                        <li>Hiển thị bán kính geofence quanh mỗi POI</li>
+                        <li>Bản đồ: <code>Microsoft.Maui.Controls.Maps</code>, center mặc định <code>Location(10.7605, 106.7025)</code> — Vĩnh Khánh, Q4, TP.HCM, zoom 1km</li>
+                        <li>Pins: load từ SQLite <code>_pois</code>, mỗi pin gắn <code>_pinPoiMap[pin] = poi</code></li>
+                        <li>Search: <code>SearchPoi.Text</code> → <code>FilterMapPins(keyword)</code> lọc theo tên (case-insensitive <code>.ToLower()</code>)</li>
+                        <li><code>MyMap.IsShowingUser = true</code> — hiển thị vị trí người dùng realtime</li>
+                        <li><code>OnDisappearing</code>: <code>_timer.Stop()</code> — dừng GPS khi rời trang, tránh leak</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>🔍 Xem chi tiết POI</h3>
+                    <h3>📋 Bottom Sheet Chi Tiết POI</h3>
                     <ul>
-                        <li>Bấm marker → bottom sheet chi tiết POI</li>
-                        <li>Hiển thị ảnh, tên, mô tả, khoảng cách</li>
-                        <li>Nút "Nghe thuyết minh" thủ công</li>
-                        <li>Nút mở Google Maps / link bản đồ</li>
+                        <li>Tap pin → <code>OpenBottomSheetForPoi(pin, poi)</code> — slide up <code>TranslateTo(0, 0, 300ms, CubicOut)</code></li>
+                        <li>Ảnh: <code>poi.ImageUrl</code> (replace localhost→10.0.2.2) hoặc Unsplash fallback nếu null</li>
+                        <li>Nút đổi ngôn ngữ tức thì VN/EN/JP → <code>PlayPoiAudio(poi, langCode)</code></li>
+                        <li>Nút đánh giá: chỉ hiện với <code>role == "User"</code> — ẩn với Guest/Admin/Merchant</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>⚙️ Cài đặt trải nghiệm</h3>
+                    <h3>🔴 Radar Circle + Tour Polyline</h3>
                     <ul>
-                        <li>Bật/tắt GPS tracking</li>
-                        <li>Cài đặt bán kính tự động kích hoạt</li>
-                        <li>Chọn ngôn ngữ TTS</li>
-                        <li>Bật/tắt chế độ offline</li>
+                        <li>Active POI: vẽ <code>Circle</code> đỏ (<code>#FF0000</code>, strokeWidth 6, fillColor <code>#33FF0000</code>)</li>
+                        <li>Tour: vẽ <code>Polyline</code> xanh (<code>#1565C0</code>, strokeWidth 8) nối các POI theo <code>Order</code></li>
+                        <li>Tour pin label: <code>"Trạm {td.Order}: {poi.Name}"</code> — hiện thứ tự rõ ràng</li>
+                        <li>Xóa tour: <code>null</code> → <code>FilterMapPins("")</code> reset về toàn bộ POI</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>⚙️ Cài Đặt &amp; Tương Tác</h3>
+                    <ul>
+                        <li>Bán kính geofence: <code>Preferences.Default.Get("GeofenceRadius", 50)</code> — mặc định 50m, cấu hình trong Settings</li>
+                        <li>TtsSpeed: <code>Preferences.Default.Get("TtsSpeed", 1.0f)</code> — đọc nhưng chưa pass vào <code>SpeechOptions</code> (bug cần fix)</li>
+                        <li>Refresh: <code>SyncFromServerAsync()</code> → delta update SQLite → <code>ReloadMapData()</code> + <code>DisplayAlert</code> kết quả</li>
+                        <li>Chỉ đường: <code>Map.OpenAsync(location, NavigationMode.Driving)</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CHƯƠNG BOTTOM SHEET ===== -->
+    <div id="bottomsheet" class="section-bg">
+        <div class="section-wrap">
+            <div class="section-header">
+                <div class="icon" style="background:#e8f5e9;color:#2e7d32;">📋</div>
+                <div>
+                    <div class="section-num">Chương 06B</div>
+                    <h2>Bottom Sheet — Chi Tiết POI Tương Tác</h2>
+                </div>
+            </div>
+            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">
+                Bottom Sheet trượt lên khi <strong>tap pin trên bản đồ</strong> hoặc <strong>Geofence tự động kích hoạt</strong>. Đây là màn hình chính hiển thị toàn bộ thông tin điểm ẩm thực.
+            </p>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🖼️ Header — Ảnh &amp; Thông tin</h3>
+                    <ul>
+                        <li>Ảnh: <code>poi.ImageUrl</code> — nếu null dùng ảnh Unsplash mặc định</li>
+                        <li>Tên: <code>LblPoiName.Text = poi.Name</code></li>
+                        <li>Địa chỉ: load từ <code>poi.Description</code> trước → fetch API sau</li>
+                        <li>Animation: <code>TranslateTo(0, 0, 300ms, CubicOut)</code> trượt lên mượt</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🍽️ Menu Thực Đơn</h3>
+                    <ul>
+                        <li>Fetch: <code>GET /api/Pois/{id}</code> → <code>PoiDetailDto.menu[]</code></li>
+                        <li>Mỗi món: <code>itemName</code> (bold, 200px) + <code>price</code> (format <code>N0 đ</code>, màu xanh)</li>
+                        <li>Chưa có menu → hiện label "Chưa có thực đơn." (italic, gray)</li>
+                        <li>Không block audio — fetch async sau khi sheet mở</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>⭐ Reviews &amp; Đánh Giá</h3>
+                    <ul>
+                        <li>Hiển thị: <code>rating</code> (⭐⭐⭐ repeat) + <code>comment</code> (italic, darkgray)</li>
+                        <li>Viết review: <code>StepperRating</code> (1–5 sao) + <code>EntryReview</code> text input</li>
+                        <li><code>FrameWriteReview.IsVisible</code> = <code>role == "User"</code> — ẩn với Guest/Admin/Merchant</li>
+                        <li>Guest nhấn gửi → <code>DisplayAlert</code> prompt đăng nhập → <code>LoginPage</code></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🌐 Đổi Ngôn Ngữ Tức Thì</h3>
+                    <ul>
+                        <li>3 nút: 🇻🇳 VN · 🇬🇧 EN · 🇯🇵 JP</li>
+                        <li><code>OnLangClicked</code> → parse <code>CommandParameter</code> → <code>PlayPoiAudio(poi, "vi"/"en"/"ja")</code></li>
+                        <li>Phát lại ngay lập tức bằng ngôn ngữ được chọn</li>
+                        <li>Không reload sheet — chỉ thay audio</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🧭 Chỉ Đường &amp; Đóng Sheet</h3>
+                    <ul>
+                        <li>Directions: <code>Map.OpenAsync(location, NavigationMode.Driving)</code></li>
+                        <li>Đóng sheet: <code>TranslateTo(0, 700, 300ms, CubicIn)</code> + <code>LeavePoi(poi.Id)</code> SignalR</li>
+                        <li>Đóng sheet: <code>StopSpeech()</code> + <code>ClearHighlight()</code></li>
+                        <li>Tap overlay ngoài cũng đóng sheet</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📡 SignalR &amp; History</h3>
+                    <ul>
+                        <li>Mở sheet: <code>JoinPoi(poi.Id.ToLower())</code> — lowercase để khớp server</li>
+                        <li>Chuyển POI: <code>LeavePoi(old.Id)</code> → <code>JoinPoi(new.Id)</code></li>
+                        <li>Log ngay: <code>_ = _dataService.AddHistoryAsync(poi)</code> — fire and forget</li>
+                        <li>Payload: <code>{PoiId, DeviceName, LanguageCode, DurationMinutes}</code></li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 style="margin:1.5rem 0 .8rem;">2 Cách Kích Hoạt Bottom Sheet</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0;">
+                <div class="highlight info">
+                    <strong>🤖 Tự động — Geofence</strong>
+                    <p>Timer 5s → GPS vào vùng → CheckGeofence → Cooldown OK → <code>StopSpeech()</code> → <code>PlayPoiAudio(poi)</code> → <code>OpenBottomSheetForPoi(pin, poi)</code> trên MainThread</p>
+                </div>
+                <div class="highlight success">
+                    <strong>👆 Thủ công — Tap Pin</strong>
+                    <p><code>OnPinClicked</code> → <code>_pinPoiMap[pin]</code> → <code>StopSpeech()</code> (nếu đang phát POI khác) → <code>HighlightActivePoi()</code> → <code>PlayPoiAudio(poi)</code> → <code>OpenBottomSheetForPoi()</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CHƯƠNG ROLES ===== -->
+    <div id="roles">
+        <div class="section-wrap">
+            <div class="section-header">
+                <div class="icon" style="background:#ede7f6;color:#512da8;">👥</div>
+                <div>
+                    <div class="section-num">Chương 06C</div>
+                    <h2>User Roles — Phân Quyền Hệ Thống</h2>
+                </div>
+            </div>
+            <div class="table-wrap" style="margin-bottom:1.5rem;">
+                <table>
+                    <thead><tr><th>Role</th><th>RoleId</th><th>Lưu ở đâu</th><th>Có thể làm gì</th><th>Không thể</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>🔴 <strong>Guest</strong></td>
+                            <td>—</td>
+                            <td><code>SecureStorage["role"] = "Guest"</code></td>
+                            <td>Xem bản đồ, nghe audio, quét QR, đổi ngôn ngữ</td>
+                            <td>Gửi review, xem thông báo cá nhân</td>
+                        </tr>
+                        <tr>
+                            <td>🟢 <strong>User</strong></td>
+                            <td>3</td>
+                            <td><code>SecureStorage["role"] = "User"</code></td>
+                            <td>Tất cả Guest + gửi <code>Review</code> (rating + comment)</td>
+                            <td>Truy cập CMS, quản lý POI</td>
+                        </tr>
+                        <tr>
+                            <td>🟡 <strong>Merchant</strong></td>
+                            <td>2</td>
+                            <td><code>SecureStorage["role"] = "Merchant"</code></td>
+                            <td>Đăng nhập web CMS, xem doanh thu &amp; đơn hàng của quán mình</td>
+                            <td>Quản lý user khác, xem toàn bộ hệ thống</td>
+                        </tr>
+                        <tr>
+                            <td>🔵 <strong>Admin</strong></td>
+                            <td>1</td>
+                            <td><code>SecureStorage["role"] = "Admin"</code></td>
+                            <td>Toàn quyền: CRUD POI, upload audio, quản lý Users, duyệt Merchant, xem Analytics</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>🔐 Auth Flow — App</h3>
+                    <ul>
+                        <li>Khởi động: <code>SecureStorage.GetAsync("authToken")</code> → nếu null → Guest</li>
+                        <li>Có token: <code>GET /api/Auth/sync</code> → nhận <code>{roleId, unreadCount}</code></li>
+                        <li>Map roleId: 1→Admin, 2→Merchant, 3→User → lưu <code>SecureStorage["role"]</code></li>
+                        <li>Badge noti: <code>BadgeNoti.IsVisible = unreadCount > 0</code>, label <code>"9+"</code> nếu quá 9</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🌐 Auth Flow — Web</h3>
+                    <ul>
+                        <li><code>POST /api/Auth/login</code> → <code>{Token, Role}</code></li>
+                        <li>Lưu: <code>localStorage["authToken"]</code></li>
+                        <li>Mọi request protected: <code>Authorization: Bearer {token}</code></li>
+                        <li>Admin thấy toàn bộ KPI · Merchant thấy dữ liệu quán mình</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📋 Merchant Request Flow</h3>
+                    <ul>
+                        <li>User xin lên Merchant: <code>POST /api/Auth/request-merchant</code></li>
+                        <li>Admin thấy đơn trong <code>Users.razor</code> — field <code>MerchantRequestStatus</code></li>
+                        <li>Duyệt: <code>POST /api/Users/{id}/approve</code> → Approved</li>
+                        <li>Từ chối: <code>POST /api/Users/{id}/reject</code> → Rejected</li>
                     </ul>
                 </div>
             </div>
@@ -1305,30 +1895,109 @@
                 <div class="icon" style="background:#ede7f6;color:#512da8;">🖥️</div>
                 <div>
                     <div class="section-num">Chương 07</div>
-                    <h2>CMS Admin — Hệ Thống Quản Lý Nội Dung</h2>
+                    <h2>CMS Admin — Hệ Thống Quản Lý Nội Dung (Blazor WebAssembly)</h2>
                 </div>
             </div>
 
-            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">Trang web quản trị (Blazor) cho phép admin quản lý toàn bộ nội dung phức tạp theo luồng đồ. Dữ liệu phức tạp, cách quản lý chuẩn.</p>
+            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">
+                Web admin xây bằng <strong>Blazor WebAssembly</strong>, gọi API <code>https://localhost:7008/api</code>. Có <strong>5 trang chức năng thực tế</strong> trong code, phân theo 2 nhóm: CMS quản lý nội dung và Analytics theo dõi hành vi.
+            </p>
 
-            <div class="table-wrap">
+            <h3 style="margin:0 0 .8rem;">🔐 Auth</h3>
+            <div class="table-wrap" style="margin-bottom:1.5rem;">
                 <table>
-                    <thead>
-                        <tr><th>Module</th><th>Chức năng</th><th>Ghi chú</th></tr>
-                    </thead>
+                    <thead><tr><th>Trang</th><th>Route</th><th>Chức năng thực tế</th></tr></thead>
                     <tbody>
-                        <tr><td>📍 POI</td><td>CRUD điểm ẩm thực, cấu hình geofence, upload ảnh</td><td>Dữ liệu cốt lõi</td></tr>
-                        <tr><td>🔊 Audio</td><td>Upload file audio thu sẵn, quản lý theo POI + ngôn ngữ</td><td>Tier 1 TTS</td></tr>
-                        <tr><td>🌐 Bản dịch</td><td>Nhập script TTS đa ngôn ngữ, preview TTS trực tiếp</td><td>Tier 3 TTS</td></tr>
-                        <tr><td>📋 Lịch sử sử dụng</td><td>Log khi nào POI được phát, thiết bị nào, ngôn ngữ nào</td><td>Nguồn data Analytics</td></tr>
-                        <tr><td>🗺️ Quản lý Tour</td><td>Gom nhóm POI thành tour theo chủ đề / tuyến đường</td><td>Tính năng nâng cao</td></tr>
+                        <tr><td>🔑 Login.razor</td><td><code>/login</code></td><td>Đăng nhập admin — lưu JWT token, redirect về Home</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin:0 0 .8rem;">📂 CMS — Quản lý nội dung</h3>
+            <div class="table-wrap" style="margin-bottom:1.5rem;">
+                <table>
+                    <thead><tr><th>Trang (.razor)</th><th>Route</th><th>Chức năng thực tế trong code</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>📍 <strong>Pois.razor</strong></td>
+                            <td><code>/pois</code></td>
+                            <td>CRUD điểm ẩm thực — thêm/sửa/xóa POI, upload ảnh, upload audio gốc (<code>poi.AudioUrl</code>), cấu hình bán kính geofence, set <code>Priority</code></td>
+                        </tr>
+                        <tr>
+                            <td>🗺️ <strong>Tours.razor</strong></td>
+                            <td><code>/tours</code></td>
+                            <td>Tạo Tour/Tuyến đi (<code>POST /api/Tours</code>), thêm POI vào tuyến theo thứ tự (<code>POST /api/Tours/{id}/add-poi</code>), xem lịch trình <code>Trạm 1, 2, 3...</code></td>
+                        </tr>
+                        <tr>
+                            <td>🎵 <strong>Audios.razor</strong></td>
+                            <td><code>/audios</code></td>
+                            <td>Xem kịch bản TTS (<code>poi.TtsContent</code>) + preview file audio gốc (<code>audio controls</code>). Hiển thị badge ngôn ngữ: 🇻🇳 Tiếng Việt · 🇬🇧 Tiếng Anh · 🇯🇵 Tiếng Nhật</td>
+                        </tr>
+                        <tr>
+                            <td>👥 <strong>Users.razor</strong></td>
+                            <td><code>/users</code></td>
+                            <td>Tạo tài khoản mới, gán quyền: <code>RoleId=1</code> Admin / <code>RoleId=2</code> Chủ quán / <code>RoleId=3</code> Du khách. Xét duyệt đơn xin làm Merchant</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin:1.5rem 0 .8rem;">🏠 Dashboard — Home.razor (Chưa đề cập)</h3>
+            <div class="card-grid" style="margin-bottom:1.5rem;">
+                <div class="card">
+                    <h3>📊 Dashboard Admin vs Merchant</h3>
+                    <ul>
+                        <li><code>GET /api/Dashboard/summary</code> → <code>DashboardSummary{Role, TotalUsers, TotalRevenue, TotalPois, TotalOrders, AverageRating}</code></li>
+                        <li><strong>Admin</strong>: Tổng thành viên · Doanh thu toàn hệ thống · Quán đang hoạt động</li>
+                        <li><strong>Merchant</strong>: Doanh thu của mình · Tổng đơn hàng · Đánh giá trung bình ⭐</li>
+                        <li>Redirect <code>/login</code> nếu <code>localStorage["authToken"]</code> null</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📡 SignalR Admin — 3 Events</h3>
+                    <ul>
+                        <li>Kết nối: <code>clientType=admin</code> (không phải "web")</li>
+                        <li>Sau connect: <code>SendAsync("RequestCurrentCounts")</code> — lấy snapshot hiện tại</li>
+                        <li><code>UpdateOnlineCount(int count)</code> → hiển thị tổng thiết bị đang online</li>
+                        <li><code>UpdateViewerCount(string poiId, int count)</code> → cập nhật live viewers từng quán — hiển thị card per POI có người đang xem</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📊 Heatmap Bar Chart 7 Ngày</h3>
+                    <ul>
+                        <li><code>GET /api/Dashboard/heatmap?days=7</code> → <code>List&lt;{Date, Count}&gt;</code></li>
+                        <li>Render bằng <strong>Bootstrap progress bars</strong> (không phải Chart.js) — striped + animated</li>
+                        <li>Width = <code>Math.Min(100, item.Count * 10)%</code> — scale tối đa 100%</li>
+                        <li>Màu: <code>bg-danger progress-bar-striped progress-bar-animated</code></li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📲 QR Code Trạm Xe Buýt</h3>
+                    <ul>
+                        <li>Admin dán Cloudflare URL → <code>UpdateQR()</code> sinh link: <code>{serverUrl}/web</code></li>
+                        <li>QR ảnh: <code>https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encodedUrl}</code></li>
+                        <li>Nút "Mở Test WebApp" → <code>downloadLink</code> target="_blank"</li>
+                        <li>Dán QR này tại trạm xe buýt — quét để mở WebApp, không cần cài App</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 style="margin:0 0 .8rem;">👥 Merchant Approval — Users.razor</h3>
+            <div class="table-wrap" style="margin-bottom:1.5rem;">
+                <table>
+                    <thead><tr><th>Endpoint</th><th>Chức năng</th><th>UserDto field</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>GET /api/Users</code></td><td>Danh sách tất cả user</td><td>UserId, Username, Email, RoleId, MerchantRequestStatus, CreatedAt</td></tr>
+                        <tr><td><code>POST /api/Users</code></td><td>Tạo tài khoản mới (Admin)</td><td>Username, Email, Password, RoleId</td></tr>
+                        <tr><td><code>POST /api/Users/{id}/approve</code></td><td>✅ Duyệt đơn xin làm Chủ quán</td><td>MerchantRequestStatus → "Approved"</td></tr>
+                        <tr><td><code>POST /api/Users/{id}/reject</code></td><td>❌ Từ chối đơn Merchant</td><td>MerchantRequestStatus → "Rejected"</td></tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="highlight">
-                <strong>Lưu ý thiết kế CMS:</strong>
-                <p>Data phức tạp (audio nhiều ngôn ngữ, bản dịch nhiều tầng, lịch sử dày) → CMS phải có luồng rõ ràng: mỗi module có màn hình riêng, không nhồi chung một form dài.</p>
+                <strong>Thiết kế thực tế:</strong>
+                <p>Mỗi chức năng có trang riêng biệt — không nhồi chung. <code>Audios.razor</code> cho phép Admin kiểm soát cả 3 ngôn ngữ (vi/en/ja) trên một bảng. <code>Tours.razor</code> có dropdown chọn POI và hiển thị danh sách trạm theo <code>Order</code>.</p>
             </div>
         </div>
     </div>
@@ -1340,46 +2009,50 @@
                 <div class="icon" style="background:#e0f2f1;color:#00695c;">📊</div>
                 <div>
                     <div class="section-num">Chương 08</div>
-                    <h2>Analytics — Phân Tích Dữ Liệu</h2>
+                    <h2>Analytics — 3 Trang Phân Tích Dữ Liệu Thực Tế</h2>
                 </div>
             </div>
 
+            <p style="color:var(--text-secondary);margin-bottom:1.2rem;">
+                Analytics được tách thành <strong>3 trang Blazor riêng biệt</strong>, mỗi trang gọi một endpoint API khác nhau và hiển thị dữ liệu thật từ thiết bị người dùng.
+            </p>
+
             <div class="card-grid">
                 <div class="card">
-                    <h3>🗺️ Lưu tuyến di chuyển</h3>
+                    <h3>🔥 AnalyticsHeatmap.razor</h3>
+                    <p style="font-size:.85rem;color:var(--text-secondary);margin:.3rem 0 .7rem;"><code>/analytics-heatmap</code> → <code>GET /api/Analytics/heatmap</code></p>
                     <ul>
-                        <li>Ghi lại hành trình người dùng (ẩn danh)</li>
-                        <li>Không lưu thông tin định danh cá nhân</li>
-                        <li>Dùng để phân tích luồng di chuyển phổ biến</li>
-                        <li>Hiển thị dưới dạng polyline trên admin map</li>
+                        <li>Bản đồ: <strong>Leaflet.js + OpenStreetMap</strong>, center <code>[10.762622, 106.660172]</code> zoom 13</li>
+                        <li>Mỗi điểm vẽ bằng <code>L.circle([lat,lng], {color:'red', fillColor:'#f03', fillOpacity:0.5, radius:200})</code></li>
+                        <li>Popup: tên POI khi click vào circle</li>
+                        <li>JS inject qua <code>IJSRuntime.InvokeVoidAsync("eval", js)</code> sau render</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>🏆 Top POI nghe nhiều nhất</h3>
+                    <h3>🕒 AnalyticsHistory.razor</h3>
+                    <p style="font-size:.85rem;color:var(--text-secondary);margin:.3rem 0 .7rem;"><code>/analytics-history</code> → <code>GET /api/Analytics/logs</code></p>
                     <ul>
-                        <li>Đếm số lần thuyết minh được phát theo POI</li>
-                        <li>Lọc theo ngày / tuần / tháng</li>
-                        <li>Phân tích giờ cao điểm du khách tại mỗi điểm</li>
-                        <li>Hiển thị biểu đồ bar chart</li>
+                        <li>Bảng lịch sử: <strong>Thời gian · Thiết bị · Địa điểm (POI) · Thời gian nghe · Ngôn ngữ</strong></li>
+                        <li>Dữ liệu thật sync từ thiết bị khi đi vào vùng Geofence</li>
+                        <li>DeviceName từ <code>DeviceInfo.Current.Name</code>, LanguageCode từ Preferences</li>
+                        <li>DurationMinutes ghi lại thời gian ở trong vùng geofence</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>⏱️ Thời gian trung bình tại POI</h3>
+                    <h3>🏆 AnalyticsTop.razor</h3>
+                    <p style="font-size:.85rem;color:var(--text-secondary);margin:.3rem 0 .7rem;"><code>/analytics-top</code> → <code>GET /api/Analytics/top-pois</code></p>
                     <ul>
-                        <li>Tính thời gian người dùng dừng lại trong vùng geofence</li>
-                        <li>Phân tích POI nào "giữ chân" du khách lâu nhất</li>
-                        <li>So sánh theo thời gian / ngày trong tuần</li>
+                        <li>Xếp hạng địa điểm theo <strong>lượt nghe (listenCount) + đánh giá (rating/5.0)</strong></li>
+                        <li>Card #1 highlight viền đỏ, các hạng còn lại viền xanh</li>
+                        <li>Hiển thị: tên quán, địa chỉ, số lượt nghe, rating ⭐</li>
+                        <li>Phân tích POI nào "giữ chân" du khách — hỗ trợ chiến lược Premium</li>
                     </ul>
                 </div>
-                <div class="card">
-                    <h3>🔥 Heatmap vị trí người dùng</h3>
-                    <ul>
-                        <li>Tổng hợp vị trí GPS ẩn danh của tất cả người dùng</li>
-                        <li>Hiển thị heatmap trên bản đồ admin</li>
-                        <li>Xác định khu vực hot spot, blind spot</li>
-                        <li>Hỗ trợ quyết định thêm POI mới</li>
-                    </ul>
-                </div>
+            </div>
+
+            <div class="highlight success" style="margin-top:1.2rem;">
+                <strong>Nguồn dữ liệu Analytics:</strong>
+                <p>Mỗi lần thiết bị vào Geofence → <code>DataService.AddHistoryAsync(poi)</code> → ghi SQLite local → <code>POST /api/Pois/history</code> với payload <code>{PoiId, DeviceName, LanguageCode, DurationMinutes}</code>. Analytics đọc từ bảng này, không tracking định danh cá nhân.</p>
             </div>
         </div>
     </div>
@@ -1397,52 +2070,61 @@
 
             <div class="highlight success">
                 <strong>Ý tưởng độc đáo:</strong>
-                <p>Đặt QR code tại <strong>điểm dừng xe buýt</strong> (Khánh Hội, Vĩnh Tạ, Xóm Chiếu) — hành khách ngồi chờ xe, quét QR là nghe thuyết minh ngay. <strong>Không cần GPS, không cần di chuyển.</strong></p>
+                <p>Đặt QR code tại <strong>điểm dừng xe buýt</strong> (Khánh Hội, Vĩnh Tạ, Xóm Chiếu) — hành khách ngồi chờ xe, quét QR là nghe thuyết minh ngay. <strong>Không cần tài khoản, không cần GPS, không cần đăng nhập.</strong></p>
             </div>
 
             <div class="card-grid">
                 <div class="card">
-                    <h3>📍 3 Điểm dừng xe buýt</h3>
+                    <h3>📷 ScannerPage — Camera QR</h3>
                     <ul>
-                        <li>🚌 Khánh Hội</li>
-                        <li>🚌 Vĩnh Tạ</li>
-                        <li>🚌 Xóm Chiếu</li>
-                        <li>Mỗi điểm có QR riêng → POI riêng</li>
+                        <li>Nút camera ở MainPage → mở <code>ScannerPage</code> dưới dạng modal</li>
+                        <li>Dùng thư viện camera MAUI để decode QR realtime</li>
+                        <li>QR chứa chuỗi dạng: <code>poi=VK_OC_OANH</code> (QrCodeKey prefix)</li>
+                        <li>Decode xong → đóng modal → trả kết quả về MainPage</li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>⚡ Trải nghiệm quét QR</h3>
+                    <h3>🔑 QrCodeKey Matching</h3>
                     <ul>
-                        <li>Quét bằng camera → mở app / deeplink</li>
-                        <li>App đọc POI ID từ QR → load nội dung local</li>
-                        <li>Phát thuyết minh ngay lập tức</li>
-                        <li>Không cần GPS, không cần internet (nếu đã sync)</li>
+                        <li>Parse chuỗi: <code>key.Contains("poi=") → Split("poi=")[1].Split("&")[0]</code></li>
+                        <li>Tra SQLite local: <code>_pois.FirstOrDefault(p => p.QrCodeKey == key)</code></li>
+                        <li>Nếu có → delay 500ms → <code>PlayPoiAudio(poi)</code> + <code>OpenBottomSheetForPoi(pin, poi)</code></li>
+                        <li>Nếu không có → <code>DisplayAlert("Rất tiếc", "Mã QR này không thuộc hệ thống!", "OK")</code></li>
                     </ul>
                 </div>
                 <div class="card">
-                    <h3>🔒 Hoạt động offline</h3>
+                    <h3>🔒 Hoạt động Offline — Guest Mode</h3>
                     <ul>
-                        <li>Nội dung POI đã có sẵn trong SQLite local</li>
-                        <li>QR chỉ chứa POI ID — không cần fetch thêm</li>
-                        <li>File audio thu sẵn cache local → phát ngay</li>
-                        <li>Lý tưởng cho vùng tín hiệu yếu</li>
+                        <li>Không yêu cầu đăng nhập — <code>SecureStorage["role"] == "Guest"</code> vẫn dùng được</li>
+                        <li>POI đã có sẵn trong SQLite → 0ms, không cần mạng</li>
+                        <li>Audio cache local → phát ngay qua <code>AudioManager.Current.CreatePlayer()</code></li>
+                        <li>Log lịch sử: <code>AddHistoryAsync(poi)</code> → ghi local → sync lên server khi có mạng</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>⚙️ Quản lý QR — Admin</h3>
+                    <ul>
+                        <li>Admin set <code>poi.QrCodeKey</code> khi tạo POI trên <code>Pois.razor</code></li>
+                        <li>Mỗi điểm dừng xe buýt có key riêng: <code>VK_OC_OANH</code>, <code>VK_VINH_TA</code>...</li>
+                        <li>Cập nhật Cloudflare URL trên <code>Home.razor</code> → sinh QR mới → in dán lại biển</li>
+                        <li>QR encode URL: <code>{cloudflareUrl}?poi={QrCodeKey}</code></li>
                     </ul>
                 </div>
             </div>
 
-            <h3 style="margin:1.5rem 0 .8rem;">Luồng QR Code</h3>
+            <h3 style="margin:1.5rem 0 .8rem;">Luồng QR Code — Thực Tế</h3>
             <div class="flow">
-                <span class="flow-step blue">Hành khách chờ xe buýt</span>
+                <span class="flow-step blue">Hành khách quét QR tại trạm</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">Quét QR trên biển</span>
+                <span class="flow-step">ScannerPage decode → chuỗi "poi=VK_OC_OANH"</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step alt">App mở (deeplink)</span>
+                <span class="flow-step alt">Tách key → tra SQLite _pois</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">Đọc POI ID từ QR</span>
+                <span class="flow-step">Tìm thấy PoiModel khớp QrCodeKey</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">Load từ SQLite local</span>
+                <span class="flow-step">OpenBottomSheet + PlayPoiAudio(poi)</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step green">🔊 Phát thuyết minh</span>
+                <span class="flow-step green">🔊 Phát thuyết minh ngay</span>
             </div>
         </div>
     </div>
@@ -1454,62 +2136,131 @@
                 <div class="icon" style="background:#fff3e0;color:var(--primary);">⚙️</div>
                 <div>
                     <div class="section-num">Chương 10</div>
-                    <h2>Kiến Trúc Hệ Thống</h2>
+                    <h2>Kiến Trúc Hệ Thống — 3 Project Thực Tế</h2>
                 </div>
             </div>
 
-            <!-- Diagram buttons injected here by script.js -->
             <div id="arch-diagrams"></div>
 
-            <div class="arch-grid">
+            <div class="arch-grid" style="margin-bottom:1.5rem;">
                 <div class="arch-module">
                     <div class="mod-icon">📱</div>
                     <div class="mod-name">TravelSmart.App</div>
-                    <div class="mod-desc">.NET MAUI — iOS &amp; Android. GPS, Geofence, TTS, SQLite, Map, QR</div>
+                    <div class="mod-desc">.NET MAUI — iOS &amp; Android. GPS Timer, Geofence tự tính, TTS 4 bước, SQLite offline, MAUI Maps, QR Scanner, SignalR client</div>
                 </div>
                 <div class="arch-module">
                     <div class="mod-icon">⚡</div>
                     <div class="mod-name">TravelSmart.API</div>
-                    <div class="mod-desc">ASP.NET Core. REST API, POI CRUD, Audio service, Sync endpoint</div>
+                    <div class="mod-desc">ASP.NET Core Web API. JWT Auth, REST endpoints, SignalR Hub <code>/travelhub</code>, static file <code>/audio/</code>, Entity Framework Core → SQL Server</div>
                 </div>
                 <div class="arch-module">
                     <div class="mod-icon">🖥️</div>
-                    <div class="mod-name">TravelSmart.Admin</div>
-                    <div class="mod-desc">Blazor Web. CMS quản lý POI, Audio, Bản dịch, Analytics dashboard</div>
+                    <div class="mod-name">TravelSmart.Web</div>
+                    <div class="mod-desc">Blazor <strong>WebAssembly</strong> (không phải Blazor Server). 8 trang: Login, Home (Dashboard), Pois, Tours, Audios, Users, 3× Analytics</div>
                 </div>
             </div>
 
-            <h3 style="margin:1.5rem 0 .8rem;">Công nghệ sử dụng</h3>
-            <div class="table-wrap">
+            <h3 style="margin:0 0 .8rem;">🌐 Hạ Tầng Deploy — Cloudflare Tunnel</h3>
+            <div class="card-grid" style="margin-bottom:1.5rem;">
+                <div class="card">
+                    <h3>☁️ Cloudflare Tunnel</h3>
+                    <ul>
+                        <li>API chạy local → expose qua Cloudflare Tunnel: <code>nights-inserted-designated-expenditure.trycloudflare.com</code></li>
+                        <li>App hardcode URL trong <code>AppConfig.ServerUrl</code> — thay mỗi ngày bảo vệ</li>
+                        <li>Admin cập nhật URL mới trên <code>Home.razor</code> → sinh lại QR code tất cả điểm dừng</li>
+                        <li>Static audio: <code>{ServerUrl}/audio/{poi.Id}_vi.mp3</code> phục vụ trực tiếp</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>🔐 JWT Authentication</h3>
+                    <ul>
+                        <li><code>POST /api/Auth/login</code> → trả <code>{Token, Role}</code></li>
+                        <li>Web lưu token: <code>localStorage["authToken"]</code></li>
+                        <li>App lưu token: <code>SecureStorage.Default["authToken"]</code></li>
+                        <li><code>GET /api/Auth/sync</code> → verify token + trả <code>{roleId, username}</code> — App gọi mỗi lần khởi động</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>📡 SignalR Hub — /travelhub</h3>
+                    <ul>
+                        <li>App kết nối: <code>HubConnectionBuilder().WithUrl("/travelhub?clientType=app")</code></li>
+                        <li>Web Admin kết nối: <code>clientType=admin</code> — sau connect gửi <code>RequestCurrentCounts</code></li>
+                        <li>App gửi: <code>JoinPoi(poiId.ToLower())</code> / <code>LeavePoi(poiId.ToLower())</code></li>
+                        <li>Web nhận: <code>UpdateOnlineCount(int)</code> + <code>UpdateViewerCount(poiId, int)</code> → live viewers mỗi quán</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 style="margin:0 0 .8rem;">📋 Toàn Bộ API Endpoints — 3 Project Gọi</h3>
+            <div class="table-wrap" style="margin-bottom:1.5rem;">
                 <table>
-                    <thead>
-                        <tr><th>Thành phần</th><th>Công nghệ</th><th>Lý do chọn</th></tr>
-                    </thead>
+                    <thead><tr><th>Controller</th><th>Method</th><th>Endpoint</th><th>Ai gọi</th><th>Mô tả</th></tr></thead>
                     <tbody>
-                        <tr><td>Mobile App</td><td>.NET MAUI</td><td>Cross-platform iOS/Android, tích hợp tốt GPS &amp; SQLite</td></tr>
-                        <tr><td>Backend API</td><td>ASP.NET Core</td><td>Đồng nhất stack C#, hiệu năng cao</td></tr>
-                        <tr><td>Admin Web</td><td>Blazor Server</td><td>Chia sẻ model với API, UI admin phức tạp</td></tr>
-                        <tr><td>Local DB</td><td>SQLite (EF Core)</td><td>Offline-first, nhẹ, hỗ trợ MAUI tốt</td></tr>
-                        <tr><td>Bản đồ</td><td>Microsoft Maps / MapLibre</td><td>Tích hợp MAUI, hỗ trợ custom marker</td></tr>
-                        <tr><td>TTS</td><td>Platform TTS + API</td><td>Fallback nhiều tầng, offline device TTS</td></tr>
-                        <tr><td>Geofencing</td><td>MAUI Geolocation + tính toán</td><td>Cross-platform, tối ưu pin OS-level</td></tr>
+                        <tr><td rowspan="5">Auth</td><td>POST</td><td><code>/api/Auth/login</code></td><td>Web + App</td><td>Đăng nhập → JWT token + Role</td></tr>
+                        <tr><td>GET</td><td><code>/api/Auth/sync</code></td><td>App</td><td>Verify token, trả roleId mỗi lần khởi động</td></tr>
+                        <tr><td>POST</td><td><code>/api/Auth/register</code></td><td>App</td><td>Đăng ký tài khoản mới</td></tr>
+                        <tr><td>POST</td><td><code>/api/Auth/request-merchant</code></td><td>App</td><td>Xin làm chủ quán</td></tr>
+                        <tr><td>POST</td><td><code>/api/Auth/logout</code></td><td>App</td><td>Hủy token</td></tr>
+                        <tr><td rowspan="7">Pois</td><td>GET</td><td><code>/api/Pois?_t={ticks}</code></td><td>App</td><td>Delta sync SQLite — trả toàn bộ POI</td></tr>
+                        <tr><td>GET</td><td><code>/api/Pois/{id}</code></td><td>App + Web</td><td>Chi tiết POI: <code>{menu[], reviews[]}</code></td></tr>
+                        <tr><td>POST</td><td><code>/api/Pois</code></td><td>Web (Pois.razor)</td><td>Tạo POI mới — body: PoiCreateDto</td></tr>
+                        <tr><td>DELETE</td><td><code>/api/Pois/{id}</code></td><td>Web</td><td>Xóa POI + cascade menu items</td></tr>
+                        <tr><td>POST</td><td><code>/api/Pois/{id}/upload-audio</code></td><td>Web</td><td>Upload MP3 thuyết minh gốc → lưu <code>AudioUrl</code></td></tr>
+                        <tr><td>POST</td><td><code>/api/Pois/{id}/upload-image</code></td><td>Web</td><td>Upload ảnh quán → lưu <code>ImageUrl</code></td></tr>
+                        <tr><td>POST</td><td><code>/api/Pois/history</code></td><td>App</td><td>Ghi log Geofence: <code>{PoiId, DeviceName, LanguageCode, DurationMinutes}</code></td></tr>
+                        <tr><td rowspan="2">Menu</td><td>POST</td><td><code>/api/Pois/{id}/menu</code></td><td>Web + App</td><td>Thêm món: <code>{ItemName, Price}</code></td></tr>
+                        <tr><td>DELETE</td><td><code>/api/Pois/menu/{itemId}</code></td><td>Web</td><td>Xóa món khỏi menu</td></tr>
+                        <tr><td>Reviews</td><td>POST</td><td><code>/api/Pois/{id}/review</code></td><td>App</td><td>Gửi đánh giá: <code>{Rating, Comment}</code> — chỉ User đã đăng nhập</td></tr>
+                        <tr><td rowspan="3">Tours</td><td>GET</td><td><code>/api/Tours</code></td><td>Web + App</td><td>Danh sách tour</td></tr>
+                        <tr><td>POST</td><td><code>/api/Tours</code></td><td>Web</td><td>Tạo tour: <code>{Name, Description, IsActive}</code></td></tr>
+                        <tr><td>GET + POST</td><td><code>/api/Tours/{id}/details</code> + <code>/add-poi</code></td><td>Web + App</td><td>Lấy trạm / Thêm POI vào tour theo Order</td></tr>
+                        <tr><td rowspan="2">Users</td><td>GET + POST</td><td><code>/api/Users</code></td><td>Web</td><td>Danh sách + tạo tài khoản: <code>{Username, Email, Password, RoleId}</code></td></tr>
+                        <tr><td>POST</td><td><code>/api/Users/{id}/approve</code> + <code>/reject</code></td><td>Web</td><td>Duyệt / từ chối đơn xin làm Merchant</td></tr>
+                        <tr><td rowspan="2">Dashboard</td><td>GET</td><td><code>/api/Dashboard/summary</code></td><td>Web</td><td>KPI: TotalUsers, TotalRevenue, TotalPois, TotalOrders, AverageRating (phân quyền Admin/Merchant)</td></tr>
+                        <tr><td>GET</td><td><code>/api/Dashboard/heatmap?days=7</code></td><td>Web</td><td>Biểu đồ lượt nghe 7 ngày: <code>List&lt;{Date, Count}&gt;</code></td></tr>
+                        <tr><td rowspan="3">Analytics</td><td>GET</td><td><code>/api/Analytics/heatmap</code></td><td>Web</td><td>Tọa độ GPS cho Leaflet: <code>List&lt;{name, lat, lng}&gt;</code></td></tr>
+                        <tr><td>GET</td><td><code>/api/Analytics/logs</code></td><td>Web</td><td>Lịch sử: <code>List&lt;{time, device, poiName, duration, language}&gt;</code></td></tr>
+                        <tr><td>GET</td><td><code>/api/Analytics/top-pois</code></td><td>Web</td><td>Xếp hạng: <code>List&lt;{name, address, listenCount, rating}&gt;</code></td></tr>
+                        <tr><td>SignalR</td><td>GET</td><td><code>/travelhub</code></td><td>App (<code>clientType=app</code>) + Web Admin (<code>clientType=admin</code>)</td><td>Hub realtime: JoinPoi, LeavePoi, UpdateOnlineCount, UpdateViewerCount</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <h3 style="margin:1.5rem 0 .8rem;">Luồng dữ liệu tổng quan</h3>
+            <h3 style="margin:0 0 .8rem;">🔧 Công Nghệ Sử Dụng</h3>
+            <div class="table-wrap" style="margin-bottom:1.5rem;">
+                <table>
+                    <thead><tr><th>Thành phần</th><th>Công nghệ thực tế</th><th>Ghi chú</th></tr></thead>
+                    <tbody>
+                        <tr><td>Mobile App</td><td>.NET MAUI (.NET 8)</td><td>Cross-platform iOS/Android — GPS, Maps, QR, SQLite, SignalR client</td></tr>
+                        <tr><td>Backend API</td><td>ASP.NET Core Web API</td><td>JWT Auth, EF Core, SignalR Hub, static file serving</td></tr>
+                        <tr><td>Admin Web</td><td>Blazor <strong>WebAssembly</strong></td><td>Chạy hoàn toàn trên browser — không phải Blazor Server</td></tr>
+                        <tr><td>Database (API)</td><td>SQL Server / InMemory (PoC)</td><td>Production dùng SQL Server, PoC hiện dùng <code>UseInMemoryDatabase</code></td></tr>
+                        <tr><td>Database (App)</td><td>SQLite (sqlite-net-pcl)</td><td>2 bảng: PoiModel + VisitLogModel — offline first</td></tr>
+                        <tr><td>Bản đồ (App)</td><td>Microsoft.Maui.Controls.Maps</td><td>Pins, Circle (radar), Polyline (tour route)</td></tr>
+                        <tr><td>Bản đồ (Web)</td><td>Leaflet.js + OpenStreetMap</td><td>Heatmap circles, popup tên POI</td></tr>
+                        <tr><td>TTS</td><td>TextToSpeech.Default + Google Translate API</td><td>Fallback cuối — vi/en/ja</td></tr>
+                        <tr><td>Audio (App)</td><td>Plugin.Maui.Audio</td><td><code>AudioManager.Current.CreatePlayer(stream)</code></td></tr>
+                        <tr><td>Audio (Server)</td><td>EdgeTTS → static MP3</td><td>Lưu tại <code>/audio/{poi.Id}_vi.mp3</code></td></tr>
+                        <tr><td>Real-time</td><td>SignalR (<code>/travelhub</code>)</td><td>Online count, JoinPoi/LeavePoi events</td></tr>
+                        <tr><td>Deploy</td><td>Cloudflare Tunnel</td><td>Expose localhost → URL public, thay mỗi session</td></tr>
+                        <tr><td>Auth</td><td>JWT Bearer Token</td><td>Lưu SecureStorage (App) / localStorage (Web)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin:0 0 .8rem;">Luồng dữ liệu tổng quan</h3>
             <div class="flow">
-                <span class="flow-step blue">Admin tạo POI (CMS)</span>
+                <span class="flow-step blue">Admin tạo POI + upload audio (CMS)</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">API lưu DB</span>
+                <span class="flow-step">API lưu SQL Server + static /audio/</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step alt">Background xử lý audio</span>
+                <span class="flow-step alt">App sync delta SQLite qua ?_t={ticks}</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">App sync SQLite</span>
+                <span class="flow-step">IDispatcherTimer 5s → CheckGeofence()</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step">GPS → Geofence trigger</span>
+                <span class="flow-step">PlayPoiAudio() 4 bước fallback</span>
                 <span class="flow-arrow">→</span>
-                <span class="flow-step green">🔊 TTS phát audio</span>
+                <span class="flow-step green">🔊 Phát + SignalR JoinPoi + log history</span>
             </div>
         </div>
     </div>
@@ -2010,24 +2761,30 @@
         participant SRV as API Server
 
         loop Lap lai moi 5 giay
-            TMR->>APP: Tick - GetLocationAsync()
-            APP->>GPS: Geolocation.GetLocationAsync()
-            GPS-->>APP: userLoc (Lat, Lng, Accuracy)
+            TMR->>APP: Tick - _timer.Interval = 5s
+            APP->>GPS: Geolocation.GetLocationAsync(GeolocationAccuracy.Medium)
+            GPS-->>APP: Location (Lat, Lng)
             APP->>APP: CheckGeofence(Location userLoc)
-            Note over APP: B1 - Lap qua danh sach _pois dang co
-            APP->>APP: CalculateDistance(userLoc, poi) voi tung POI
-            Note over APP: B2 - Gom POI co khoang cach duoi 50m
-            APP->>APP: List enteredPois = pois.Where(d less than 50m)
-            Note over APP: B3 - Sap xep - quan trong nhat
-            APP->>APP: enteredPois.OrderBy(x => x.KhoangCach).ThenByDescending(x => x.IsPremium).ThenBy(x => x.Name).First()
-            Note over APP: B4 - Lay POI First - kiem tra Cooldown 3 phut
-            alt Chua trong cooldown - cho phep phat
+            Note over APP: B1 - Lap qua danh sach _pois
+            APP->>APP: Location.CalculateDistance(userLoc, poiLoc, Kilometers)
+            Note over APP: B2 - Gom POI co khoang cach duoi currentRadiusKm (mac dinh 50m)
+            APP->>APP: pOfEnteredPois = List of Tuple PoiModel-double
+            Note over APP: B3 - Sap xep quan trong nhat
+            APP->>APP: pOfEnteredPois.OrderBy(x => x.Item2).ThenByDescending(x => x.Item1.Priority).ThenBy(x => x.Item1.Name).First()
+            Note over APP: B4 - Kiem tra _poiCooldowns - cooldown 3 phut
+            alt isCoolingDown == false - cho phep phat
+                APP->>APP: StopSpeech() - dung audio cu
+                APP->>APP: _poiCooldowns[poi.Id] = DateTime.Now
+                APP->>APP: HighlightActivePoi() - ve circle do tren ban do
                 APP->>APP: PlayPoiAudio(poi)
-                APP->>SRV: POST /api/Pois/history
-                SRV-->>APP: 200 OK - da ghi HeatmapLog
-            else Dang trong cooldown - bo qua
+                APP->>APP: OpenBottomSheetForPoi(pin, poi)
+                APP->>SRV: POST /api/Pois/history via DataService.AddHistoryAsync
+                SRV-->>APP: 200 OK - ghi HeatmapLog
+            else isCoolingDown == true - bo qua
                 APP->>APP: Skip - khong phat trung POI
             end
+            Note over APP: Kiem tra exit - distance > radius + 50m buffer
+            APP->>APP: _entryTimes.Remove(poiId) neu du khach da roi vung
         end`
                 },
 
@@ -2038,44 +2795,45 @@
         participant APP as Mobile App
         participant FS as Local FileSystem
         participant HTTP as HttpClient
-        participant CDN as Cloudflare CDN
-        participant TTS as SmartSpeak TTS
+        participant CDN as Server - CDN
+        participant TTS as SmartSpeak - Google Translate - TextToSpeech
 
         APP->>APP: PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
-        Note over APP: localFilePathVi = Path.Combine(FileSystem.CacheDirectory, poi.Id_vi.mp3)
-        APP->>FS: File.Exists(localFilePathVi)
+        APP->>APP: StopSpeech() - huy CancellationToken - dispose _audioPlayer cu
+        Note over APP: targetLang = tempLangOverride ?? Preferences DefaultLang
 
-        alt B1 - File da co tren may
+        alt Buoc 0 - Admin da upload audio goc poi.AudioUrl
+            APP->>HTTP: GetByteArrayAsync(poi.AudioUrl) neu chua co manual cache
+            HTTP->>CDN: GET poi.AudioUrl
+            CDN-->>HTTP: audioBytes
+            APP->>FS: File.WriteAllBytesAsync(manual_poi.Id.mp3)
+            APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
+            Note over APP: Gong tu nhien chuyen nghiep - ket thuc
+
+        else Buoc 1 - Cache local da co file EdgeTTS
+            APP->>FS: File.Exists(CacheDir/poi.Id_vi.mp3)
             FS-->>APP: true
             APP->>FS: File.OpenRead(localFilePathVi)
-            FS-->>APP: FileStream stream
-            APP->>APP: AudioManager.Current.CreatePlayer(stream)
-            APP->>APP: _audioPlayer.Play() then return
-            Note over APP: Phat ngay - ket thuc luong
+            APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
+            Note over APP: Khong can mang - 0ms - ket thuc
 
-        else B2 - Chua co local - co mang - server co MP3
+        else Buoc 2 - Co mang - download EdgeTTS tu server
             FS-->>APP: false
             Note over APP: Connectivity.Current.NetworkAccess == NetworkAccess.Internet
             APP->>HTTP: httpClient.GetByteArrayAsync(safeBaseUrl/audio/poi.Id_vi.mp3)
             HTTP->>CDN: GET /audio/poi.Id_vi.mp3
-            CDN-->>HTTP: 200 OK - audioBytes
-            HTTP-->>APP: byte[] audioBytes
+            CDN-->>HTTP: 200 OK - EdgeTTS MP3 bytes
             APP->>FS: File.WriteAllBytesAsync(localFilePathVi, audioBytes)
-            FS-->>APP: Da luu cache
-            APP->>APP: _audioPlayer.Play() then return
-            Note over APP: Phat tu CDN + cache lai cho lan sau
+            APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
+            Note over APP: Cache lai cho lan sau - ket thuc
 
-        else B3 - Chua co local - co mang - server 404
-            CDN-->>HTTP: Exception - Server chua co MP3
-            Note over APP: catch - Console.WriteLine Server khong co file MP3
+        else Buoc 3 - Server 404 hoac khong co mang - SmartSpeak fallback
+            CDN-->>HTTP: Exception - server chua co MP3
+            Note over APP: catch - xu ly ngon ngu en va ja
             APP->>TTS: SmartSpeak(poi.TtsContent, targetLang)
-            TTS-->>APP: Audio stream Text-To-Speech
-            Note over APP: Ep chu thanh tieng doc ra loa
-
-        else B4 - Khong co mang
-            Note over APP: NetworkAccess != Internet - bo qua try block
-            APP->>TTS: SmartSpeak(poi.TtsContent, targetLang)
-            TTS-->>APP: Device TTS offline
+            TTS->>TTS: Goi translate.googleapis.com neu lang != vi
+            TTS->>TTS: TextToSpeech.Default.SpeakAsync(text, SpeechOptions, cancelToken)
+            TTS-->>APP: Device TTS phat ra loa
         end`
                 },
 
@@ -2084,29 +2842,32 @@
                     mermaid: `sequenceDiagram
         autonumber
         participant DK as Du Khach
-        participant CAM as QR Scanner
-        participant APP as Mobile App
+        participant SCN as ScannerPage Modal
+        participant APP as MainPage App
         participant SQL as SQLite Local
         participant API as API Server
 
-        DK->>CAM: Quet ma QR tai diem dung xe buyt
-        CAM-->>APP: QR string decoded - poiId
-        Note over APP: Khong yeu cau dang nhap tai khoan
-        APP->>SQL: SELECT * FROM Pois WHERE Id = poiId
-        alt POI co san trong SQLite offline
-            SQL-->>APP: PoiModel data
-            Note over APP: Dung du lieu da cache san
-        else Chua co trong SQLite - lay tu API
+        DK->>APP: Bam nut camera tren MainPage
+        APP->>SCN: Mo ScannerPage modal
+        SCN->>SCN: Camera realtime decode QR
+        SCN-->>APP: Tra ve chuoi QR - vi du: poi=VK_OC_OANH
+        Note over APP: Parse chuoi - tach phan sau poi=
+        APP->>APP: key = VK_OC_OANH
+        APP->>SQL: _pois.FirstOrDefault(p => p.QrCodeKey == key)
+        alt Khop trong SQLite - offline OK
+            SQL-->>APP: PoiModel da co san
+            Note over APP: Khong can mang - 0ms
+        else Chua co trong SQLite
             SQL-->>APP: null
-            APP->>API: GET /api/Pois/poiId
+            APP->>API: GET /api/Pois/key
             API-->>APP: 200 OK - PoiModel JSON
-            APP->>SQL: INSERT OR REPLACE Pois (cache lai)
-            SQL-->>APP: Da luu
+            APP->>SQL: Insert PoiModel vao SQLite cache
         end
+        APP->>APP: OpenBottomSheetForPoi(poi)
         APP->>APP: PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
-        Note over APP: Phat thuyet minh ngay lap tuc
-        APP->>API: POST /api/Pois/history - fire and forget
-        Note over APP,API: Ghi log Heatmap khong blocking UI`
+        Note over APP: SecureStorage role == Guest - van phat duoc
+        APP->>API: POST /api/Pois/history fire and forget
+        Note over APP,API: DeviceName - LanguageCode - DurationMinutes`
                 },
 
                 seq_queue_concurrent: {

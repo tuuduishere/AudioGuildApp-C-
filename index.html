@@ -2372,14 +2372,15 @@
                 <div class="icon" style="background:#ede7f6;color:#6a1b9a;">🔀</div>
                 <div>
                     <div class="section-num">Chương 13</div>
-                    <h2>Sequence Diagrams — 5 Flow Logic Chi Tiết</h2>
+                    <h2>Sequence Diagrams — 6 Flow Logic Chi Tiết</h2>
                 </div>
             </div>
 
             <p style="color:var(--text-secondary);margin-bottom:1.8rem;">
-                Năm sơ đồ tuần tự phủ đầy đủ 5 yêu cầu: <strong>Heatmap monitoring</strong>,
+                Sáu sơ đồ tuần tự phủ đầy đủ 6 yêu cầu: <strong>Heatmap monitoring</strong>,
                 <strong>GPS &amp; xử lý trùng POI</strong>, <strong>Audio mượt mà</strong>,
-                <strong>QR không cần account</strong>, và <strong>nhiều du khách cùng POI — hàng đợi &amp; performance</strong>.
+                <strong>QR không cần account</strong>, <strong>nhiều du khách cùng POI — hàng đợi &amp; performance</strong>,
+                và <strong>Dashboard Real-time Admin</strong>.
                 Diagram khớp trực tiếp với code → thể hiện PRD.
             </p>
 
@@ -2433,11 +2434,31 @@
                     </div>
                     <button class="uml-open-btn uml-btn-sequence" data-diagram="seq_queue_concurrent">📊 Mở sơ đồ</button>
                 </div>
+
+                <div class="uml-type-card uml-sequence">
+                    <div class="uml-card-icon">🏠</div>
+                    <div class="uml-card-info">
+                        <div class="uml-card-type">Sequence Diagram — Flow 6</div>
+                        <div class="uml-card-name">Dashboard Real-time — Tổng Quan Admin</div>
+                        <div class="uml-card-desc">Home.razor khởi động → load KPI summary → biểu đồ lượt nghe 7 ngày → kết nối SignalR clientType=admin → nhận <code>UpdateOnlineCount</code> + <code>UpdateViewerCount</code> realtime + sinh QR trạm xe buýt</div>
+                    </div>
+                    <button class="uml-open-btn uml-btn-sequence" data-diagram="seq_dashboard">📊 Mở sơ đồ</button>
+                </div>
+
+                <div class="uml-type-card uml-sequence">
+                    <div class="uml-card-icon">👥</div>
+                    <div class="uml-card-info">
+                        <div class="uml-card-type">Sequence Diagram — Flow 7</div>
+                        <div class="uml-card-name">Đếm Số Thiết Bị Đang Truy Cập App</div>
+                        <div class="uml-card-desc">Hàm <code>OnConnectedAsync</code> / <code>OnDisconnectedAsync</code> tăng giảm <code>_totalOnline</code> → broadcast <code>UpdateOnlineCount</code> → Admin nhận realtime trên Dashboard</div>
+                    </div>
+                    <button class="uml-open-btn uml-btn-sequence" data-diagram="seq_online_count">📊 Mở sơ đồ</button>
+                </div>
             </div>
 
             <div class="highlight success" style="margin-top:1.5rem;">
                 <strong>✅ Khớp với code thực tế:</strong>
-                <p>Các sơ đồ được vẽ trực tiếp từ code <code>PlayPoiAudio()</code>, <code>CheckGeofence()</code>, <code>FetchHeatmapData()</code> — đảm bảo diagram = implementation, không phải tài liệu rời rạc.</p>
+                <p>Các sơ đồ được vẽ trực tiếp từ code <code>PlayPoiAudio()</code>, <code>CheckGeofence()</code>, <code>FetchHeatmapData()</code>, <code>Home.razor OnInitializedAsync()</code> — đảm bảo diagram = implementation, không phải tài liệu rời rạc.</p>
             </div>
         </div>
     </div>
@@ -2491,427 +2512,548 @@
                     { key: "seq_heatmap", label: "Flow 2: Heatmap" },
                     { key: "seq_geofence_poi", label: "Flow 3: GPS & Trùng POI" },
                     { key: "seq_audio_player", label: "Flow 4: PlayPoiAudio" },
-                    { key: "seq_queue_concurrent", label: "Flow 5: Hàng đợi & Performance" }
+                    { key: "seq_queue_concurrent", label: "Flow 5: Hàng đợi & Performance" },
+                    { key: "seq_dashboard", label: "Flow 6: Dashboard Real-time Admin" },
+                    { key: "seq_online_count", label: "Flow 7: Đếm số thiết bị Online" }
                 ]
             },
             diagrams: {
                 geofence_flow: {
                     title: "Luồng Geofence — Kích hoạt thuyết minh",
                     mermaid: `flowchart TD
-        A([📡 GPS cập nhật vị trí]) --> B[Tính khoảng cách đến tất cả POI]
-        B --> C{POI nào < bán kính?}
-        C -- Không --> A
-        C -- Có --> D{Đã trong cooldown?}
-        D -- Có --> A
-        D -- Không --> E[Cập nhật trạng thái geofence]
-        E --> F{Loại trigger?}
-        F -- Enter Zone --> G[Phát ngay khi vào vùng]
-        F -- Nearest --> H[Phát POI gần nhất]
-        G --> I[Debounce 500ms]
-        H --> I
-        I --> J[Đẩy vào Audio Queue]
-        J --> K{Có file audio sẵn?}
-        K -- Tier 1: Có --> L[🔊 Phát file MP3 local]
-        K -- Không --> M{Có mạng?}
-        M -- Có --> N[Tier 2/3: Download / TTS API]
-        M -- Không --> O[Tier 4: Device TTS offline]
-        N --> L
-        O --> L
-        L --> P[Set cooldown timer]
-        P --> A`
+            A([📡 GPS cập nhật vị trí]) --> B[Tính khoảng cách đến tất cả POI]
+            B --> C{POI nào < bán kính?}
+            C -- Không --> A
+            C -- Có --> D{Đã trong cooldown?}
+            D -- Có --> A
+            D -- Không --> E[Cập nhật trạng thái geofence]
+            E --> F{Loại trigger?}
+            F -- Enter Zone --> G[Phát ngay khi vào vùng]
+            F -- Nearest --> H[Phát POI gần nhất]
+            G --> I[Debounce 500ms]
+            H --> I
+            I --> J[Đẩy vào Audio Queue]
+            J --> K{Có file audio sẵn?}
+            K -- Tier 1: Có --> L[🔊 Phát file MP3 local]
+            K -- Không --> M{Có mạng?}
+            M -- Có --> N[Tier 2/3: Download / TTS API]
+            M -- Không --> O[Tier 4: Device TTS offline]
+            N --> L
+            O --> L
+            L --> P[Set cooldown timer]
+            P --> A`
                 },
 
                 gps_arch: {
                     title: "Kiến trúc GPS & Location Service",
                     mermaid: `graph TB
-        subgraph App["📱 MAUI App"]
-          subgraph FG["Foreground"]
-            UI[Map Screen]
-            UIM[User Marker]
-          end
-          subgraph BG["Background Service"]
-            GPS[GPS Listener<br/>High Accuracy]
-            OPT[Optimizer<br/>Giảm tần suất khi đứng yên]
-            GEO[Geofence Engine]
-          end
-          subgraph Data["Local Data"]
-            SQL[(SQLite<br/>POI Cache)]
-            AC[Audio Cache<br/>MP3 files]
-          end
-          subgraph Audio["Audio Engine"]
-            Q[Audio Queue FIFO]
-            TTS[TTS Engine]
-            PL[Player]
-          end
-        end
-        GPS --> OPT --> GEO
-        GEO --> Q
-        GEO --> UIM
-        GPS --> UIM
-        SQL --> GEO
-        Q --> TTS --> PL
-        AC --> PL`
+            subgraph App["📱 MAUI App"]
+              subgraph FG["Foreground"]
+                UI[Map Screen]
+                UIM[User Marker]
+              end
+              subgraph BG["Background Service"]
+                GPS[GPS Listener<br/>High Accuracy]
+                OPT[Optimizer<br/>Giảm tần suất khi đứng yên]
+                GEO[Geofence Engine]
+              end
+              subgraph Data["Local Data"]
+                SQL[(SQLite<br/>POI Cache)]
+                AC[Audio Cache<br/>MP3 files]
+              end
+              subgraph Audio["Audio Engine"]
+                Q[Audio Queue FIFO]
+                TTS[TTS Engine]
+                PL[Player]
+              end
+            end
+            GPS --> OPT --> GEO
+            GEO --> Q
+            GEO --> UIM
+            GPS --> UIM
+            SQL --> GEO
+            Q --> TTS --> PL
+            AC --> PL`
                 },
 
                 system_arch: {
                     title: "Kiến trúc tổng quan hệ thống TravelSmart",
                     mermaid: `graph TB
-        subgraph Client["Client Layer"]
-          APP["📱 TravelSmart.App<br/>.NET MAUI<br/>iOS & Android"]
-          ADMIN["🖥️ TravelSmart.Admin<br/>Blazor Web<br/>CMS & Analytics"]
-        end
-        subgraph Server["Server Layer"]
-          API["⚡ TravelSmart.API<br/>ASP.NET Core<br/>REST API"]
-          BG["🔄 Background Service<br/>Audio Processing<br/>TTS Generation"]
-          DB[("🗄️ Database<br/>SQL Server")]
-          FS["📁 File Storage<br/>Audio MP3<br/>Images"]
-        end
-        subgraph Mobile["Mobile Local"]
-          SQL2[("💾 SQLite<br/>Offline Cache")]
-          AC2["🎵 Audio Cache<br/>Local Files"]
-        end
-        APP <-->|"REST API<br/>Sync khi có mạng"| API
-        ADMIN <-->|"REST API"| API
-        API <--> DB
-        API <--> FS
-        API --> BG
-        BG --> DB
-        BG --> FS
-        APP --- SQL2
-        APP --- AC2
-        SQL2 <-->|"Sync delta"| API`
+            subgraph Client["Client Layer"]
+              APP["📱 TravelSmart.App<br/>.NET MAUI<br/>iOS & Android"]
+              ADMIN["🖥️ TravelSmart.Admin<br/>Blazor Web<br/>CMS & Analytics"]
+            end
+            subgraph Server["Server Layer"]
+              API["⚡ TravelSmart.API<br/>ASP.NET Core<br/>REST API"]
+              BG["🔄 Background Service<br/>Audio Processing<br/>TTS Generation"]
+              DB[("🗄️ Database<br/>SQL Server")]
+              FS["📁 File Storage<br/>Audio MP3<br/>Images"]
+            end
+            subgraph Mobile["Mobile Local"]
+              SQL2[("💾 SQLite<br/>Offline Cache")]
+              AC2["🎵 Audio Cache<br/>Local Files"]
+            end
+            APP <-->|"REST API<br/>Sync khi có mạng"| API
+            ADMIN <-->|"REST API"| API
+            API <--> DB
+            API <--> FS
+            API --> BG
+            BG --> DB
+            BG --> FS
+            APP --- SQL2
+            APP --- AC2
+            SQL2 <-->|"Sync delta"| API`
                 },
 
                 data_flow: {
                     title: "Luồng dữ liệu: Admin → API → App",
                     mermaid: `sequenceDiagram
-        participant A as 👤 Admin
-        participant CMS as 🖥️ Blazor Admin
-        participant API as ⚡ ASP.NET API
-        participant BG as 🔄 Background
-        participant APP as 📱 MAUI App
-        participant SQL as 💾 SQLite
+            participant A as 👤 Admin
+            participant CMS as 🖥️ Blazor Admin
+            participant API as ⚡ ASP.NET API
+            participant BG as 🔄 Background
+            participant APP as 📱 MAUI App
+            participant SQL as 💾 SQLite
 
-        A->>CMS: Tạo POI mới + upload audio
-        CMS->>API: POST /api/poi
-        API->>API: Lưu POI vào DB
-        API->>BG: Queue xử lý audio
-        API-->>CMS: 201 Created
-        BG->>BG: Encode audio, tạo TTS scripts
-        BG->>API: Cập nhật trạng thái audio
+            A->>CMS: Tạo POI mới + upload audio
+            CMS->>API: POST /api/poi
+            API->>API: Lưu POI vào DB
+            API->>BG: Queue xử lý audio
+            API-->>CMS: 201 Created
+            BG->>BG: Encode audio, tạo TTS scripts
+            BG->>API: Cập nhật trạng thái audio
 
-        Note over APP,SQL: App mở hoặc có mạng
-        APP->>API: GET /api/poi/sync?since={last_sync}
-        API-->>APP: Delta POI thay đổi
-        APP->>SQL: Upsert vào SQLite
-        APP->>APP: Download audio files mới
+            Note over APP,SQL: App mở hoặc có mạng
+            APP->>API: GET /api/poi/sync?since={last_sync}
+            API-->>APP: Delta POI thay đổi
+            APP->>SQL: Upsert vào SQLite
+            APP->>APP: Download audio files mới
 
-        Note over APP: GPS trigger Geofence
-        APP->>SQL: Query POI trong bán kính
-        SQL-->>APP: Danh sách POI
-        APP->>APP: 🔊 Phát thuyết minh`
+            Note over APP: GPS trigger Geofence
+            APP->>SQL: Query POI trong bán kính
+            SQL-->>APP: Danh sách POI
+            APP->>APP: 🔊 Phát thuyết minh`
                 },
 
 
                 uml_usecase: {
                     title: "Use Case Diagram — Ca Sử Dụng Hệ Thống TravelSmart",
                     mermaid: `graph LR
-        DK(["👤 Du Khách"])
-        AD(["👤 Admin"])
+            DK(["👤 Du Khách"])
+            AD(["👤 Admin"])
 
-        subgraph SYS["🔲 TravelSmart System"]
-            UC1(["Xem bản đồ POI"])
-            UC2(["Quét QR tại xe buýt"])
-            UC3(["Phát âm thanh thuyết minh"])
-            UC4(["Nhận thuyết minh tự động qua GPS"])
-            UC5(["Tải / Sử dụng dữ liệu offline"])
-            UC6(["Đăng nhập"])
-            UC7(["Quản lý POI"])
-            UC8(["Xem báo cáo và Thống kê"])
-            UC9(["Quản lý nội dung thuyết minh"])
-        end
+            subgraph SYS["🔲 TravelSmart System"]
+                UC1(["Xem bản đồ POI"])
+                UC2(["Quét QR tại xe buýt"])
+                UC3(["Phát âm thanh thuyết minh"])
+                UC4(["Nhận thuyết minh tự động qua GPS"])
+                UC5(["Tải / Sử dụng dữ liệu offline"])
+                UC6(["Đăng nhập"])
+                UC7(["Quản lý POI"])
+                UC8(["Xem báo cáo và Thống kê"])
+                UC9(["Quản lý nội dung thuyết minh"])
+            end
 
-        DK --- UC1
-        DK --- UC2
-        DK --- UC3
-        DK --- UC4
-        DK --- UC5
-        AD --- UC6
-        AD --- UC7
-        AD --- UC8
-        AD --- UC9
+            DK --- UC1
+            DK --- UC2
+            DK --- UC3
+            DK --- UC4
+            DK --- UC5
+            AD --- UC6
+            AD --- UC7
+            AD --- UC8
+            AD --- UC9
 
-        UC2 -. include .-> UC3
-        UC4 -. include .-> UC3
-        UC7 -. include .-> UC6
-        UC7 -. include .-> UC9
-        UC8 -. include .-> UC6`
+            UC2 -. include .-> UC3
+            UC4 -. include .-> UC3
+            UC7 -. include .-> UC6
+            UC7 -. include .-> UC9
+            UC8 -. include .-> UC6`
                 },
 
                 uml_activity: {
                     title: "Activity Diagram — Luồng Hoạt Động Ứng Dụng TravelSmart",
                     mermaid: `flowchart TD
-        S(["▶ Bắt đầu"]) --> A["Khởi động app"]
-        A --> B{"Có mạng?"}
-        B -- Có --> C["Sync POI từ server"]
-        B -- Không --> E["Load POI từ SQLite"]
-        C --> D["Lưu vào SQLite"]
-        D --> E
-        E --> F["Hiển thị Map View"]
-        F --> FORK["⬦ fork"]
-        FORK --> QR["Quét QR Code"]
-        FORK --> GPS["GPS tracking liên tục"]
-        QR --> J1["Load POI theo QR ID"]
-        GPS --> K{"Vào vùng POI?"}
-        K -- Không --> GPS
-        K -- Có --> L["Debounce / Cooldown check"]
-        L --> M["Enqueue POI lang"]
-        J1 --> M
-        M --> N{"Audio local?"}
-        N -- Có --> O["🔊 Phát audio"]
-        N -- Không --> P["TTS fallback"]
-        O --> R["Log analytics"]
-        P --> R
-        R --> END(["■ Kết thúc"])`
+            S(["▶ Bắt đầu"]) --> A["Khởi động app"]
+            A --> B{"Có mạng?"}
+            B -- Có --> C["Sync POI từ server"]
+            B -- Không --> E["Load POI từ SQLite"]
+            C --> D["Lưu vào SQLite"]
+            D --> E
+            E --> F["Hiển thị Map View"]
+            F --> FORK["⬦ fork"]
+            FORK --> QR["Quét QR Code"]
+            FORK --> GPS["GPS tracking liên tục"]
+            QR --> J1["Load POI theo QR ID"]
+            GPS --> K{"Vào vùng POI?"}
+            K -- Không --> GPS
+            K -- Có --> L["Debounce / Cooldown check"]
+            L --> M["Enqueue POI lang"]
+            J1 --> M
+            M --> N{"Audio local?"}
+            N -- Có --> O["🔊 Phát audio"]
+            N -- Không --> P["TTS fallback"]
+            O --> R["Log analytics"]
+            P --> R
+            R --> END(["■ Kết thúc"])`
                 },
 
                 uml_sequence: {
                     title: "Sequence Diagram — Tổng Quan: GPS → Geofence → Audio Player",
                     mermaid: `sequenceDiagram
-        participant TMR as ⏱️ Timer (5s)
-        participant APP as 📱 Mobile App
-        participant SQL as 💾 SQLite Local
-        participant CDN as ☁️ CDN / TTS
-        participant SRV as ⚡ API Server
+            participant TMR as ⏱️ Timer (5s)
+            participant APP as 📱 Mobile App
+            participant SQL as 💾 SQLite Local
+            participant CDN as ☁️ CDN / TTS
+            participant SRV as ⚡ API Server
 
-        loop Mỗi 5 giây
-            TMR->>APP: GetLocationAsync()
-            APP->>APP: CheckGeofence(userLoc)
-            APP->>SQL: Query _pois trong bán kính
-            SQL-->>APP: enteredPois List
-            APP->>APP: Sắp xếp: KhoangCach → IsPremium → Name
-            APP->>APP: Kiểm tra Cooldown (3 phút)
-            APP->>APP: PlayPoiAudio(poi)
-            APP->>CDN: GET /audio/{id}_vi.mp3
-            alt File tồn tại
-                CDN-->>APP: MP3 bytes
-                APP->>APP: _audioPlayer.Play()
-            else Không có file
-                APP->>CDN: SmartSpeak TTS
-                CDN-->>APP: Audio stream
-            end
-            APP->>SRV: POST /api/Pois/history
-        end`
+            loop Mỗi 5 giây
+                TMR->>APP: GetLocationAsync()
+                APP->>APP: CheckGeofence(userLoc)
+                APP->>SQL: Query _pois trong bán kính
+                SQL-->>APP: enteredPois List
+                APP->>APP: Sắp xếp: KhoangCach → IsPremium → Name
+                APP->>APP: Kiểm tra Cooldown (3 phút)
+                APP->>APP: PlayPoiAudio(poi)
+                APP->>CDN: GET /audio/{id}_vi.mp3
+                alt File tồn tại
+                    CDN-->>APP: MP3 bytes
+                    APP->>APP: _audioPlayer.Play()
+                else Không có file
+                    APP->>CDN: SmartSpeak TTS
+                    CDN-->>APP: Audio stream
+                end
+                APP->>SRV: POST /api/Pois/history
+            end`
                 },
                 offline_sync: {
                     title: "Chiến lược Offline-First & Sync",
                     mermaid: `flowchart TD
-        A([App khởi động]) --> B{Có mạng?}
-        B -- Có --> C[Sync API: GET /poi/sync]
-        B -- Không --> D[Dùng SQLite sẵn có]
-        C --> E{Có delta?}
-        E -- Có --> F[Upsert POI vào SQLite]
-        E -- Không --> G[SQLite up to date]
-        F --> H{Có audio mới?}
-        H -- Có --> I[Download MP3 background]
-        H -- Không --> G
-        I --> G
-        G --> J[App hoạt động bình thường]
-        D --> J
-        J --> K{GPS trigger POI}
-        K --> L{Audio có local?}
-        L -- Có --> M[🔊 Phát offline]
-        L -- Không --> N{Có mạng?}
-        N -- Có --> O[Stream từ server]
-        N -- Không --> P[Device TTS fallback]
-        M --> Q[Log analytics local]
-        O --> Q
-        P --> Q
-        Q --> R{Có mạng sau?}
-        R -- Có --> S[Sync analytics lên server]`
+            A([App khởi động]) --> B{Có mạng?}
+            B -- Có --> C[Sync API: GET /poi/sync]
+            B -- Không --> D[Dùng SQLite sẵn có]
+            C --> E{Có delta?}
+            E -- Có --> F[Upsert POI vào SQLite]
+            E -- Không --> G[SQLite up to date]
+            F --> H{Có audio mới?}
+            H -- Có --> I[Download MP3 background]
+            H -- Không --> G
+            I --> G
+            G --> J[App hoạt động bình thường]
+            D --> J
+            J --> K{GPS trigger POI}
+            K --> L{Audio có local?}
+            L -- Có --> M[🔊 Phát offline]
+            L -- Không --> N{Có mạng?}
+            N -- Có --> O[Stream từ server]
+            N -- Không --> P[Device TTS fallback]
+            M --> Q[Log analytics local]
+            O --> Q
+            P --> Q
+            Q --> R{Có mạng sau?}
+            R -- Có --> S[Sync analytics lên server]`
                 },
 
                 seq_heatmap: {
                     title: "Flow 2 — Sequence: Heatmap theo mốc thời gian",
                     mermaid: `sequenceDiagram
-        autonumber
-        participant WA as Web Admin Blazor
-        participant API as ASP.NET Core API
-        participant DB as SQL Server
+            autonumber
+            participant WA as Web Admin Blazor
+            participant API as ASP.NET Core API
+            participant DB as SQL Server
 
-        Note over WA: Admin chon khoang thoi gian startDate va endDate
-        WA->>WA: FetchHeatmapData(DateTime startDate, DateTime endDate)
-        WA->>API: GET /api/Dashboard/heatmap?start=startDate&end=endDate
-        API->>DB: SELECT * FROM HeatmapLogs WHERE CreatedAt BETWEEN start AND end
-        DB-->>API: Rows HeatmapLogs (Id, Lat, Lng, PoiId, CreatedAt)
-        API->>API: Map rows sang List of HeatmapPoint
-        API-->>WA: 200 OK - List HeatmapPoint
-        Note over WA: Nhan du lieu heatmap thanh cong
-        WA->>WA: Leaflet.heatLayer(points).addTo(map)
-        Note over WA: Hien thi ban do nhiet so du khach ghe tung POI`
+            Note over WA: Admin chon khoang thoi gian startDate va endDate
+            WA->>WA: FetchHeatmapData(DateTime startDate, DateTime endDate)
+            WA->>API: GET /api/Dashboard/heatmap?start=startDate&end=endDate
+            API->>DB: SELECT * FROM HeatmapLogs WHERE CreatedAt BETWEEN start AND end
+            DB-->>API: Rows HeatmapLogs (Id, Lat, Lng, PoiId, CreatedAt)
+            API->>API: Map rows sang List of HeatmapPoint
+            API-->>WA: 200 OK - List HeatmapPoint
+            Note over WA: Nhan du lieu heatmap thanh cong
+            WA->>WA: Leaflet.heatLayer(points).addTo(map)
+            Note over WA: Hien thi ban do nhiet so du khach ghe tung POI`
                 },
 
                 seq_geofence_poi: {
                     title: "Flow 3 — Sequence: GPS cập nhật & Xử lý Trùng POI",
                     mermaid: `sequenceDiagram
-        autonumber
-        participant TMR as Timer 5s
-        participant APP as Mobile App MAUI
-        participant GPS as GPS Service
-        participant SRV as API Server
+            autonumber
+            participant TMR as Timer 5s
+            participant APP as Mobile App MAUI
+            participant GPS as GPS Service
+            participant SRV as API Server
 
-        loop Lap lai moi 5 giay
-            TMR->>APP: Tick - _timer.Interval = 5s
-            APP->>GPS: Geolocation.GetLocationAsync(GeolocationAccuracy.Medium)
-            GPS-->>APP: Location (Lat, Lng)
-            APP->>APP: CheckGeofence(Location userLoc)
-            Note over APP: B1 - Lap qua danh sach _pois
-            APP->>APP: Location.CalculateDistance(userLoc, poiLoc, Kilometers)
-            Note over APP: B2 - Gom POI co khoang cach duoi currentRadiusKm (mac dinh 50m)
-            APP->>APP: pOfEnteredPois = List of Tuple PoiModel-double
-            Note over APP: B3 - Sap xep quan trong nhat
-            APP->>APP: pOfEnteredPois.OrderBy(x => x.Item2).ThenByDescending(x => x.Item1.Priority).ThenBy(x => x.Item1.Name).First()
-            Note over APP: B4 - Kiem tra _poiCooldowns - cooldown 3 phut
-            alt isCoolingDown == false - cho phep phat
-                APP->>APP: StopSpeech() - dung audio cu
-                APP->>APP: _poiCooldowns[poi.Id] = DateTime.Now
-                APP->>APP: HighlightActivePoi() - ve circle do tren ban do
-                APP->>APP: PlayPoiAudio(poi)
-                APP->>APP: OpenBottomSheetForPoi(pin, poi)
-                APP->>SRV: POST /api/Pois/history via DataService.AddHistoryAsync
-                SRV-->>APP: 200 OK - ghi HeatmapLog
-            else isCoolingDown == true - bo qua
-                APP->>APP: Skip - khong phat trung POI
-            end
-            Note over APP: Kiem tra exit - distance > radius + 50m buffer
-            APP->>APP: _entryTimes.Remove(poiId) neu du khach da roi vung
-        end`
+            loop Lap lai moi 5 giay
+                TMR->>APP: Tick - _timer.Interval = 5s
+                APP->>GPS: Geolocation.GetLocationAsync(GeolocationAccuracy.Medium)
+                GPS-->>APP: Location (Lat, Lng)
+                APP->>APP: CheckGeofence(Location userLoc)
+                Note over APP: B1 - Lap qua danh sach _pois
+                APP->>APP: Location.CalculateDistance(userLoc, poiLoc, Kilometers)
+                Note over APP: B2 - Gom POI co khoang cach duoi currentRadiusKm (mac dinh 50m)
+                APP->>APP: pOfEnteredPois = List of Tuple PoiModel-double
+                Note over APP: B3 - Sap xep quan trong nhat
+                APP->>APP: pOfEnteredPois.OrderBy(x => x.Item2).ThenByDescending(x => x.Item1.Priority).ThenBy(x => x.Item1.Name).First()
+                Note over APP: B4 - Kiem tra _poiCooldowns - cooldown 3 phut
+                alt isCoolingDown == false - cho phep phat
+                    APP->>APP: StopSpeech() - dung audio cu
+                    APP->>APP: _poiCooldowns[poi.Id] = DateTime.Now
+                    APP->>APP: HighlightActivePoi() - ve circle do tren ban do
+                    APP->>APP: PlayPoiAudio(poi)
+                    APP->>APP: OpenBottomSheetForPoi(pin, poi)
+                    APP->>SRV: POST /api/Pois/history via DataService.AddHistoryAsync
+                    SRV-->>APP: 200 OK - ghi HeatmapLog
+                else isCoolingDown == true - bo qua
+                    APP->>APP: Skip - khong phat trung POI
+                end
+                Note over APP: Kiem tra exit - distance > radius + 50m buffer
+                APP->>APP: _entryTimes.Remove(poiId) neu du khach da roi vung
+            end`
                 },
 
                 seq_audio_player: {
                     title: "Flow 4 — Sequence: Xử lý Audio Mượt Mà (PlayPoiAudio)",
                     mermaid: `sequenceDiagram
-        autonumber
-        participant APP as Mobile App
-        participant FS as Local FileSystem
-        participant HTTP as HttpClient
-        participant CDN as Server - CDN
-        participant TTS as SmartSpeak - Google Translate - TextToSpeech
+            autonumber
+            participant APP as Mobile App
+            participant FS as Local FileSystem
+            participant HTTP as HttpClient
+            participant CDN as Server - CDN
+            participant TTS as SmartSpeak - Google Translate - TextToSpeech
 
-        APP->>APP: PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
-        APP->>APP: StopSpeech() - huy CancellationToken - dispose _audioPlayer cu
-        Note over APP: targetLang = tempLangOverride ?? Preferences DefaultLang
+            APP->>APP: PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
+            APP->>APP: StopSpeech() - huy CancellationToken - dispose _audioPlayer cu
+            Note over APP: targetLang = tempLangOverride ?? Preferences DefaultLang
 
-        alt Buoc 0 - Admin da upload audio goc poi.AudioUrl
-            APP->>HTTP: GetByteArrayAsync(poi.AudioUrl) neu chua co manual cache
-            HTTP->>CDN: GET poi.AudioUrl
-            CDN-->>HTTP: audioBytes
-            APP->>FS: File.WriteAllBytesAsync(manual_poi.Id.mp3)
-            APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
-            Note over APP: Gong tu nhien chuyen nghiep - ket thuc
+            alt Buoc 0 - Admin da upload audio goc poi.AudioUrl
+                APP->>HTTP: GetByteArrayAsync(poi.AudioUrl) neu chua co manual cache
+                HTTP->>CDN: GET poi.AudioUrl
+                CDN-->>HTTP: audioBytes
+                APP->>FS: File.WriteAllBytesAsync(manual_poi.Id.mp3)
+                APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
+                Note over APP: Gong tu nhien chuyen nghiep - ket thuc
 
-        else Buoc 1 - Cache local da co file EdgeTTS
-            APP->>FS: File.Exists(CacheDir/poi.Id_vi.mp3)
-            FS-->>APP: true
-            APP->>FS: File.OpenRead(localFilePathVi)
-            APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
-            Note over APP: Khong can mang - 0ms - ket thuc
+            else Buoc 1 - Cache local da co file EdgeTTS
+                APP->>FS: File.Exists(CacheDir/poi.Id_vi.mp3)
+                FS-->>APP: true
+                APP->>FS: File.OpenRead(localFilePathVi)
+                APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
+                Note over APP: Khong can mang - 0ms - ket thuc
 
-        else Buoc 2 - Co mang - download EdgeTTS tu server
-            FS-->>APP: false
-            Note over APP: Connectivity.Current.NetworkAccess == NetworkAccess.Internet
-            APP->>HTTP: httpClient.GetByteArrayAsync(safeBaseUrl/audio/poi.Id_vi.mp3)
-            HTTP->>CDN: GET /audio/poi.Id_vi.mp3
-            CDN-->>HTTP: 200 OK - EdgeTTS MP3 bytes
-            APP->>FS: File.WriteAllBytesAsync(localFilePathVi, audioBytes)
-            APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
-            Note over APP: Cache lai cho lan sau - ket thuc
+            else Buoc 2 - Co mang - download EdgeTTS tu server
+                FS-->>APP: false
+                Note over APP: Connectivity.Current.NetworkAccess == NetworkAccess.Internet
+                APP->>HTTP: httpClient.GetByteArrayAsync(safeBaseUrl/audio/poi.Id_vi.mp3)
+                HTTP->>CDN: GET /audio/poi.Id_vi.mp3
+                CDN-->>HTTP: 200 OK - EdgeTTS MP3 bytes
+                APP->>FS: File.WriteAllBytesAsync(localFilePathVi, audioBytes)
+                APP->>APP: AudioManager.Current.CreatePlayer(stream).Play() then return
+                Note over APP: Cache lai cho lan sau - ket thuc
 
-        else Buoc 3 - Server 404 hoac khong co mang - SmartSpeak fallback
-            CDN-->>HTTP: Exception - server chua co MP3
-            Note over APP: catch - xu ly ngon ngu en va ja
-            APP->>TTS: SmartSpeak(poi.TtsContent, targetLang)
-            TTS->>TTS: Goi translate.googleapis.com neu lang != vi
-            TTS->>TTS: TextToSpeech.Default.SpeakAsync(text, SpeechOptions, cancelToken)
-            TTS-->>APP: Device TTS phat ra loa
-        end`
+            else Buoc 3 - Server 404 hoac khong co mang - SmartSpeak fallback
+                CDN-->>HTTP: Exception - server chua co MP3
+                Note over APP: catch - xu ly ngon ngu en va ja
+                APP->>TTS: SmartSpeak(poi.TtsContent, targetLang)
+                TTS->>TTS: Goi translate.googleapis.com neu lang != vi
+                TTS->>TTS: TextToSpeech.Default.SpeakAsync(text, SpeechOptions, cancelToken)
+                TTS-->>APP: Device TTS phat ra loa
+            end`
                 },
 
                 seq_qr_guest: {
                     title: "Flow 1 — Sequence: Du Khách Quét QR Không Cần Tài Khoản",
                     mermaid: `sequenceDiagram
-        autonumber
-        participant DK as Du Khach
-        participant SCN as ScannerPage Modal
-        participant APP as MainPage App
-        participant SQL as SQLite Local
-        participant API as API Server
+            autonumber
+            participant DK as Du Khach
+            participant SCN as ScannerPage Modal
+            participant APP as MainPage App
+            participant SQL as SQLite Local
+            participant API as API Server
 
-        DK->>APP: Bam nut camera tren MainPage
-        APP->>SCN: Mo ScannerPage modal
-        SCN->>SCN: Camera realtime decode QR
-        SCN-->>APP: Tra ve chuoi QR - vi du: poi=VK_OC_OANH
-        Note over APP: Parse chuoi - tach phan sau poi=
-        APP->>APP: key = VK_OC_OANH
-        APP->>SQL: _pois.FirstOrDefault(p => p.QrCodeKey == key)
-        alt Khop trong SQLite - offline OK
-            SQL-->>APP: PoiModel da co san
-            Note over APP: Khong can mang - 0ms
-        else Chua co trong SQLite
-            SQL-->>APP: null
-            APP->>API: GET /api/Pois/key
-            API-->>APP: 200 OK - PoiModel JSON
-            APP->>SQL: Insert PoiModel vao SQLite cache
-        end
-        APP->>APP: OpenBottomSheetForPoi(poi)
-        APP->>APP: PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
-        Note over APP: SecureStorage role == Guest - van phat duoc
-        APP->>API: POST /api/Pois/history fire and forget
-        Note over APP,API: DeviceName - LanguageCode - DurationMinutes`
+            DK->>APP: Bam nut camera tren MainPage
+            APP->>SCN: Mo ScannerPage modal
+            SCN->>SCN: Camera realtime decode QR
+            SCN-->>APP: Tra ve chuoi QR - vi du: poi=VK_OC_OANH
+            Note over APP: Parse chuoi - tach phan sau poi=
+            APP->>APP: key = VK_OC_OANH
+            APP->>SQL: _pois.FirstOrDefault(p => p.QrCodeKey == key)
+            alt Khop trong SQLite - offline OK
+                SQL-->>APP: PoiModel da co san
+                Note over APP: Khong can mang - 0ms
+            else Chua co trong SQLite
+                SQL-->>APP: null
+                APP->>API: GET /api/Pois/key
+                API-->>APP: 200 OK - PoiModel JSON
+                APP->>SQL: Insert PoiModel vao SQLite cache
+            end
+            APP->>APP: OpenBottomSheetForPoi(poi)
+            APP->>APP: PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
+            Note over APP: SecureStorage role == Guest - van phat duoc
+            APP->>API: POST /api/Pois/history fire and forget
+            Note over APP,API: DeviceName - LanguageCode - DurationMinutes`
                 },
 
                 seq_queue_concurrent: {
                     title: "Flow 5 — Sequence: Nhiều Du Khách Cùng POI — Hàng Đợi & Performance",
                     mermaid: `sequenceDiagram
-        autonumber
-        participant DK1 as Du Khach 1
-        participant DK2 as Du Khach 2
-        participant DK3 as Du Khach 3
-        participant CDN as Cloudflare CDN
-        participant API as API Server
-        participant DB as Database
+            autonumber
+            participant DK1 as Du Khach 1
+            participant DK2 as Du Khach 2
+            participant DK3 as Du Khach 3
+            participant CDN as Cloudflare CDN
+            participant API as API Server
+            participant DB as Database
 
-        Note over DK1,DK3: Nhieu du khach cung dung tai 1 POI
-        Note over DK1,DK3: Moi thiet bi co Audio Queue FIFO doc lap
-        par Thiet bi doc lap - khong anh huong nhau
-            DK1->>DK1: CheckGeofence - PlayPoiAudio(poi)
-        and
-            DK2->>DK2: CheckGeofence - PlayPoiAudio(poi)
-        and
-            DK3->>DK3: CheckGeofence - PlayPoiAudio(poi)
-        end
-        Note over CDN: File MP3 da duoc cache tren CDN
-        par httpClient.GetByteArrayAsync dong thoi - CDN cache hit
-            DK1->>CDN: GET /audio/poi.Id_vi.mp3
-            CDN-->>DK1: Cache hit - MP3 bytes
-            DK1->>DK1: _audioPlayer.Play()
-        and
-            DK2->>CDN: GET /audio/poi.Id_vi.mp3
-            CDN-->>DK2: Cache hit - MP3 bytes
-            DK2->>DK2: _audioPlayer.Play()
-        and
-            DK3->>CDN: GET /audio/poi.Id_vi.mp3
-            CDN-->>DK3: Cache hit - MP3 bytes
-            DK3->>DK3: _audioPlayer.Play()
-        end
-        Note over DK1,DK3: Moi thiet bi phat doc lap - khong lag
-        par POST fire and forget - khong block audio
-            DK1->>API: POST /api/Pois/history
-            DK2->>API: POST /api/Pois/history
-            DK3->>API: POST /api/Pois/history
-        end
-        API->>DB: INSERT HeatmapLogs async - non-blocking
-        DB-->>API: 200 OK`
+            Note over DK1,DK3: Nhieu du khach cung dung tai 1 POI
+            Note over DK1,DK3: Moi thiet bi co Audio Queue FIFO doc lap
+            par Thiet bi doc lap - khong anh huong nhau
+                DK1->>DK1: CheckGeofence - PlayPoiAudio(poi)
+            and
+                DK2->>DK2: CheckGeofence - PlayPoiAudio(poi)
+            and
+                DK3->>DK3: CheckGeofence - PlayPoiAudio(poi)
+            end
+            Note over CDN: File MP3 da duoc cache tren CDN
+            par httpClient.GetByteArrayAsync dong thoi - CDN cache hit
+                DK1->>CDN: GET /audio/poi.Id_vi.mp3
+                CDN-->>DK1: Cache hit - MP3 bytes
+                DK1->>DK1: _audioPlayer.Play()
+            and
+                DK2->>CDN: GET /audio/poi.Id_vi.mp3
+                CDN-->>DK2: Cache hit - MP3 bytes
+                DK2->>DK2: _audioPlayer.Play()
+            and
+                DK3->>CDN: GET /audio/poi.Id_vi.mp3
+                CDN-->>DK3: Cache hit - MP3 bytes
+                DK3->>DK3: _audioPlayer.Play()
+            end
+            Note over DK1,DK3: Moi thiet bi phat doc lap - khong lag
+            par POST fire and forget - khong block audio
+                DK1->>API: POST /api/Pois/history
+                DK2->>API: POST /api/Pois/history
+                DK3->>API: POST /api/Pois/history
+            end
+            API->>DB: INSERT HeatmapLogs async - non-blocking
+            DB-->>API: 200 OK`
+                },
+
+                seq_dashboard: {
+                    title: "Flow 6 — Sequence: Dashboard Real-time Admin — TravelHub.cs thực tế",
+                    mermaid: `sequenceDiagram
+            autonumber
+            participant AD as Admin Browser
+            participant BLZ as Home.razor Blazor WASM
+            participant API as ASP.NET Core API
+            participant DB as SQL Server
+            participant HUB as TravelHub.cs SignalR
+            participant APP as Mobile App clientType=app
+
+            Note over BLZ: OnInitializedAsync - kiem tra authToken localStorage
+            BLZ->>BLZ: token = localStorage.getItem authToken
+            alt Token null - chua dang nhap
+                BLZ->>AD: NavigateTo /login
+            else Token hop le
+                BLZ->>API: GET /api/Dashboard/summary - Authorization Bearer token
+                API->>DB: COUNT Users - SUM Revenue - COUNT Pois - AVG Rating
+                DB-->>API: DashboardSummary rows
+                API->>API: Phan quyen - Admin thay all - Merchant thay cua minh
+                API-->>BLZ: DashboardSummary - Role TotalUsers TotalRevenue TotalPois AverageRating
+                BLZ->>BLZ: Render 3 KPI cards - Tong thanh vien - Doanh thu - Quan hoat dong
+
+                BLZ->>API: GET /api/Dashboard/heatmap?days=7
+                API->>DB: SELECT DATE CreatedAt - COUNT FROM VisitLogs GROUP BY DATE 7 ngay
+                DB-->>API: List Date-Count
+                API-->>BLZ: List HeatmapPoint
+                BLZ->>BLZ: Render Bootstrap progress bars - width = Math.Min 100 - Count x 10 phan tram
+
+                Note over BLZ,HUB: Ket noi SignalR - clientType=admin
+                BLZ->>HUB: HubConnection.StartAsync - URL travelhub?clientType=admin
+                HUB->>HUB: OnConnectedAsync - clientType KHAC app - KHONG Increment _totalOnline
+                HUB-->>BLZ: Connected thanh cong - khong phat UpdateOnlineCount
+                BLZ->>HUB: SendAsync RequestCurrentCounts - lay snapshot hien tai
+                HUB->>HUB: Doc _totalOnline va loop _poiViewers dictionary
+                HUB-->>BLZ: Clients.Caller UpdateOnlineCount - _totalOnline - chi gui cho Admin
+                HUB-->>BLZ: Clients.Caller UpdateViewerCount - poiId - count - moi POI co viewers
+                BLZ->>BLZ: Cap nhat so nguoi online va viewer tung quan
+            end
+
+            Note over APP,HUB: Du khach mo App - clientType=app
+            APP->>HUB: Connect - clientType=app
+            HUB->>HUB: OnConnectedAsync - clientType=app - Interlocked.Increment ref _totalOnline
+            HUB->>HUB: Clients.All.SendAsync UpdateOnlineCount - _totalOnline
+            HUB-->>BLZ: UpdateOnlineCount - so moi - broadcast All
+            HUB-->>APP: UpdateOnlineCount - so moi - broadcast All
+            BLZ->>BLZ: Cap nhat label - X nguoi dang truy cap App
+
+            APP->>HUB: SendAsync JoinPoi - poiId.ToLower
+            HUB->>HUB: TryGetValue connId - co oldPoi thi goi LeavePoiInternal oldPoi truoc
+            HUB->>HUB: _userLocations connId = poiId moi
+            HUB->>HUB: _poiViewers.AddOrUpdate poiId - 1 - hoac count+1
+            HUB->>HUB: Clients.All.SendAsync UpdateViewerCount - poiId - _poiViewers poiId
+            HUB-->>BLZ: UpdateViewerCount - poiId - count moi - broadcast All
+            BLZ->>BLZ: Hien thi - Du khach dang xem chi tiet quan poiId
+
+            APP->>HUB: SendAsync LeavePoi - poiId.ToLower
+            HUB->>HUB: _userLocations.TryRemove connId - kiem tra savedPoi == poiId
+            HUB->>HUB: LeavePoiInternal - _poiViewers poiId -- neu count > 0
+            HUB->>HUB: Clients.All.SendAsync UpdateViewerCount - poiId - count sau giam
+            HUB-->>BLZ: UpdateViewerCount - poiId - count moi - broadcast All
+            BLZ->>BLZ: Cap nhat so nguoi xem quan - an card neu count = 0
+
+            Note over APP,HUB: Du khach dong App dot ngot - mat ket noi
+            APP->>HUB: OnDisconnectedAsync - exception co the null
+            HUB->>HUB: clientType=app - Interlocked.Decrement ref _totalOnline
+            HUB->>HUB: Clients.All.SendAsync UpdateOnlineCount - _totalOnline moi
+            HUB->>HUB: _userLocations.TryRemove connId - lay ra poiId cu
+            HUB->>HUB: LeavePoiInternal poiId - tu dong giam viewer - khong can LeavePoi thu cong
+            HUB->>HUB: Clients.All.SendAsync UpdateViewerCount - poiId - count sau giam
+            HUB-->>BLZ: UpdateOnlineCount - va UpdateViewerCount - broadcast All
+            BLZ->>BLZ: Cap nhat so nguoi online va viewer
+
+            Note over BLZ,AD: Admin cap nhat QR Tram Xe Buyt
+            AD->>BLZ: Dan Cloudflare URL moi vao input - bam Cap Nhat QR
+            BLZ->>BLZ: UpdateQR - downloadLink = serverUrl + /web
+            BLZ->>BLZ: qrCodeUrl = api.qrserver.com/v1/create-qr-code/?size=200x200&data=encodeURL
+            BLZ->>AD: Render img src=qrCodeUrl - QR moi hien thi
+            AD->>AD: In dan QR tai tram xe buyt - hanh khach quet mo WebApp`
+                },
+
+                seq_online_count: {
+                    title: "Flow 7 — Đếm Số Thiết Bị Đang Truy Cập App (TravelHub.cs)",
+                    mermaid: `sequenceDiagram
+            participant APP as Mobile App
+            participant HUB as TravelHub.cs
+            participant BLZ as Home.razor Admin
+
+            Note over APP,HUB: 1. Du khach mo App - ket noi SignalR
+            APP->>HUB: Connect ?clientType=app
+            Note over HUB: OnConnectedAsync()
+            HUB->>HUB: clientType == "app" → TRUE
+            HUB->>HUB: Interlocked.Increment(ref _totalOnline)
+            HUB->>HUB: Clients.All.SendAsync("UpdateOnlineCount", _totalOnline)
+            HUB-->>BLZ: UpdateOnlineCount(1)
+            HUB-->>APP: UpdateOnlineCount(1)
+            BLZ->>BLZ: Hien thi "1 nguoi dang truy cap App"
+
+            Note over APP,HUB: 2. Admin moi mo Dashboard - can lay so hien tai
+            BLZ->>HUB: Connect ?clientType=admin
+            Note over HUB: OnConnectedAsync()
+            HUB->>HUB: clientType == "app" → FALSE - KHONG tang _totalOnline
+            BLZ->>HUB: SendAsync("RequestCurrentCounts")
+            Note over HUB: RequestCurrentCounts()
+            HUB->>HUB: Doc _totalOnline hien tai
+            HUB-->>BLZ: Clients.Caller.SendAsync("UpdateOnlineCount", _totalOnline)
+            Note over BLZ: Chi Admin nay nhan - khong broadcast
+            BLZ->>BLZ: Hien thi "X nguoi dang truy cap App"
+
+            Note over APP,HUB: 3. Du khach dong App - mat ket noi
+            APP->>HUB: OnDisconnectedAsync(exception)
+            Note over HUB: OnDisconnectedAsync()
+            HUB->>HUB: clientType == "app" → TRUE
+            HUB->>HUB: Interlocked.Decrement(ref _totalOnline)
+            HUB->>HUB: Clients.All.SendAsync("UpdateOnlineCount", _totalOnline)
+            HUB-->>BLZ: UpdateOnlineCount(0)
+            BLZ->>BLZ: Cap nhat "0 nguoi dang truy cap App"`
                 }
             }
         };

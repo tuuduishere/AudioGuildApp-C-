@@ -51,9 +51,9 @@ Gõ lệnh di chuyển vào thư mục App MAUI:
 PowerShell
 cd TravelSmart.App
 Chạy lệnh sau để Build ra file APK (.NET 10):
-
-PowerShell
 dotnet publish -f net10.0-android -c Release -p:AndroidPackageFormat=apk
+PowerShell
+	
 Chờ khoảng 1-2 phút cho đến khi Terminal báo Build succeeded (chữ màu xanh lá).
 
 BƯỚC 4: ĐƯA FILE APK LÊN SERVER (CHUẨN BỊ CHO KHÁCH TẢI)

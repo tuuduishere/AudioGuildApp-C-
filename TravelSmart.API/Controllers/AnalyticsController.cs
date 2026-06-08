@@ -62,15 +62,30 @@ namespace TravelSmart.API.Controllers
         }
 
         // 3. Lấy tọa độ để vẽ bản đồ nhiệt (cho trang Heatmap)
+        // 🔥 ĐÃ FIX THUẬT TOÁN: BỔ SUNG LỌC THEO THỜI GIAN
         [HttpGet("heatmap")]
-        public async Task<IActionResult> GetHeatmap()
+        public async Task<IActionResult> GetHeatmap([FromQuery] int days = 30)
         {
-            var data = await _context.VisitLogs
+            var query = _context.VisitLogs.AsQueryable();
+
+            // Nếu truyền days = 0 thì chỉ tính những log tạo từ 00:00 ngày hôm nay
+            if (days == 0)
+            {
+                query = query.Where(l => l.VisitTime >= DateTime.Today);
+            }
+            else if (days != 999) // 999 là lấy hết All Time, không lọc
+            {
+                var startDate = DateTime.Now.AddDays(-days);
+                query = query.Where(l => l.VisitTime >= startDate);
+            }
+
+            var data = await query
                 .Join(_context.Pois, l => l.PoiId, p => p.PoiId, (l, p) => new {
                     name = "POI",
                     lat = p.Latitude,
                     lng = p.Longitude
                 }).ToListAsync();
+
             return Ok(data);
         }
     }

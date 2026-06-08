@@ -39,7 +39,6 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
 
-// Cấu hình tải file APK
 var provider = new FileExtensionContentTypeProvider();
 provider.Mappings[".apk"] = "application/vnd.android.package-archive";
 app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
@@ -57,8 +56,9 @@ app.MapGet("/api/Pois/nearest", async (double lat, double lng, VinhKhanhTravelDb
 
     var trans = await db.PoiTranslations.FirstOrDefaultAsync(t => t.PoiId == nearest.PoiId && t.LanguageCode == "vi");
     string poiName = trans?.Name ?? "Quán Ẩm Thực Vĩnh Khánh";
+    string ttsText = trans?.Description ?? $"Chào mừng bạn đến với {poiName}";
 
-    return Results.Ok(new { name = poiName, imageUrl = nearest.ImageUrl, audioUrl = $"/audio/{nearest.PoiId}_vi.mp3" });
+    return Results.Ok(new { name = poiName, imageUrl = nearest.ImageUrl, audioUrl = $"/audio/{nearest.PoiId}_vi.mp3", ttsContent = ttsText });
 });
 
 app.MapGet("/api/web/pois", async (VinhKhanhTravelDbContext db) => {
@@ -67,20 +67,24 @@ app.MapGet("/api/web/pois", async (VinhKhanhTravelDbContext db) => {
 
     var result = pois.Select(p => {
         var trans = translations.FirstOrDefault(t => t.PoiId == p.PoiId);
+        string poiName = trans?.Name ?? "Quán Ẩm Thực";
+        string ttsText = trans?.Description ?? $"Bạn đang xem thông tin của {poiName}.";
+
         return new
         {
             id = p.PoiId,
             lat = p.Latitude,
             lng = p.Longitude,
-            name = trans?.Name ?? "Quán Ẩm Thực",
+            name = poiName,
             audioUrl = p.AudioUrl ?? $"/audio/{p.PoiId}_vi.mp3",
-            imageUrl = p.ImageUrl ?? "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=800&auto=format&fit=crop"
+            imageUrl = p.ImageUrl ?? "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=800&auto=format&fit=crop",
+            ttsContent = ttsText
         };
     });
     return Results.Ok(result);
 });
 
-// 🔥 GIAO DIỆN WEBAPP SPA (ĐÃ FIX: TÌM KIẾM HOẠT ĐỘNG, VIEW THÔNG BÁO CHUẨN MAUI)
+// 🔥 GIAO DIỆN WEBAPP SPA
 app.MapGet("/web", () => {
     string html = @"
     <!DOCTYPE html>
@@ -95,53 +99,42 @@ app.MapGet("/web", () => {
         <style>
             body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; overflow: hidden; background: #e0e5ec; }
             .mobile-container { width: 100%; height: 100%; position: relative; max-width: 480px; margin: 0 auto; background: #f4f6f8; box-shadow: 0 0 20px rgba(0,0,0,0.2); display: flex; flex-direction: column;}
-            
             .view-section { flex: 1; overflow-y: auto; display: none; width: 100%; position: relative; }
             #view-map { display: flex; flex-direction: column; overflow: hidden; }
             #map { flex: 1; width: 100%; z-index: 1; }
-            
             .top-bar { position: absolute; top: 20px; left: 15px; right: 15px; z-index: 1000; display: flex; gap: 10px; align-items: center; }
             .search-box { flex: 1; background: white; height: 45px; border-radius: 25px; display: flex; align-items: center; padding: 0 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
             .search-box input { border: none; outline: none; width: 100%; margin-left: 10px; font-size: 15px; }
             .bell-btn { width: 45px; height: 45px; background: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); color: #00838F; font-size: 20px; cursor: pointer; }
-            
             .header-title { padding: 20px; font-size: 24px; font-weight: bold; color: #00838F; background: white; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
-            
             .bottom-nav { height: 60px; background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #ddd; padding-bottom: max(env(safe-area-inset-bottom), 5px); z-index: 1000; }
             .nav-item { display: flex; flex-direction: column; align-items: center; color: #888; font-size: 10px; width: 20%; cursor: pointer; }
             .nav-item i { font-size: 20px; margin-bottom: 3px; transition: 0.2s; }
             .nav-item.active { color: #00838F; }
             .nav-item.active i { transform: scale(1.2); }
-            
             .fab-scan { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 65px; height: 65px; background: #00838F; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 5px solid white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1001; cursor: pointer; color: white; font-size: 28px; }
-            
             .sheet-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
             .sheet-overlay.show { opacity: 1; pointer-events: auto; }
-
             .bottom-sheet { position: absolute; bottom: -100%; left: 0; width: 100%; background: white; border-radius: 20px 20px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.2); z-index: 2000; transition: bottom 0.3s cubic-bezier(0.1, 0.8, 0.2, 1); padding: 20px; box-sizing: border-box; max-height: 85%; overflow-y: auto;}
             .bottom-sheet.show { bottom: 0; }
             .sheet-handle { width: 40px; height: 5px; background: #ddd; border-radius: 3px; margin: 0 auto 15px; }
             .sheet-img { width: 100%; height: 180px; object-fit: cover; border-radius: 10px; margin-bottom: 15px; background: #eee; }
             .sheet-title { font-size: 22px; font-weight: bold; margin: 0 0 5px; color: #006064; text-align: center; }
-            
             .lang-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
             .btn-lang { padding: 6px 12px; border-radius: 15px; border: 1px solid #00838F; background: #E0F7FA; color: #00838F; font-weight: bold; cursor: pointer; font-size: 13px; }
             .btn-lang.active { background: #00838F; color: white; }
-
-            .sheet-audio { width: 100%; outline: none; margin-bottom: 15px; height: 40px;}
-            
             .btn-dl { display: block; width: 100%; box-sizing: border-box; padding: 12px; background: #FFC107; border: none; border-radius: 10px; font-weight: bold; color: #000; margin-bottom: 10px; text-decoration: none; text-align: center; font-size: 14px; white-space: normal;}
             .btn-close { width: 100%; box-sizing: border-box; padding: 12px; background: #f1f1f1; border: none; border-radius: 10px; font-weight: bold; color: #555; cursor: pointer;}
-            
             .card { background: white; margin: 15px; padding: 15px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; cursor: pointer;}
             .card-icon { width: 50px; height: 50px; background: #E0F7FA; color: #00838F; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 24px; }
-            
             .noti-card { background: white; margin: 0 15px 15px 15px; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; gap: 15px; align-items: center; border-left: 4px solid #FFC107;}
+            /* 🔥 NÚT TẢI APP NỔI TRÊN BẢN ĐỒ */
+            .floating-dl-btn { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: #E53935; color: white; padding: 12px 25px; border-radius: 30px; font-weight: bold; text-decoration: none; z-index: 1000; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.4); display: flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 15px; border: 2px solid white; animation: pulse 2s infinite;}
+            @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } 100% { transform: translateX(-50%) scale(1); } }
         </style>
     </head>
     <body>
         <div class='mobile-container'>
-            
             <div id='view-map' class='view-section' style='display: flex;'>
                 <div class='top-bar'>
                     <div class='search-box'>
@@ -151,6 +144,11 @@ app.MapGet("/web", () => {
                     <div class='bell-btn' onclick='switchTab(""notifications"")'><i class='fa-solid fa-bell'></i></div>
                 </div>
                 <div id='map'></div>
+                
+                <!-- 🔥 NÚT TẢI APP LUÔN NỔI LÊN CHO KHÁCH BẤM -->
+                <a href='/apk/travelsmart.apk' download class='floating-dl-btn'>
+                    <i class='fa-brands fa-android fs-5'></i> TẢI APP NGAY
+                </a>
             </div>
 
             <div id='view-tours' class='view-section'>
@@ -168,13 +166,6 @@ app.MapGet("/web", () => {
                         <div>
                             <h3 style='margin:0 0 5px; font-size:16px; color:black;'>Hệ thống</h3>
                             <p style='margin:0; font-size:13px; color:gray;'>Chào mừng bạn đến với TravelSmart Vĩnh Khánh!</p>
-                        </div>
-                    </div>
-                    <div class='noti-card' style='border-left-color: #00838F; background: #E0F7FA;'>
-                        <div style='color: #00838F; font-size: 28px;'><i class='fa-solid fa-gift'></i></div>
-                        <div>
-                            <h3 style='margin:0 0 5px; font-size:16px; color:#006064;'>Trải nghiệm Full Tính năng</h3>
-                            <p style='margin:0; font-size:13px; color:#00838F;'>Hãy tải App (APK) trong mục 'Tôi' để có thể viết đánh giá và lưu lại hành trình của bạn.</p>
                         </div>
                     </div>
                 </div>
@@ -195,11 +186,11 @@ app.MapGet("/web", () => {
                         <p style='margin:0; font-size:12px; color:gray;'>Đang dùng phiên bản Web trải nghiệm</p>
                     </div>
                 </div>
-                <div class='card' style='background:#00838F; color:white; flex-direction:column; align-items:flex-start;'>
-                    <h3 style='margin:0 0 10px;'><i class='fa-brands fa-android'></i> Trải nghiệm Full tính năng</h3>
-                    <p style='margin:0 0 15px; font-size:13px; opacity:0.9;'>Tải App để sử dụng bản đồ Offline, đánh giá quán và lưu hành trình.</p>
-                    <a href='/apk/travelsmart.apk' download style='background:#FFC107; color:black; padding:12px; width:100%; box-sizing:border-box; text-align:center; text-decoration:none; border-radius:8px; font-weight:bold; display:block; margin-bottom:10px;'><i class='fa-solid fa-download'></i> TẢI ỨNG DỤNG NGAY (APK)</a>
-                </div>
+                
+                <!-- 🔥 GÀI THÊM NÚT TẢI APP TRONG TAB CÁ NHÂN -->
+                <a href='/apk/travelsmart.apk' download style='display:block; margin: 20px 15px; padding: 15px; background: #FFC107; color: black; text-align:center; text-decoration:none; border-radius: 12px; font-weight:bold; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>
+                    <i class='fa-brands fa-android fs-5 me-2'></i> CÀI ĐẶT APP TRAVELSMART
+                </a>
             </div>
 
             <div id='sheetOverlay' class='sheet-overlay' onclick='closeSheet()'></div>
@@ -215,15 +206,11 @@ app.MapGet("/web", () => {
                     <button class='btn-lang' id='btnLang-ja' onclick='changeLang(""ja"")'>🇯🇵 JP</button>
                 </div>
 
-                <p id='audioStatus' style='color:orange; font-size:12px; margin:0 0 10px; display:none; text-align:center;'><i class='fa-solid fa-circle-info'></i> Bấm Play bên dưới để nghe Audio</p>
-                <audio id='sheetAudio' class='sheet-audio' controls></audio>
+                <p id='audioStatus' style='color:white; font-size:15px; font-weight:bold; margin:0 0 15px; display:none; text-align:center; padding: 12px; background: #FF9800; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);'></p>
+                <audio id='sheetAudio' style='display:none;' controls></audio>
                 
                 <a href='/apk/travelsmart.apk' download class='btn-dl'><i class='fa-brands fa-android'></i> TẢI APP ĐỂ XEM THỰC ĐƠN VÀ ĐÁNH GIÁ</a>
                 <button class='btn-close' onclick='closeSheet()'>ĐÓNG LẠI</button>
-            </div>
-
-            <div class='fab-scan' onclick='alert(""Vui lòng tải App để dùng tính năng Camera Quét QR."")'>
-                <i class='fa-solid fa-camera'></i>
             </div>
 
             <div class='bottom-nav'>
@@ -233,23 +220,18 @@ app.MapGet("/web", () => {
                 <div class='nav-item' onclick='switchTab(""history"", this)'><i class='fa-solid fa-clock-rotate-left'></i>Lịch sử</div>
                 <div class='nav-item' onclick='switchTab(""profile"", this)'><i class='fa-solid fa-user'></i>Tôi</div>
             </div>
-            
         </div>
 
         <script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>
         <script>
             let currentActivePoi = null;
-            let allMapMarkers = []; // 🔥 Mảng lưu danh sách Marker để phục vụ tìm kiếm
+            let allMapMarkers = []; 
 
             function switchTab(tabId, element) {
                 document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
                 document.getElementById('view-' + tabId).style.display = (tabId === 'map') ? 'flex' : 'block';
-                
                 document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-                if (element) {
-                    element.classList.add('active');
-                }
-                
+                if (element) element.classList.add('active');
                 if(tabId === 'map') map.invalidateSize();
                 if(tabId === 'history') loadHistoryView();
                 if(tabId === 'tours') loadToursView();
@@ -273,17 +255,15 @@ app.MapGet("/web", () => {
                 .then(data => {
                     data.forEach(poi => {
                         var marker = L.marker([poi.lat, poi.lng], {icon: redIcon}).addTo(map);
-                        
-                        // Lưu lại marker để xài cho thanh tìm kiếm
                         allMapMarkers.push({ poiData: poi, mapMarker: marker });
 
                         marker.on('click', function() {
                             if (currentActivePoi && connection.state === 'Connected') {
-                                connection.invoke('LeavePoi', currentActivePoi.id).catch(err => console.error(err));
+                                connection.invoke('LeavePoi', currentActivePoi.id.toLowerCase()).catch(err => console.error(err));
                             }
                             currentActivePoi = poi;
                             if (connection.state === 'Connected') {
-                                connection.invoke('JoinPoi', poi.id).catch(err => console.error(err));
+                                connection.invoke('JoinPoi', poi.id.toLowerCase()).catch(err => console.error(err));
                             }
 
                             document.getElementById('sheetImg').src = poi.imageUrl;
@@ -292,69 +272,150 @@ app.MapGet("/web", () => {
                             document.querySelectorAll('.btn-lang').forEach(el => el.classList.remove('active'));
                             document.getElementById('btnLang-vi').classList.add('active');
 
-                            let audioEl = document.getElementById('sheetAudio');
-                            let statusEl = document.getElementById('audioStatus');
-                            audioEl.src = poi.audioUrl;
-                            let playPromise = audioEl.play();
-                            if (playPromise !== undefined) {
-                                playPromise.then(_ => {
-                                    statusEl.style.display = 'none';
-                                }).catch(error => {
-                                    statusEl.style.display = 'block';
-                                });
-                            }
-
                             document.getElementById('sheetOverlay').classList.add('show');
                             document.getElementById('poiSheet').classList.add('show');
                             map.setView([poi.lat, poi.lng], 17);
                             
+                            playAudioWithFallback(poi, 'vi', false);
+                            
                             saveAndLogHistory(poi);
+                            if (connection && connection.state === 'Connected') {
+                                connection.invoke('LogListen', poi.id.toLowerCase()).catch(err => console.error(err));
+                            }
                         });
                     });
                 });
 
-            // 🔥 HÀM TÌM KIẾM QUÁN
             function searchPoi() {
                 let keyword = document.getElementById('searchInput').value.toLowerCase();
-                
                 allMapMarkers.forEach(item => {
-                    // Nếu tên quán chứa từ khóa gõ vào -> Hiện. Nếu không -> Ẩn
                     if (item.poiData.name.toLowerCase().includes(keyword)) {
-                        if (!map.hasLayer(item.mapMarker)) {
-                            map.addLayer(item.mapMarker);
-                        }
+                        if (!map.hasLayer(item.mapMarker)) map.addLayer(item.mapMarker);
                     } else {
-                        if (map.hasLayer(item.mapMarker)) {
-                            map.removeLayer(item.mapMarker);
-                        }
+                        if (map.hasLayer(item.mapMarker)) map.removeLayer(item.mapMarker);
                     }
                 });
             }
 
             function changeLang(lang) {
                 if(!currentActivePoi) return;
-
                 document.querySelectorAll('.btn-lang').forEach(el => el.classList.remove('active'));
                 document.getElementById('btnLang-' + lang).classList.add('active');
+                playAudioWithFallback(currentActivePoi, lang, true); 
+            }
+
+            let currentUtterance = null;
+
+            function playAudioWithFallback(poi, lang, isUserClick = false) {
+                window.speechSynthesis.cancel();
 
                 let audioEl = document.getElementById('sheetAudio');
+                let statusEl = document.getElementById('audioStatus');
                 
-                if(lang === 'vi') {
-                    audioEl.src = currentActivePoi.audioUrl; 
+                let textToRead = poi.ttsContent ? poi.ttsContent : ('Đang xem thông tin quán ' + poi.name);
+
+                audioEl.pause();
+                audioEl.style.display = 'none';
+                statusEl.style.display = 'block';
+
+                if (isUserClick) {
+                    executeLogic();
                 } else {
-                    audioEl.src = '/audio/' + currentActivePoi.id + '_' + lang + '.mp3';
+                    statusEl.style.background = '#FF9800';
+                    statusEl.innerHTML = '<i class=""fa-solid fa-volume-high""></i> Bấm vào đây để nghe âm thanh';
+                    statusEl.onclick = function() { executeLogic(); };
+                    
+                    setTimeout(() => { statusEl.click(); }, 100);
                 }
 
-                audioEl.play().catch(e => console.log('Chờ User tương tác'));
+                function executeLogic() {
+                    statusEl.innerHTML = '<i class=""fa-solid fa-spinner fa-spin""></i> Đang tải...';
+                    statusEl.onclick = null;
+
+                    let unlock = new SpeechSynthesisUtterance('');
+                    unlock.volume = 0;
+                    window.speechSynthesis.speak(unlock);
+
+                    if (lang === 'vi') {
+                        if (poi.audioUrl) { audioEl.src = poi.audioUrl; } 
+                        else { audioEl.src = '/audio/' + poi.id + '_vi.mp3'; }
+
+                        let playPromise = audioEl.play();
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                statusEl.style.background = '#4CAF50';
+                                statusEl.innerHTML = '<i class=""fa-solid fa-circle-pause""></i> Đang phát (Bấm để dừng)';
+                                statusEl.onclick = function() { 
+                                    audioEl.pause(); 
+                                    statusEl.style.background = '#FF9800';
+                                    statusEl.innerHTML = '<i class=""fa-solid fa-volume-high""></i> Đã dừng. Bấm nghe lại'; 
+                                    statusEl.onclick = function() { playAudioWithFallback(poi, lang, true); };
+                                };
+                            }).catch(error => {
+                                executeTTS();
+                            });
+                        } else {
+                            executeTTS();
+                        }
+                    } else {
+                        executeTTS();
+                    }
+                }
+
+                function executeTTS() {
+                    statusEl.style.background = '#2196F3';
+                    statusEl.innerHTML = '<i class=""fa-solid fa-robot""></i> Đang phát bằng AI...';
+
+                    if (lang === 'vi') {
+                        speakTTS(textToRead, 'vi-VN');
+                    } else {
+                        let url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=${lang}&dt=t&q=${encodeURIComponent(textToRead)}`;
+                        fetch(url)
+                            .then(res => res.json())
+                            .then(data => {
+                                let translatedText = '';
+                                data[0].forEach(item => { translatedText += item[0]; });
+                                speakTTS(translatedText, lang === 'en' ? 'en-US' : 'ja-JP');
+                            })
+                            .catch(err => {
+                                speakTTS(lang === 'en' ? 'Translation error' : '翻訳エラー', lang === 'en' ? 'en-US' : 'ja-JP');
+                            });
+                    }
+                }
+
+                function speakTTS(text, locale) {
+                    window.speechSynthesis.cancel();
+                    currentUtterance = new SpeechSynthesisUtterance(text);
+                    currentUtterance.lang = locale;
+                    currentUtterance.rate = 1.0;
+                    
+                    currentUtterance.onend = function() { 
+                        statusEl.style.background = '#FF9800';
+                        statusEl.innerHTML = '<i class=""fa-solid fa-rotate-right""></i> Đã đọc xong. Nghe lại'; 
+                        statusEl.onclick = function() { playAudioWithFallback(poi, lang, true); };
+                    };
+                    
+                    window.speechSynthesis.speak(currentUtterance);
+                    
+                    statusEl.innerHTML = '<i class=""fa-solid fa-robot""></i> Đang phát AI (Bấm để dừng)';
+                    statusEl.onclick = function() { 
+                        window.speechSynthesis.cancel(); 
+                        statusEl.style.background = '#FF9800';
+                        statusEl.innerHTML = '<i class=""fa-solid fa-volume-high""></i> Đã dừng. Bấm nghe lại';
+                        statusEl.onclick = function() { playAudioWithFallback(poi, lang, true); };
+                    };
+                }
             }
 
             function closeSheet() {
                 document.getElementById('sheetOverlay').classList.remove('show');
                 document.getElementById('poiSheet').classList.remove('show');
-                document.getElementById('sheetAudio').pause();
+                let audioEl = document.getElementById('sheetAudio');
+                audioEl.pause();
+                window.speechSynthesis.cancel();
                 
                 if (currentActivePoi && connection.state === 'Connected') {
-                    connection.invoke('LeavePoi', currentActivePoi.id).catch(err => console.error(err));
+                    connection.invoke('LeavePoi', currentActivePoi.id.toLowerCase()).catch(err => console.error(err));
                     currentActivePoi = null;
                 }
             }

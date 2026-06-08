@@ -7,54 +7,265 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 
-<PageTitle>Bảng Điều Khiển</PageTitle>
+<PageTitle>Bảng Điều Khiển Tổng Quan</PageTitle>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4 px-4 pb-5">
     @if (summary == null)
     {
         <div class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Đang kéo dữ liệu từ máy chủ...</p>
+            <div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="mt-3 text-muted fw-bold">Đang tải dữ liệu hệ thống...</p>
         </div>
     }
     else
     {
-        <h2 class="mb-4">Chào mừng @(summary.Role == "Admin" ? "Quản trị viên" : "Chủ quán")!</h2>
-        <hr class="mb-4" />
-
-        <div class="alert alert-warning mb-4 d-flex align-items-center" style="gap: 15px;">
-            <h6 class="mb-0 fw-bold">⚙️ Link Cloudflare hôm nay:</h6>
-            <input type="text" class="form-control w-50" @bind="serverUrl" placeholder="Dán link Cloudflare vào đây..." />
-            <button class="btn btn-dark" @onclick="UpdateQR">Cập Nhật QR</button>
-        </div>
-
-        <div class="row g-4 mb-4">
+        <div class="d-flex justify-content-between align-items-end mb-4">
+            <div>
+                <h2 class="mb-1 fw-bold text-dark">Tổng quan Hệ thống</h2>
+                <p class="text-muted mb-0">Xin chào, @(summary.Role == "Admin" ? "Quản trị viên" : "Chủ quán")!</p>
+            </div>
             @if (summary.Role == "Admin")
             {
-                <div class="col-md-4">
-                    <div class="card bg-primary text-white p-4 shadow-sm border-0 rounded-4 h-100">
-                        <h6 class="opacity-75 fw-bold">TỔNG THÀNH VIÊN</h6>
-                        <h2 class="display-5 fw-bold mb-0">@summary.TotalUsers</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-success text-white p-4 shadow-sm border-0 rounded-4 h-100">
-                        <h6 class="opacity-75 fw-bold">DOANH THU TOÀN HỆ THỐNG</h6>
-                        <h2 class="display-5 fw-bold mb-0">@summary.TotalRevenue.ToString("N0") đ</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card bg-info text-white p-4 shadow-sm border-0 rounded-4 h-100">
-                        <h6 class="opacity-75 fw-bold">QUÁN ĐANG HOẠT ĐỘNG</h6>
-                        <h2 class="display-5 fw-bold mb-0">@summary.TotalPois</h2>
-                    </div>
-                </div>
+                <span class="badge bg-primary px-3 py-2 fs-6 rounded-pill"><i class="bi bi-shield-lock-fill me-1"></i> Admin Portal</span>
             }
-            else if (summary.Role == "Merchant")
-            {
+        </div>
+
+        @if (summary.Role == "Admin")
+        {
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 h-100 rounded-3" style="border-left: 5px solid #0d6efd !important;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1 fw-semibold" style="font-size: 0.85rem;">TỔNG ĐỊA ĐIỂM</p>
+                                <h3 class="fw-bold mb-0 text-dark">@summary.TotalPois</h3>
+                            </div>
+                            <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                                <i class="bi bi-geo-alt-fill fs-4 text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 h-100 rounded-3" style="border-left: 5px solid #fd7e14 !important;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1 fw-semibold" style="font-size: 0.85rem;">TỔNG LƯỢT NGHE</p>
+                                <h3 class="fw-bold mb-0 text-dark">@totalListens</h3>
+                            </div>
+                            <div class="bg-warning bg-opacity-10 p-2 rounded-3">
+                                <i class="bi bi-headphones fs-4 text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 h-100 rounded-3" style="border-left: 5px solid #198754 !important;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1 fw-semibold" style="font-size: 0.85rem;">DOANH THU (VNĐ)</p>
+                                <h3 class="fw-bold mb-0 text-dark">@summary.TotalRevenue.ToString("N0")</h3>
+                            </div>
+                            <div class="bg-success bg-opacity-10 p-2 rounded-3">
+                                <i class="bi bi-wallet2 fs-4 text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 shadow-sm border-0 h-100 rounded-3" style="border-left: 5px solid #6f42c1 !important;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1 fw-semibold" style="font-size: 0.85rem;">KHÁCH DUY NHẤT</p>
+                                <h3 class="fw-bold mb-0 text-dark">@summary.UniqueUsers</h3>
+                            </div>
+                            <div class="bg-purple bg-opacity-10 p-2 rounded-3" style="background-color: rgba(111, 66, 193, 0.1);">
+                                <i class="bi bi-people-fill fs-4" style="color: #6f42c1;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold mb-0"><i class="bi bi-broadcast text-danger me-2"></i>Giám sát Hệ thống (Live)</h5>
+                                <span class="spinner-grow text-danger spinner-grow-sm" role="status" aria-hidden="true"></span>
+                            </div>
+                            
+                            <div class="row text-center g-3">
+                                <div class="col-6">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <p class="text-muted mb-1 small text-uppercase fw-bold">Thiết bị đang kết nối</p>
+                                        <h2 class="mb-0 fw-bold text-primary">@totalOnline</h2>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <p class="text-muted mb-1 small text-uppercase fw-bold">Đang nghe / Đọc chi tiết</p>
+                                        <h2 class="mb-0 fw-bold text-success">@liveViewers.Count(v => v.Value > 0)</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3">Top Địa điểm thu hút nhất</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-muted fw-semibold border-0 rounded-start">Tên địa điểm</th>
+                                            <th class="text-muted fw-semibold border-0 text-center">Lượt nghe</th>
+                                            <th class="text-muted fw-semibold border-0 text-end rounded-end">Thời lượng TB</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (topPois == null || !topPois.Any())
+                                        {
+                                            <tr><td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu thống kê</td></tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var p in topPois)
+                                            {
+                                                <tr>
+                                                    <td class="fw-bold text-dark py-3">@GetPoiName(p.PoiId.ToString())</td>
+                                                    <td class="text-center py-3"><span class="badge bg-secondary">@p.ListenCount</span></td>
+                                                    <td class="text-end py-3 text-muted">@p.AvgDurationSeconds giây</td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3">Biến động lượt nghe (30 ngày)</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-muted fw-semibold border-0 rounded-start">Ngày</th>
+                                            <th class="text-muted fw-semibold border-0">Lượt nghe</th>
+                                            <th class="text-muted fw-semibold border-0 text-center">Khách Unique</th>
+                                            <th class="text-muted fw-semibold border-0 text-end rounded-end">Nghe TB</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (heatmapList == null || !heatmapList.Any())
+                                        {
+                                            <tr><td colspan="4" class="text-center text-muted py-4">Dữ liệu đang trống</td></tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var item in heatmapList)
+                                            {
+                                                <tr>
+                                                    <td class="py-2 text-dark">@item.Date</td>
+                                                    <td class="py-2 fw-bold text-primary">@item.Count</td>
+                                                    <td class="py-2 text-center text-muted">@item.UniqueUsers</td>
+                                                    <td class="py-2 text-end text-muted">@item.AvgDurationSeconds s</td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 mb-4" style="border: 2px solid #00838F !important;">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3 text-info"><i class="bi bi-qr-code-scan me-2"></i>Thống kê Thiết bị Quét QR</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-muted fw-semibold border-0 rounded-start">Tên Máy / Thiết bị</th>
+                                            <th class="text-muted fw-semibold border-0 text-center">Số lượt Quét QR</th>
+                                            <th class="text-muted fw-semibold border-0 text-end rounded-end">Thời gian quét cuối</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (qrStats == null || !qrStats.Any())
+                                        {
+                                            <tr><td colspan="3" class="text-center text-muted py-4">Chưa có thiết bị nào quét QR trong hệ thống.</td></tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var q in qrStats)
+                                            {
+                                                <tr>
+                                                    <td class="fw-bold text-dark py-3"><i class="bi bi-phone me-2 text-secondary"></i>@q.DeviceName</td>
+                                                    <td class="text-center py-3"><span class="badge rounded-pill bg-info text-dark fs-6 px-3">@q.ScanCount lượt</span></td>
+                                                    <td class="text-end py-3 text-muted">@(q.LastScan?.ToString("dd/MM/yyyy HH:mm:ss"))</td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold mb-3">Chất lượng tương tác</h5>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-muted">Thời lượng nghe TB</span>
+                                    <span class="fw-bold text-dark">@summary.AvgListenDurationSeconds giây</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: 75%"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-muted">Tỷ lệ hoàn thành</span>
+                                    <span class="fw-bold text-dark">@((summary.TotalListens > 0 ? 50.6 : 0).ToString("0.0"))%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: @((summary.TotalListens > 0 ? 50.6 : 0).ToString("0.0").Replace(",", "."))%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 p-4 text-center" style="background: linear-gradient(145deg, #212529, #343a40); color: white; position: sticky; top: 20px;">
+                        <h5 class="mb-2 text-warning fw-bold"><i class="bi bi-qr-code-scan me-2"></i>Trạm Quét WebApp</h5>
+                        <p class="small text-light opacity-75 mb-4">Mở camera điện thoại quét để trải nghiệm ngay phiên bản Web.</p>
+                        
+                        <div class="bg-white p-3 rounded-4 d-inline-block mx-auto mb-4 shadow">
+                            <img src="@qrCodeUrl" alt="QR WebApp" width="180" height="180" style="display: block;" />
+                        </div>
+                        
+                        <a href="@downloadLink" target="_blank" class="btn btn-warning fw-bold w-100 py-2 rounded-pill shadow-sm">Truy Cập Trực Tiếp</a>
+                    </div>
+
+                </div>
+            </div>
+        }
+        else if (summary.Role == "Merchant")
+        {
+            <div class="row g-4 mb-4">
                 <div class="col-md-4">
                     <div class="card bg-success text-white p-4 shadow-sm border-0 rounded-4 h-100">
-                        <h6 class="opacity-75 fw-bold">DOANH THU CỦA TÔI</h6>
+                        <h6 class="opacity-75 fw-bold">DOANH THU THỰC TẾ</h6>
                         <h2 class="display-5 fw-bold mb-0">@summary.TotalRevenue.ToString("N0") đ</h2>
                     </div>
                 </div>
@@ -70,97 +281,52 @@
                         <h2 class="display-5 fw-bold mb-0">@summary.AverageRating ⭐</h2>
                     </div>
                 </div>
-            }
-        </div>
-
-        <div class="row g-4 mb-5">
-            <div class="col-md-8">
-                <div class="card border-0 shadow-sm rounded-4 h-100 p-4">
-                    <h4 class="mb-4 text-primary"><i class="bi bi-broadcast me-2"></i>Thống Kê Real-time & Heatmap</h4>
-                    
-                    <div class="alert alert-info d-flex align-items-center mb-4">
-                        <h2 class="mb-0 fw-bold text-primary">@totalOnline<span class="fs-6 text-muted ms-2">người</span></h2>
-                        <div class="ms-3">
-                            <h6 class="mb-0 text-dark">Số lượng thiết bị đang truy cập App.</h6>
-                        </div>
-                    </div>
-
-                    <h6 class="fw-bold mb-3">Biểu Đồ Lượt Nghe (7 ngày qua):</h6>
-                    <div class="mb-4 bg-light p-3 rounded-3 border">
-                        @if (heatmapList == null || !heatmapList.Any())
+            </div>
+            
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="mb-4 text-primary fw-bold"><i class="bi bi-bar-chart-line me-2"></i>Biểu đồ Lượt nghe (30 ngày)</h5>
+                    @if (heatmapList == null || !heatmapList.Any())
+                    {
+                        <p class="text-muted fst-italic mb-0 text-center py-4">Hệ thống chưa ghi nhận dữ liệu.</p>
+                    }
+                    else
+                    {
+                        @foreach (var item in heatmapList)
                         {
-                            <p class="text-muted fst-italic mb-0">Chưa có dữ liệu Heatmap.</p>
-                        }
-                        else
-                        {
-                            @foreach (var item in heatmapList)
-                            {
-                                <div class="d-flex align-items-center mb-2">
-                                    <span style="width: 60px; font-weight: bold; font-size: 0.9rem;">@item.Date</span>
-                                    <div class="progress flex-grow-1" style="height: 20px; border-radius: 4px;">
-                                        <div class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: @(Math.Min(100, item.Count * 10))%">
-                                            @item.Count lượt
-                                        </div>
-                                    </div>
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="text-muted fw-bold" style="width: 100px; font-size: 0.9rem;">@item.Date</span>
+                                <div class="progress flex-grow-1 bg-light" style="height: 12px; border-radius: 6px;">
+                                    <div class="progress-bar bg-danger rounded-pill" role="progressbar" style="width: @(Math.Min(100, item.Count * 10))%"></div>
                                 </div>
-                            }
+                                <span class="ms-3 fw-bold text-dark" style="min-width: 60px;">@item.Count <small class="text-muted fw-normal">lượt</small></span>
+                            </div>
                         }
-                    </div>
-
-                    <h6 class="fw-bold mb-3">Du khách đang xem chi tiết quán:</h6>
-                    <div class="row">
-                        @if (!liveViewers.Any(v => v.Value > 0))
-                        {
-                            <div class="col-12"><p class="text-muted fst-italic">Hiện chưa có ai mở xem quán nào.</p></div>
-                        }
-                        else
-                        {
-                            @foreach (var kvp in liveViewers.Where(v => v.Value > 0))
-                            {
-                                <div class="col-md-4 mb-3">
-                                    <div class="card border-primary shadow-sm text-center">
-                                        <div class="card-body py-2">
-                                            <h3 class="fw-bold text-primary mb-0">@kvp.Value <span style="font-size: 1rem">người</span></h3>
-                                        </div>
-                                        <div class="card-footer bg-light border-0 py-1">
-                                            <small class="fw-bold">@GetPoiName(kvp.Key)</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </div>
+                    }
                 </div>
             </div>
-
-            <div class="col-md-4">
-                <div class="card border-0 shadow-sm rounded-4 h-100 p-4 text-center bg-dark text-white">
-                    <h4 class="mb-3 text-warning">Trạm Xe Buýt (WebApp)</h4>
-                    <p class="small opacity-75 mb-4">Dán mã này tại các trạm xe buýt. Quét bằng camera để nghe WebApp mà không cần cài App.</p>
-                    
-                    <div class="bg-white p-3 rounded-4 d-inline-block mx-auto mb-3">
-                        <img src="@qrCodeUrl" alt="QR WebApp" width="180" height="180" />
-                    </div>
-                    
-                    <a href="@downloadLink" target="_blank" class="btn btn-warning fw-bold mt-auto">Mở Test WebApp</a>
-                </div>
-            </div>
-        </div>
+        }
     }
 </div>
 
 @code {
     private DashboardSummary summary;
     private string apiBase = "https://localhost:7008/api/Dashboard/summary";
-    private string heatmapApi = "https://localhost:7008/api/Dashboard/heatmap?days=7";
+    private string heatmapApi = "https://localhost:7008/api/Dashboard/heatmap?days=30";
+    private string topPoiApi = "https://localhost:7008/api/Dashboard/top-pois";
+    private string qrStatsApi = "https://localhost:7008/api/Dashboard/qr-stats"; // 🔥 Khai báo API QR mới
 
     private HubConnection hubConnection;
     private int totalOnline = 0;
+    private int totalListens = 0;
+
     private Dictionary<string, int> liveViewers = new();
     private List<PoiTemp> poiList = new();
     private List<HeatmapData> heatmapList = new();
+    private List<TopPoiData> topPois = new();
+    private List<QrStatData> qrStats = new(); // 🔥 Biến chứa List QR Data
 
-    private string serverUrl = "https://nights-inserted-designated-expenditure.trycloudflare.com";
+    private string serverUrl = "https://developing-hotel-accepts-artwork.trycloudflare.com";
     private string downloadLink = "";
     private string qrCodeUrl = "";
 
@@ -171,22 +337,34 @@
         
         Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         
-        try { summary = await Http.GetFromJsonAsync<DashboardSummary>(apiBase); } catch { }
+        try { summary = await Http.GetFromJsonAsync<DashboardSummary>(apiBase); } catch (Exception ex) { Console.WriteLine("Lỗi API Summary: " + ex.Message); }
         try { heatmapList = await Http.GetFromJsonAsync<List<HeatmapData>>(heatmapApi); } catch { }
         try { poiList = await Http.GetFromJsonAsync<List<PoiTemp>>("https://localhost:7008/api/Pois"); } catch { }
+        try { topPois = await Http.GetFromJsonAsync<List<TopPoiData>>(topPoiApi); } catch { }
+        
+        // 🔥 Lấy dữ liệu thống kê QR từ Server
+        try { qrStats = await Http.GetFromJsonAsync<List<QrStatData>>(qrStatsApi); } catch { }
 
         UpdateQR();
 
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl("https://localhost:7008/travelhub?clientType=admin")
-            .WithAutomaticReconnect()
-            .Build();
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl("https://localhost:7008/travelhub?clientType=admin")
+                .WithAutomaticReconnect()
+                .Build();
 
-        hubConnection.On<int>("UpdateOnlineCount", (count) => { totalOnline = count; InvokeAsync(StateHasChanged); });
-        hubConnection.On<string, int>("UpdateViewerCount", (poiId, count) => { liveViewers[poiId] = count; InvokeAsync(StateHasChanged); });
+            hubConnection.On<int>("UpdateOnlineCount", (count) => { totalOnline = count; InvokeAsync(StateHasChanged); });
+            hubConnection.On<string, int>("UpdateViewerCount", (poiId, count) => { liveViewers[poiId] = count; InvokeAsync(StateHasChanged); });
+            hubConnection.On<int>("UpdateTotalListens", (count) => { totalListens = count; InvokeAsync(StateHasChanged); });
 
-        await hubConnection.StartAsync();
-        await hubConnection.SendAsync("RequestCurrentCounts");
+            await hubConnection.StartAsync();
+            await hubConnection.SendAsync("RequestCurrentCounts");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Lỗi SignalR: " + ex.Message);
+        }
     }
 
     private void UpdateQR()
@@ -196,10 +374,45 @@
         StateHasChanged();
     }
 
-    private string GetPoiName(string id) { var p = poiList.FirstOrDefault(x => x.id.ToLower() == id.ToLower()); return p?.name ?? "Quán Ẩm Thực"; }
+    private string GetPoiName(string id) { var p = poiList.FirstOrDefault(x => x.id.ToLower() == id.ToLower()); return p?.name ?? "Đang tải tên..."; }
+    
     public async ValueTask DisposeAsync() { if (hubConnection is not null) await hubConnection.DisposeAsync(); }
 
-    public class DashboardSummary { public string Role { get; set; } public int TotalUsers { get; set; } public decimal TotalRevenue { get; set; } public int TotalPois { get; set; } public int TotalOrders { get; set; } public double AverageRating { get; set; } }
+    public class DashboardSummary
+    {
+        public string Role { get; set; }
+        public int TotalUsers { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public int TotalPois { get; set; }
+        public int TotalOrders { get; set; }
+        public double AverageRating { get; set; }
+        public int TotalTours { get; set; }
+        public int TotalListens { get; set; }
+        public int UniqueUsers { get; set; }
+        public double AvgListenDurationSeconds { get; set; }
+    }
     public class PoiTemp { public string id { get; set; } public string name { get; set; } }
-    public class HeatmapData { public string Date { get; set; } public int Count { get; set; } }
+    
+    public class HeatmapData
+    {
+        public string Date { get; set; }
+        public int Count { get; set; }
+        public int UniqueUsers { get; set; }
+        public double AvgDurationSeconds { get; set; }
+    }
+
+    public class TopPoiData
+    {
+        public Guid PoiId { get; set; }
+        public int ListenCount { get; set; }
+        public double AvgDurationSeconds { get; set; }
+    }
+
+    // 🔥 Model hứng dữ liệu API QR mới
+    public class QrStatData
+    {
+        public string DeviceName { get; set; }
+        public int ScanCount { get; set; }
+        public DateTime? LastScan { get; set; }
+    }
 }

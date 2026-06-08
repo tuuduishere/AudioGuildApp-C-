@@ -1,16 +1,42 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using TravelSmart.API.Models;
 
 namespace TravelSmart.API.Hubs
 {
     public class TravelHub : Hub
     {
+        // Nhúng Database Context để lấy dữ liệu cũ
+        private readonly VinhKhanhTravelDbContext _db;
+
         private static int _totalOnline = 0;
         private static readonly ConcurrentDictionary<string, int> _poiViewers = new();
         private static readonly ConcurrentDictionary<string, string> _userLocations = new();
 
+        // Để -1 để làm dấu nhận biết "Server vừa mới khởi động"
+        private static int _totalListens = -1;
+
+        // Constructor nhận DbContext
+        public TravelHub(VinhKhanhTravelDbContext db)
+        {
+            _db = db;
+        }
+
         public override async Task OnConnectedAsync()
         {
+            // NẾU SERVER VỪA BẬT -> MÓC TỔNG SỐ LƯỢT NGHE TỪ DATABASE LÊN!
+            if (_totalListens == -1)
+            {
+                try
+                {
+                    _totalListens = _db.VisitLogs.Count();
+                }
+                catch
+                {
+                    _totalListens = 0;
+                }
+            }
+
             string clientType = Context.GetHttpContext()?.Request.Query["clientType"].ToString();
             if (clientType == "app")
             {
@@ -59,10 +85,22 @@ namespace TravelSmart.API.Hubs
             }
         }
 
+        // ==============================================================================
+        // ==============================================================================
+        public async Task LogListen(string poiId)
+        {
+   
+            Interlocked.Increment(ref _totalListens);
+            await Clients.All.SendAsync("UpdateTotalListens", _totalListens);
+        }
+
         public async Task RequestCurrentCounts()
         {
             await Clients.Caller.SendAsync("UpdateOnlineCount", _totalOnline);
             foreach (var kvp in _poiViewers) { await Clients.Caller.SendAsync("UpdateViewerCount", kvp.Key, kvp.Value); }
+
+            // Gửi Tổng lượt nghe cho Admin khi vừa mở web
+            await Clients.Caller.SendAsync("UpdateTotalListens", _totalListens == -1 ? 0 : _totalListens);
         }
     }
 }

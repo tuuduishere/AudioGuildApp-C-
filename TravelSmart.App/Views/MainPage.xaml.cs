@@ -36,6 +36,9 @@ public partial class MainPage : ContentPage
 
     private HubConnection _hubConnection;
 
+    private PoiModel _queuedPoi = null;
+    private DateTime? _queueStartTime = null;
+
     public MainPage() { InitializeComponent(); _dataService = new DataService(); }
 
     protected override async void OnAppearing()
@@ -217,7 +220,6 @@ public partial class MainPage : ContentPage
     {
         _currentSelectedLocation = pin?.Location;
 
-        // 🔥 FIX SIGNALR: GỬI LÊN ADMIN BẰNG CHỮ THƯỜNG ĐỂ KHỚP DATA
         if (_hubConnection?.State == HubConnectionState.Connected)
         {
             if (_currentActivePoi != null && _currentActivePoi.Id != poi.Id)
@@ -247,6 +249,10 @@ public partial class MainPage : ContentPage
         await FetchPoiDetails(poi.Id, poi.Description);
 
         _ = _dataService.AddHistoryAsync(poi);
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.SendAsync("LogListen", poi.Id.ToString().ToLower());
+        }
     }
 
     private async Task StartTrackingGPS()
@@ -333,13 +339,13 @@ public partial class MainPage : ContentPage
 
         if (pOfEnteredPois.Any())
         {
-            var closestData = pOfEnteredPois
+            var sortedPois = pOfEnteredPois
                 .OrderBy(x => x.Item2)
                 .ThenByDescending(x => x.Item1.Priority)
                 .ThenBy(x => x.Item1.Name)
-                .First();
+                .ToList();
 
-            var poi = closestData.Item1;
+            var poi = sortedPois.First().Item1;
 
             bool isCoolingDown = _poiCooldowns.ContainsKey(poi.Id) && (DateTime.Now - _poiCooldowns[poi.Id]).TotalMinutes < 3;
 
@@ -350,11 +356,21 @@ public partial class MainPage : ContentPage
                 _poiCooldowns[poi.Id] = DateTime.Now;
                 _entryTimes[poi.Id] = DateTime.Now;
 
-                var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);
+                if (sortedPois.Count > 1)
+                {
+                    _queuedPoi = sortedPois[1].Item1;
+                    _queueStartTime = DateTime.Now;
+                }
+                else
+                {
+                    _queuedPoi = null;
+                    _queueStartTime = null;
+                }
 
+                var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == poi.Latitude && p.Location.Longitude == poi.Longitude);
                 HighlightActivePoi(new Location(poi.Latitude, poi.Longitude), currentRadiusKm);
 
-                _ = PlayPoiAudio(poi);
+                _ = PlayPoiAudio(poi, "vi");
                 MainThread.BeginInvokeOnMainThread(async () => { await OpenBottomSheetForPoi(pin, poi); });
             }
         }
@@ -370,9 +386,7 @@ public partial class MainPage : ContentPage
             if (distanceKm > (currentRadiusKm + 0.05))
             {
                 var durationMinutes = (DateTime.Now - _entryTimes[poiId]).TotalMinutes;
-
                 if (_currentActivePoi != null && _currentActivePoi.Id == poiId) ClearHighlight();
-
                 _entryTimes.Remove(poiId);
             }
         }
@@ -382,10 +396,10 @@ public partial class MainPage : ContentPage
     {
         if (sender is Button btn && _currentActivePoi != null)
         {
-            string param = btn.CommandParameter?.ToString()?.ToUpper() ?? "VN";
+            string text = btn.Text?.ToUpper() ?? "";
             string tempLangCode = "vi";
-            if (param == "EN" || param == "ENGLISH") tempLangCode = "en";
-            else if (param == "JP" || param == "JA" || param == "JAPANESE") tempLangCode = "ja";
+            if (text.Contains("EN") || text.Contains("ENGLISH")) tempLangCode = "en";
+            else if (text.Contains("JP") || text.Contains("JA")) tempLangCode = "ja";
 
             _ = PlayPoiAudio(_currentActivePoi, tempLangCode);
         }
@@ -408,77 +422,120 @@ public partial class MainPage : ContentPage
         catch { }
     }
 
-    private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null)
+    // 🔥 ĐÃ ĐỘ HÀM NÀY: NHẬN THÊM BIẾN forceStream ĐỂ QUYẾT ĐỊNH DOWNLOAD HAY STREAM
+    private async Task PlayPoiAudio(PoiModel poi, string tempLangOverride = null, bool forceStream = false)
     {
         StopSpeech();
 
         string targetLang = tempLangOverride ?? Preferences.Default.Get("DefaultLang", "vi");
         string safeBaseUrl = AppConfig.ApiBaseUrl.Replace("/api", "").Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
 
+        string textToRead = !string.IsNullOrWhiteSpace(poi.TtsContent)
+            ? poi.TtsContent
+            : (!string.IsNullOrWhiteSpace(poi.Description) ? poi.Description : $"Chào mừng bạn đến với {poi.Name}");
+
+        bool mp3PlayedSuccessfully = false;
+
         if (targetLang == "vi")
         {
-            if (!string.IsNullOrEmpty(poi.AudioUrl))
+            // ==========================================
+            // 🔥 CHẾ ĐỘ 1: MÁY YẾU -> STREAM TRỰC TIẾP QUA MẠNG
+            // ==========================================
+            if (forceStream)
             {
                 try
                 {
-                    string customAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
-                    if (!customAudioUrl.StartsWith("http")) customAudioUrl = $"{safeBaseUrl}{customAudioUrl}";
+                    string streamUrl = !string.IsNullOrEmpty(poi.AudioUrl) ? poi.AudioUrl : $"/audio/{poi.Id}_vi.mp3";
+                    streamUrl = streamUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+                    if (!streamUrl.StartsWith("http")) streamUrl = $"{safeBaseUrl}{streamUrl}";
 
-                    string localManualPath = Path.Combine(FileSystem.CacheDirectory, $"manual_{poi.Id}.mp3");
-
-                    if (!File.Exists(localManualPath))
-                    {
-                        var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
-                        using var httpClient = new HttpClient(handler);
-                        httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
-
-                        var audioBytes = await httpClient.GetByteArrayAsync(customAudioUrl);
-                        await File.WriteAllBytesAsync(localManualPath, audioBytes);
-                    }
-
-                    var stream = File.OpenRead(localManualPath);
-                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
-                    _audioPlayer.Play();
-                    return;
-                }
-                catch { Console.WriteLine("Lỗi load Audio gốc, chuyển xuống AI."); }
-            }
-
-            string localFilePathVi = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_vi.mp3");
-            if (File.Exists(localFilePathVi))
-            {
-                try
-                {
-                    var stream = File.OpenRead(localFilePathVi);
-                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
-                    _audioPlayer.Play();
-                    return;
-                }
-                catch { }
-            }
-
-            if (Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
-            {
-                try
-                {
-                    string expectedAudioUrl = $"{safeBaseUrl}/audio/{poi.Id}_vi.mp3";
                     var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
                     using var httpClient = new HttpClient(handler);
                     httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 
-                    var audioBytes = await httpClient.GetByteArrayAsync(expectedAudioUrl);
-                    await File.WriteAllBytesAsync(localFilePathVi, audioBytes);
+                    // Lấy stream trực tiếp không lưu file
+                    var audioStream = await httpClient.GetStreamAsync(streamUrl);
+                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(audioStream);
 
-                    var stream = File.OpenRead(localFilePathVi);
-                    _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
                     _audioPlayer.Play();
-                    return;
+                    if (_audioPlayer.IsPlaying) mp3PlayedSuccessfully = true;
                 }
-                catch { Console.WriteLine("Server không có file MP3 EdgeTTS, chuyển xuống AI."); }
+                catch { Console.WriteLine("Lỗi Stream MP3 trực tiếp."); }
+            }
+            // ==========================================
+            // 🔥 CHẾ ĐỘ 2: MÁY MẠNH -> TẢI VỀ CACHE TRƯỚC RỒI MỚI PHÁT
+            // ==========================================
+            else
+            {
+                if (!string.IsNullOrEmpty(poi.AudioUrl) && !mp3PlayedSuccessfully)
+                {
+                    try
+                    {
+                        string customAudioUrl = poi.AudioUrl.Replace("https://localhost:7008", "http://10.0.2.2:5088").Replace("localhost", "10.0.2.2");
+                        if (!customAudioUrl.StartsWith("http")) customAudioUrl = $"{safeBaseUrl}{customAudioUrl}";
+
+                        string localManualPath = Path.Combine(FileSystem.CacheDirectory, $"manual_{poi.Id}.mp3");
+
+                        if (!File.Exists(localManualPath))
+                        {
+                            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+                            using var httpClient = new HttpClient(handler);
+                            httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                            var audioBytes = await httpClient.GetByteArrayAsync(customAudioUrl);
+                            await File.WriteAllBytesAsync(localManualPath, audioBytes);
+                        }
+                        var stream = File.OpenRead(localManualPath);
+                        _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
+
+                        _audioPlayer.Play();
+                        if (_audioPlayer.IsPlaying) mp3PlayedSuccessfully = true;
+                    }
+                    catch { Console.WriteLine("Lỗi load MP3 thủ công."); }
+                }
+
+                if (!mp3PlayedSuccessfully)
+                {
+                    string localFilePathVi = Path.Combine(FileSystem.CacheDirectory, $"{poi.Id}_vi.mp3");
+                    if (File.Exists(localFilePathVi))
+                    {
+                        try
+                        {
+                            var stream = File.OpenRead(localFilePathVi);
+                            _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
+
+                            _audioPlayer.Play();
+                            if (_audioPlayer.IsPlaying) mp3PlayedSuccessfully = true;
+                        }
+                        catch { }
+                    }
+
+                    if (!mp3PlayedSuccessfully && Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
+                    {
+                        try
+                        {
+                            string expectedAudioUrl = $"{safeBaseUrl}/audio/{poi.Id}_vi.mp3";
+                            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+                            using var httpClient = new HttpClient(handler);
+                            httpClient.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+                            var audioBytes = await httpClient.GetByteArrayAsync(expectedAudioUrl);
+                            await File.WriteAllBytesAsync(localFilePathVi, audioBytes);
+
+                            var stream = File.OpenRead(localFilePathVi);
+                            _audioPlayer = Plugin.Maui.Audio.AudioManager.Current.CreatePlayer(stream);
+
+                            _audioPlayer.Play();
+                            if (_audioPlayer.IsPlaying) mp3PlayedSuccessfully = true;
+                        }
+                        catch { }
+                    }
+                }
             }
         }
 
-        await SmartSpeak(poi.TtsContent, targetLang);
+        if (!mp3PlayedSuccessfully)
+        {
+            await SmartSpeak(textToRead, targetLang);
+        }
     }
 
     private async Task SmartSpeak(string text, string targetLang)
@@ -502,7 +559,7 @@ public partial class MainPage : ContentPage
 
                 var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, err) => true };
                 using var client = new HttpClient(handler);
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
 
                 var url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl={targetLang}&dt=t&q={Uri.EscapeDataString(cleanText)}";
                 var response = await client.GetStringAsync(url);
@@ -544,7 +601,7 @@ public partial class MainPage : ContentPage
             double currentRadiusKm = Preferences.Default.Get("GeofenceRadius", 50) / 1000.0;
             HighlightActivePoi(new Location(poi.Latitude, poi.Longitude), currentRadiusKm);
 
-            _ = PlayPoiAudio(poi);
+            _ = PlayPoiAudio(poi, "vi");
             await OpenBottomSheetForPoi(pin, poi);
         }
     }
@@ -553,13 +610,40 @@ public partial class MainPage : ContentPage
     {
         await BottomSheet.TranslateTo(0, 700, 300, Easing.CubicIn);
         SheetOverlay.InputTransparent = true; SheetOverlay.IsVisible = false;
-
-        // 🔥 FIX SIGNALR: THOÁT QUÁN CŨNG PHẢI DÙNG CHỮ THƯỜNG
         if (_currentActivePoi != null && _hubConnection?.State == HubConnectionState.Connected)
             await _hubConnection.SendAsync("LeavePoi", _currentActivePoi.Id.ToString().ToLower());
 
         StopSpeech();
         ClearHighlight();
+
+        if (_queuedPoi != null && _queueStartTime.HasValue)
+        {
+            var secondsElapsed = (DateTime.Now - _queueStartTime.Value).TotalSeconds;
+
+            if (secondsElapsed <= 5.0)
+            {
+                var nextPoi = _queuedPoi;
+
+                _queuedPoi = null;
+                _queueStartTime = null;
+
+                _poiCooldowns[nextPoi.Id] = DateTime.Now;
+                _entryTimes[nextPoi.Id] = DateTime.Now;
+
+                var pin = _pinPoiMap.Keys.FirstOrDefault(p => p.Location.Latitude == nextPoi.Latitude && p.Location.Longitude == nextPoi.Longitude);
+                double currentRadiusKm = Preferences.Default.Get("GeofenceRadius", 50) / 1000.0;
+
+                HighlightActivePoi(new Location(nextPoi.Latitude, nextPoi.Longitude), currentRadiusKm);
+
+                _ = PlayPoiAudio(nextPoi, "vi");
+                await OpenBottomSheetForPoi(pin, nextPoi);
+            }
+            else
+            {
+                _queuedPoi = null;
+                _queueStartTime = null;
+            }
+        }
     }
 
     private async Task FetchPoiDetails(string poiId, string description)
@@ -646,6 +730,7 @@ public partial class MainPage : ContentPage
         }
     }
 
+    // 🔥 LOGIC XỬ LÝ QUÉT QR MỚI CỦA THẦY Ở ĐÂY
     private async void OnScanClicked(object sender, EventArgs e)
     {
         var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
@@ -664,12 +749,46 @@ public partial class MainPage : ContentPage
                 if (pin != null)
                 {
                     await Task.Delay(500);
-                    _ = PlayPoiAudio(poi);
+
+                    // ==========================================
+                    // 🔥 THUẬT TOÁN RANDOM MÁY MẠNH/YẾU CỦA THẦY
+                    // ==========================================
+                    int devicePower = new Random().Next(0, 2); // Random 0 hoặc 1
+                    bool isWeakDevice = (devicePower == 1);
+
+                    string powerMsg = isWeakDevice
+                        ? "MÁY YẾU (Random = 1)\n\nHệ thống sẽ Stream Audio trực tiếp từ Server để tiết kiệm RAM & Bộ nhớ máy."
+                        : "MÁY MẠNH (Random = 0)\n\nHệ thống sẽ Tải Audio về lưu Cache để phát mượt mà không lo rớt mạng.";
+
+                    await DisplayAlert("Kiểm tra phần cứng", powerMsg, "OK");
+
+                    // Bắn riêng 1 log lên server đánh dấu là Quét QR (Dành cho Dashboard)
+                    _ = LogQrScanToServer(poi.Id.ToString());
+
+                    // Gọi hàm Play với cờ kiểm tra Stream
+                    _ = PlayPoiAudio(poi, "vi", forceStream: isWeakDevice);
                     await OpenBottomSheetForPoi(pin, poi);
                 }
             }
             else await DisplayAlert("Rất tiếc", "Mã QR này không thuộc hệ thống!", "OK");
         }));
+    }
+
+    // 🔥 HÀM BẮN LOG QR LÊN SERVER
+    private async Task LogQrScanToServer(string poiId)
+    {
+        try
+        {
+            // Gắn cái mác [QR_SCAN] vô tên thiết bị, Database nhận vào tự hiểu!
+            string deviceName = DeviceInfo.Name + " [QR_SCAN]";
+            var logData = new { PoiId = poiId, DeviceName = deviceName, LanguageCode = "vi", DurationMinutes = 1.0 };
+
+            var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
+            using var client = new HttpClient(handler);
+            client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
+            await client.PostAsJsonAsync($"{AppConfig.ApiBaseUrl}/Pois/history", logData);
+        }
+        catch { }
     }
 
     private async void OnHistoryClicked(object sender, EventArgs e) { await Navigation.PushAsync(new HistoryPage()); }

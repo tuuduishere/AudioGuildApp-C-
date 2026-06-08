@@ -4,8 +4,20 @@
 @inject IJSRuntime JS
 
 <div class="container mt-4">
-    <h2>📍 Bản đồ Nhiệt (Heatmap)</h2>
-    <p class="text-muted">Trực quan hóa khu vực tập trung đông khách du lịch dựa trên dữ liệu GPS thật.</p>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2>📍 Bản đồ Nhiệt (Heatmap)</h2>
+            <p class="text-muted mb-0">Trực quan hóa khu vực tập trung đông khách du lịch dựa trên dữ liệu GPS thật.</p>
+        </div>
+        <div>
+            <select class="form-select border-danger text-danger fw-bold shadow-sm" @onchange="OnTimeFilterChanged">
+                <option value="0">🔥 Hôm nay</option>
+                <option value="7">📅 Tuần này (7 ngày qua)</option>
+                <option value="30" selected>📊 Tháng này (30 ngày qua)</option>
+                <option value="999">🌍 Tất cả thời gian</option>
+            </select>
+        </div>
+    </div>
 
     <div class="card shadow-lg border-0 rounded-4">
         <div id="heatmapContainer" style="height: 650px; width: 100%; border-radius: 15px;"></div>
@@ -13,24 +25,53 @@
 </div>
 
 @code {
+    private int currentDays = 30;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            var data = await Http.GetFromJsonAsync<List<HeatPoint>>("https://localhost:7008/api/Analytics/heatmap");
-            var jsonPoints = System.Text.Json.JsonSerializer.Serialize(data);
-
-            var js = $@"
-                setTimeout(() => {{
-                    var hMap = L.map('heatmapContainer').setView([10.762622, 106.660172], 13);
-                    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(hMap);
-                    var points = {jsonPoints};
-                    points.forEach(p => {{
-                        L.circle([p.lat, p.lng], {{ color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: 200 }}).addTo(hMap).bindPopup(p.name);
-                    }});
-                }}, 500);";
-            await JS.InvokeVoidAsync("eval", js);
+            await InitMap();
         }
     }
+
+    private async Task OnTimeFilterChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int days))
+        {
+            currentDays = days;
+            await LoadHeatmapData();
+        }
+    }
+
+    private async Task InitMap()
+    {
+        // Khởi tạo bản đồ 1 lần duy nhất
+        var jsInit = @"
+            window.hMap = L.map('heatmapContainer').setView([10.762622, 106.660172], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(window.hMap);
+            window.heatLayerGroup = L.layerGroup().addTo(window.hMap);
+        ";
+        await JS.InvokeVoidAsync("eval", jsInit);
+        await LoadHeatmapData();
+    }
+
+    private async Task LoadHeatmapData()
+    {
+        // Gắn tham số days vào API
+        var data = await Http.GetFromJsonAsync<List<HeatPoint>>($"https://localhost:7008/api/Analytics/heatmap?days={currentDays}");
+        var jsonPoints = System.Text.Json.JsonSerializer.Serialize(data);
+
+        // Xóa các điểm đỏ cũ và vẽ đốm đỏ mới
+        var jsUpdate = $@"
+            window.heatLayerGroup.clearLayers();
+            var points = {jsonPoints};
+            points.forEach(p => {{
+                L.circle([p.lat, p.lng], {{ color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: 150 }}).addTo(window.heatLayerGroup).bindPopup(p.name);
+            }});
+        ";
+        await JS.InvokeVoidAsync("eval", jsUpdate);
+    }
+
     public class HeatPoint { public string name { get; set; } public double lat { get; set; } public double lng { get; set; } }
 }
